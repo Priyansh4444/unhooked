@@ -1,26 +1,34 @@
 /**
- * Default options (all off). Keys map to CSS classes on document.documentElement.
+ * Option keys (booleans). extensionDisabled = master power off (no hides on YouTube).
  */
 const UNHOOKED_OPTION_KEYS = [
+  "extensionDisabled",
+  "hideHomeFeed",
   "hideRelatedSidebar",
   "hideLiveChat",
   "hidePlaylistSidebar",
+  "hideFundraiser",
+  "hideEndScreenFeed",
+  "hideEndScreenCards",
+  "hideShorts",
   "hideComments",
   "hideCommentAvatars",
+  "hideMixes",
+  "hideMerchTicketsOffers",
   "hideVideoActionsBar",
   "hideChannelRow",
   "hideDescription",
   "hideNotificationBell",
-  "hideShorts",
-  "hideHomeFeed",
+  "hideInaptSearchResults",
   "hideTrendingNav",
-  "hideEndScreen",
+  "hideMoreFromYoutube",
+  "hideSubscriptionsNav",
   "disableAutoplay",
-  "hideMerchShelf",
-  "hideSearchMovieOffers"
+  "disableAnnotations"
 ];
 
 const UNHOOKED_STORAGE_KEY = "unhookedOptions";
+const UNHOOKED_POPUP_THEME_KEY = "unhookedPopupTheme";
 
 function defaultUnhookedOptions() {
   const o = {};
@@ -31,8 +39,22 @@ function defaultUnhookedOptions() {
 function mergeUnhookedOptions(stored) {
   const base = defaultUnhookedOptions();
   if (!stored || typeof stored !== "object") return base;
+
+  const s = { ...stored };
+
+  if (s.hideEndScreen === true) {
+    s.hideEndScreenFeed = true;
+    s.hideEndScreenCards = true;
+  }
+  if (s.hideMerchShelf === true) s.hideMerchTicketsOffers = true;
+  if (s.hideSearchMovieOffers === true) s.hideInaptSearchResults = true;
+
+  delete s.hideEndScreen;
+  delete s.hideMerchShelf;
+  delete s.hideSearchMovieOffers;
+
   for (const k of UNHOOKED_OPTION_KEYS) {
-    if (typeof stored[k] === "boolean") base[k] = stored[k];
+    if (typeof s[k] === "boolean") base[k] = s[k];
   }
   return base;
 }
