@@ -1,0 +1,159 @@
+/**
+ * Unhooked — rules only apply when matching class is on <html>.
+ * YouTube changes DOM often; selectors use fallbacks where possible.
+ */
+
+/*
+ * Related videos only — do NOT hide #secondary / #secondary-inner or zero the
+ * flexy sidebar width: live chat replay lives in the same column and would
+ * disappear with the old "hide whole sidebar" rules.
+ */
+html.uh-hide-related-sidebar ytd-watch-flexy #related,
+html.uh-hide-related-sidebar ytd-watch-flexy ytd-watch-next-secondary-results-renderer,
+html.uh-hide-related-sidebar ytd-watch-flexy ytd-compact-autoplay-renderer {
+  display: none !important;
+}
+
+/* --- Live chat --- */
+html.uh-hide-live-chat #chat,
+html.uh-hide-live-chat ytd-live-chat-frame,
+html.uh-hide-live-chat ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-structured-description"] ~ * ytd-live-chat-frame {
+  display: none !important;
+}
+
+/* --- Playlist panel (watch sidebar) --- */
+html.uh-hide-playlist-sidebar ytd-playlist-panel-renderer,
+html.uh-hide-playlist-sidebar #playlist {
+  display: none !important;
+}
+
+/* --- Comments --- */
+html.uh-hide-comments ytd-comments,
+html.uh-hide-comments #comments,
+html.uh-hide-comments ytd-item-section-renderer[section-identifier="comment-section"] {
+  display: none !important;
+}
+
+html.uh-hide-comment-avatars ytd-comment-thread-renderer #author-thumbnail,
+html.uh-hide-comment-avatars ytd-comment-view-model #author-thumbnail,
+html.uh-hide-comment-avatars #comments ytd-thumbnail {
+  display: none !important;
+}
+
+/* --- Video actions (like / share row) --- */
+html.uh-hide-video-actions-bar ytd-watch-metadata #top-level-buttons-computed,
+html.uh-hide-video-actions-bar ytd-menu-renderer.ytd-watch-metadata #top-level-buttons,
+html.uh-hide-video-actions-bar #actions-inner > ytd-menu-renderer,
+html.uh-hide-video-actions-bar ytd-segmented-like-dislike-button-view-model {
+  display: none !important;
+}
+
+/* --- Channel row (avatar, name, subscribe) --- */
+html.uh-hide-channel-row ytd-watch-metadata ytd-channel-name,
+html.uh-hide-channel-row ytd-watch-metadata #owner,
+html.uh-hide-channel-row #owner {
+  display: none !important;
+}
+
+/* --- Description --- */
+html.uh-hide-description ytd-watch-metadata #description,
+html.uh-hide-description ytd-watch-metadata ytd-text-inline-expander,
+html.uh-hide-description ytd-expandable-video-description-body-renderer {
+  display: none !important;
+}
+
+/* --- Header: notifications --- */
+html.uh-hide-notification-bell ytd-notification-topbar-button-renderer,
+html.uh-hide-notification-bell #buttons ytd-notification-topbar-button-renderer {
+  display: none !important;
+}
+
+/* --- Shorts: shelves + guide + chips --- */
+html.uh-hide-shorts ytd-reel-shelf-renderer,
+html.uh-hide-shorts ytd-rich-item-renderer:has(a[href^="/shorts/"]),
+html.uh-hide-shorts ytd-compact-video-renderer:has(a[href^="/shorts/"]) {
+  display: none !important;
+}
+
+html.uh-hide-shorts ytd-guide-entry-renderer:has(a[href="/shorts"]),
+html.uh-hide-shorts ytd-guide-entry-renderer:has(a[href^="/shorts?"]) {
+  display: none !important;
+}
+
+html.uh-hide-shorts ytd-chip-cloud-chip-renderer:has(a[href^="/shorts"]) {
+  display: none !important;
+}
+
+/* --- Home feed --- */
+html.uh-hide-home-feed ytd-browse[page-subtype="home"] #primary ytd-rich-grid-renderer,
+html.uh-hide-home-feed ytd-browse[page-subtype="home"] ytd-rich-section-renderer {
+  display: none !important;
+}
+
+/* --- Trending in guide --- */
+html.uh-hide-trending-nav ytd-guide-entry-renderer:has(a[href="/feed/trending"]),
+html.uh-hide-trending-nav ytd-guide-entry-renderer:has(a[href^="/feed/explore"]) {
+  display: none !important;
+}
+
+/* --- End screen & cards --- */
+html.uh-hide-end-screen .ytp-endscreen-content,
+html.uh-hide-end-screen .ytp-videowall-still,
+html.uh-hide-end-screen .ytp-ce-element,
+html.uh-hide-end-screen ytd-endscreen-watch-next-renderer,
+html.uh-hide-end-screen ytd-endscreen-playlist-renderer {
+  display: none !important;
+}
+
+html.uh-hide-end-screen .ytp-autonav-endscreen {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* --- Merch / product shelf --- */
+html.uh-hide-merch-shelf ytd-merch-shelf-renderer {
+  display: none !important;
+}
+
+/* --- Search: movie/show offer strips (promotional) --- */
+html.uh-hide-search-movie-offers ytd-search ytd-movie-offer-module-renderer {
+  display: none !important;
+}
+
+/* ========== Embeds (youtube.com/embed) ========== */
+html.uh-hide-end-screen.uh-embed .ytp-endscreen-content,
+html.uh-hide-end-screen.uh-embed .ytp-videowall-still {
+  display: none !important;
+}
+
+/* ========== Mobile m.youtube.com ========== */
+/* Mobile: hide suggestion lists only; keep chat / other panels in that column */
+html.uh-mobile.uh-hide-related-sidebar ytm-watch-next-secondary-results-renderer lazy-list,
+html.uh-mobile.uh-hide-related-sidebar ytm-single-column-watch-next-results-renderer lazy-list {
+  display: none !important;
+}
+
+html.uh-mobile.uh-hide-comments ytm-comment-section-renderer,
+html.uh-mobile.uh-hide-comments ytm-comments-entry-point-header-renderer {
+  display: none !important;
+}
+
+html.uh-mobile.uh-hide-comment-avatars ytm-comment-thread-renderer .comment-thumbnail,
+html.uh-mobile.uh-hide-comment-avatars ytm-comment-simplebox-renderer .thumbnail {
+  display: none !important;
+}
+
+html.uh-mobile.uh-hide-shorts ytm-reel-shelf-renderer,
+html.uh-mobile.uh-hide-shorts a[href^="/shorts/"] {
+  display: none !important;
+}
+
+html.uh-mobile.uh-hide-home-feed ytm-browse[page-subtype="home"] ytm-rich-grid-renderer,
+html.uh-mobile.uh-hide-home-feed ytm-browse[page-subtype="home"] lazy-list ytm-rich-item-renderer {
+  display: none !important;
+}
+
+html.uh-mobile.uh-hide-end-screen .ytp-endscreen-content,
+html.uh-mobile.uh-hide-end-screen .ytp-videowall-still {
+  display: none !important;
+}

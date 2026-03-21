@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Unhooked</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header class="head">
+      <h1>Unhooked</h1>
+      <p class="sub">Calmer YouTube — toggle what to hide.</p>
+    </header>
+
+    <main class="sections">
+      <section class="block">
+        <h2>Video sidebar</h2>
+        <label class="row"
+          ><input type="checkbox" id="hideRelatedSidebar" /> Recommended /
+          related column</label
+        >
+        <label class="row"><input type="checkbox" id="hideLiveChat" /> Live chat</label>
+        <label class="row"><input type="checkbox" id="hidePlaylistSidebar" /> Playlist panel</label>
+      </section>
+
+      <section class="block">
+        <h2>Comments</h2>
+        <label class="row"><input type="checkbox" id="hideComments" /> Comments section</label>
+        <label class="row"
+          ><input type="checkbox" id="hideCommentAvatars" /> Comment profile photos only</label
+        >
+      </section>
+
+      <section class="block">
+        <h2>Video info</h2>
+        <label class="row"
+          ><input type="checkbox" id="hideVideoActionsBar" /> Like / share / action buttons</label
+        >
+        <label class="row"
+          ><input type="checkbox" id="hideChannelRow" /> Channel row &amp; subscribe</label
+        >
+        <label class="row"><input type="checkbox" id="hideDescription" /> Description</label>
+      </section>
+
+      <section class="block">
+        <h2>Header</h2>
+        <label class="row"
+          ><input type="checkbox" id="hideNotificationBell" /> Notification bell</label
+        >
+      </section>
+
+      <section class="block">
+        <h2>Browse</h2>
+        <label class="row"><input type="checkbox" id="hideShorts" /> Shorts (shelves &amp; nav)</label>
+        <label class="row"><input type="checkbox" id="hideHomeFeed" /> Home feed grid</label>
+        <label class="row"><input type="checkbox" id="hideTrendingNav" /> Trending / Explore in guide</label>
+      </section>
+
+      <section class="block">
+        <h2>Player</h2>
+        <label class="row"><input type="checkbox" id="hideEndScreen" /> End-screen suggestions</label>
+        <label class="row"
+          ><input type="checkbox" id="disableAutoplay" /> Turn off autoplay next video (best effort)</label
+        >
+      </section>
+
+      <section class="block">
+        <h2>Extra</h2>
+        <label class="row"><input type="checkbox" id="hideMerchShelf" /> Merch / product shelves</label>
+        <label class="row"
+          ><input type="checkbox" id="hideSearchMovieOffers" /> Search: movie offer modules</label
+        >
+      </section>
+    </main>
+
+    <footer class="foot">
+      <button type="button" id="resetAll" class="btn-secondary">Reset all</button>
+      <p class="legal">
+        Not affiliated with YouTube. Selectors may need updates when YouTube changes layout.
+      </p>
+    </footer>
+
+    <script src="../shared/options.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>
