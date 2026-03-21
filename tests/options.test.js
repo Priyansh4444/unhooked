@@ -6,11 +6,16 @@ describe("shared/options.js", () => {
     defaultUnhookedOptions,
     mergeUnhookedOptions,
     UNHOOKED_OPTION_KEYS,
-    UNHOOKED_STORAGE_KEY
+    UNHOOKED_STORAGE_KEY,
+    UNHOOKED_POPUP_THEME_KEY
   } = loadOptionsModule();
 
   it("uses a stable storage key", () => {
     expect(UNHOOKED_STORAGE_KEY).toBe("unhookedOptions");
+  });
+
+  it("uses a stable popup theme key", () => {
+    expect(UNHOOKED_POPUP_THEME_KEY).toBe("unhookedPopupTheme");
   });
 
   it("lists every option key exactly once", () => {
@@ -67,5 +72,63 @@ describe("shared/options.js", () => {
     expect(merged.hideEndScreenCards).toBe(true);
     expect(merged.hideMerchTicketsOffers).toBe(true);
     expect(merged.hideInaptSearchResults).toBe(true);
+  });
+
+  it("legacy migration does not expose removed keys on merged object", () => {
+    const merged = mergeUnhookedOptions({
+      hideEndScreen: true,
+      hideMerchShelf: true,
+      hideSearchMovieOffers: true
+    });
+    expect(merged).not.toHaveProperty("hideEndScreen");
+    expect(merged).not.toHaveProperty("hideMerchShelf");
+    expect(merged).not.toHaveProperty("hideSearchMovieOffers");
+  });
+
+  it("explicit false legacy flags do not force migration truthy", () => {
+    const merged = mergeUnhookedOptions({
+      hideEndScreen: false,
+      hideMerchShelf: false,
+      hideSearchMovieOffers: false
+    });
+    expect(merged.hideEndScreenFeed).toBe(false);
+    expect(merged.hideMerchTicketsOffers).toBe(false);
+  });
+
+  it.each([
+    ["extensionDisabled", true],
+    ["hideHomeFeed", true],
+    ["hideFundraiser", true],
+    ["hideEndScreenFeed", true],
+    ["hideEndScreenCards", true],
+    ["hideMixes", true],
+    ["hideMoreFromYoutube", true],
+    ["hideSubscriptionsNav", true],
+    ["disableAnnotations", true]
+  ])("merges single flag %s=%s", (key, value) => {
+    const merged = mergeUnhookedOptions({ [key]: value });
+    expect(merged[key]).toBe(value);
+    const other = UNHOOKED_OPTION_KEYS.find((k) => k !== key);
+    expect(merged[other]).toBe(false);
+  });
+
+  it("partial stored object preserves defaults for missing keys", () => {
+    const merged = mergeUnhookedOptions({ hideComments: true });
+    expect(merged.hideComments).toBe(true);
+    expect(merged.extensionDisabled).toBe(false);
+    expect(merged.disableAutoplay).toBe(false);
+  });
+
+  it("empty object yields defaults", () => {
+    expect(mergeUnhookedOptions({})).toEqual(defaultUnhookedOptions());
+  });
+
+  it("arrays and nested objects are ignored as values", () => {
+    const merged = mergeUnhookedOptions({
+      hideComments: true,
+      extensionDisabled: []
+    });
+    expect(merged.hideComments).toBe(true);
+    expect(merged.extensionDisabled).toBe(false);
   });
 });

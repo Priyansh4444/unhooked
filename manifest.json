@@ -21,7 +21,12 @@
         "*://www.youtube-nocookie.com/*"
       ],
       "css": ["content/styles.css"],
-      "js": ["shared/options.js", "content/content.js"],
+      "js": [
+        "shared/options.js",
+        "shared/mappings.js",
+        "shared/apply-option-classes.js",
+        "content/content.js"
+      ],
       "run_at": "document_start"
     }
   ]
