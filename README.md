@@ -32,6 +32,17 @@ Firefox uses Manifest V3 with slightly different packaging. This repo currently 
 - Hiding “home feed” targets the main grid on the home page; other tabs (Subscriptions, etc.) are unchanged.
 - **Hide recommended / related column** hides only the related-videos UI (not the whole right column), so **live chat replay** can stay visible. If chat still does not appear, try turning off other sidebar-related options or refresh after a YouTube UI update.
 
+## Automated tests
+
+From the repo root (requires [Node.js](https://nodejs.org/) 18+):
+
+```bash
+npm install
+npm test
+```
+
+CI runs the same suite on every push and pull request (see `.github/workflows/ci.yml`).
+
 ## Manual QA checklist
 
 - [ ] Watch page: related column, comments, description, channel row, actions.
