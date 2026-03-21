@@ -5,6 +5,7 @@
     hideRelatedSidebar: "uh-hide-related-sidebar",
     hideLiveChat: "uh-hide-live-chat",
     hidePlaylistSidebar: "uh-hide-playlist-sidebar",
+    hideFundraiser: "uh-hide-fundraiser",
     hideComments: "uh-hide-comments",
     hideCommentAvatars: "uh-hide-comment-avatars",
     hideVideoActionsBar: "uh-hide-video-actions-bar",
@@ -14,10 +15,15 @@
     hideShorts: "uh-hide-shorts",
     hideHomeFeed: "uh-hide-home-feed",
     hideTrendingNav: "uh-hide-trending-nav",
-    hideEndScreen: "uh-hide-end-screen",
+    hideEndScreenFeed: "uh-hide-end-screen-feed",
+    hideEndScreenCards: "uh-hide-end-screen-cards",
     disableAutoplay: "uh-disable-autoplay",
-    hideMerchShelf: "uh-hide-merch-shelf",
-    hideSearchMovieOffers: "uh-hide-search-movie-offers"
+    hideMerchTicketsOffers: "uh-hide-merch-tickets-offers",
+    hideInaptSearchResults: "uh-hide-inapt-search",
+    hideMixes: "uh-hide-mixes",
+    hideMoreFromYoutube: "uh-hide-more-from-youtube",
+    hideSubscriptionsNav: "uh-hide-subscriptions-nav",
+    disableAnnotations: "uh-disable-annotations"
   };
 
   const allClasses = Object.values(KEY_TO_CLASS);
@@ -32,7 +38,15 @@
     for (const cls of allClasses) root.classList.remove(cls);
     root.classList.toggle("uh-mobile", isMobile);
     root.classList.toggle("uh-embed", isEmbed);
+
+    if (options.extensionDisabled) {
+      root.classList.add("uh-extension-disabled");
+      return;
+    }
+    root.classList.remove("uh-extension-disabled");
+
     for (const key of UNHOOKED_OPTION_KEYS) {
+      if (key === "extensionDisabled") continue;
       if (options[key] && KEY_TO_CLASS[key]) {
         root.classList.add(KEY_TO_CLASS[key]);
       }
@@ -45,7 +59,7 @@
     api.get([UNHOOKED_STORAGE_KEY], (data) => {
       const opts = mergeUnhookedOptions(data[UNHOOKED_STORAGE_KEY]);
       applyOptionClasses(opts);
-      if (opts.disableAutoplay) scheduleAutoplayOff();
+      if (!opts.extensionDisabled && opts.disableAutoplay) scheduleAutoplayOff();
     });
   }
 
@@ -74,13 +88,8 @@
     if (area !== "local" || !changes[UNHOOKED_STORAGE_KEY]) return;
     const next = mergeUnhookedOptions(changes[UNHOOKED_STORAGE_KEY].newValue);
     applyOptionClasses(next);
-    if (next.disableAutoplay) scheduleAutoplayOff();
+    if (!next.extensionDisabled && next.disableAutoplay) scheduleAutoplayOff();
   });
 
-  function onNav() {
-    loadAndApply();
-  }
-
-  document.addEventListener("yt-navigate-finish", onNav);
+  document.addEventListener("yt-navigate-finish", loadAndApply);
 })();
-

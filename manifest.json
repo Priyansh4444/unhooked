@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Unhooked",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Hide YouTube recommendations, Shorts, comments, and other distractions. Unofficial, not affiliated with YouTube or Google.",
   "permissions": ["storage"],
   "host_permissions": [

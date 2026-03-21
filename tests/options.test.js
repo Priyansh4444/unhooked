@@ -56,4 +56,16 @@ describe("shared/options.js", () => {
     expect(merged.hideShorts).toBe(true);
     expect(merged.hideLiveChat).toBe(false);
   });
+
+  it("migrates legacy keys from older versions", () => {
+    const merged = mergeUnhookedOptions({
+      hideEndScreen: true,
+      hideMerchShelf: true,
+      hideSearchMovieOffers: true
+    });
+    expect(merged.hideEndScreenFeed).toBe(true);
+    expect(merged.hideEndScreenCards).toBe(true);
+    expect(merged.hideMerchTicketsOffers).toBe(true);
+    expect(merged.hideInaptSearchResults).toBe(true);
+  });
 });

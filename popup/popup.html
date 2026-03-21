@@ -7,77 +7,190 @@
     <link rel="stylesheet" href="popup.css" />
   </head>
   <body>
-    <header class="head">
-      <h1>Unhooked</h1>
-      <p class="sub">Calmer YouTube — toggle what to hide.</p>
+    <header class="topbar">
+      <div class="brand">
+        <span class="logo" aria-hidden="true"></span>
+        <span class="brand-name">Unhooked</span>
+      </div>
+      <div class="top-actions">
+        <input type="checkbox" id="extensionDisabled" class="sr-only" tabindex="-1" />
+        <button type="button" class="icon-btn" id="btnTheme" title="Theme" aria-label="Cycle theme">
+          <span class="icon-theme" aria-hidden="true"></span>
+        </button>
+        <button
+          type="button"
+          class="icon-btn power"
+          id="btnPower"
+          title="Extension on"
+          aria-label="Toggle extension"
+          aria-pressed="true"
+        >
+          <span class="icon-power" aria-hidden="true"></span>
+        </button>
+      </div>
     </header>
 
     <main class="sections">
-      <section class="block">
-        <h2>Video sidebar</h2>
-        <label class="row"
-          ><input type="checkbox" id="hideRelatedSidebar" /> Recommended /
-          related column</label
-        >
-        <label class="row"><input type="checkbox" id="hideLiveChat" /> Live chat</label>
-        <label class="row"><input type="checkbox" id="hidePlaylistSidebar" /> Playlist panel</label>
+      <label class="row leaf">
+        <input type="checkbox" class="uh-switch" id="hideHomeFeed" data-key />
+        <span class="row-label">Hide home feed</span>
+      </label>
+
+      <section class="group" data-group="sidebar">
+        <div class="group-head">
+          <label class="row parent">
+            <input type="checkbox" class="uh-switch" id="bulkVideoSidebar" />
+            <span class="row-label">Hide video sidebar</span>
+          </label>
+          <button type="button" class="collapse-btn" aria-expanded="true" aria-label="Collapse section">
+            —
+          </button>
+        </div>
+        <div class="group-children">
+          <label class="row child">
+            <input type="checkbox" class="uh-switch" id="hideRelatedSidebar" data-key />
+            <span class="row-label">Hide recommended</span>
+          </label>
+          <label class="row child">
+            <input type="checkbox" class="uh-switch" id="hideLiveChat" data-key />
+            <span class="row-label">Hide live chat</span>
+          </label>
+          <label class="row child">
+            <input type="checkbox" class="uh-switch" id="hidePlaylistSidebar" data-key />
+            <span class="row-label">Hide playlist</span>
+          </label>
+          <label class="row child">
+            <input type="checkbox" class="uh-switch" id="hideFundraiser" data-key />
+            <span class="row-label">Hide fundraiser</span>
+          </label>
+        </div>
       </section>
 
-      <section class="block">
-        <h2>Comments</h2>
-        <label class="row"><input type="checkbox" id="hideComments" /> Comments section</label>
-        <label class="row"
-          ><input type="checkbox" id="hideCommentAvatars" /> Comment profile photos only</label
-        >
+      <label class="row leaf">
+        <input type="checkbox" class="uh-switch" id="hideEndScreenFeed" data-key />
+        <span class="row-label">Hide end screen feed</span>
+      </label>
+      <label class="row leaf">
+        <input type="checkbox" class="uh-switch" id="hideEndScreenCards" data-key />
+        <span class="row-label">Hide end screen cards</span>
+      </label>
+
+      <label class="row leaf">
+        <input type="checkbox" class="uh-switch" id="hideShorts" data-key />
+        <span class="row-label">Hide Shorts</span>
+      </label>
+
+      <section class="group" data-group="comments">
+        <div class="group-head">
+          <label class="row parent">
+            <input type="checkbox" class="uh-switch" id="hideComments" data-key />
+            <span class="row-label">Hide comments</span>
+          </label>
+          <button type="button" class="collapse-btn" aria-expanded="true" aria-label="Collapse section">
+            —
+          </button>
+        </div>
+        <div class="group-children">
+          <label class="row child">
+            <input type="checkbox" class="uh-switch" id="hideCommentAvatars" data-key />
+            <span class="row-label">Hide profile photos</span>
+          </label>
+        </div>
       </section>
 
-      <section class="block">
-        <h2>Video info</h2>
-        <label class="row"
-          ><input type="checkbox" id="hideVideoActionsBar" /> Like / share / action buttons</label
-        >
-        <label class="row"
-          ><input type="checkbox" id="hideChannelRow" /> Channel row &amp; subscribe</label
-        >
-        <label class="row"><input type="checkbox" id="hideDescription" /> Description</label>
+      <label class="row leaf">
+        <input type="checkbox" class="uh-switch" id="hideMixes" data-key />
+        <span class="row-label">Hide mixes</span>
+      </label>
+
+      <label class="row leaf">
+        <input type="checkbox" class="uh-switch" id="hideMerchTicketsOffers" data-key />
+        <span class="row-label">Hide merch, tickets, offers</span>
+      </label>
+
+      <section class="group" data-group="videoInfo">
+        <div class="group-head">
+          <label class="row parent">
+            <input type="checkbox" class="uh-switch" id="bulkVideoInfo" />
+            <span class="row-label">Hide video info</span>
+          </label>
+          <button type="button" class="collapse-btn" aria-expanded="true" aria-label="Collapse section">
+            —
+          </button>
+        </div>
+        <div class="group-children">
+          <label class="row child">
+            <input type="checkbox" class="uh-switch" id="hideVideoActionsBar" data-key />
+            <span class="row-label">Hide buttons bar</span>
+          </label>
+          <label class="row child">
+            <input type="checkbox" class="uh-switch" id="hideChannelRow" data-key />
+            <span class="row-label">Hide channel</span>
+          </label>
+          <label class="row child">
+            <input type="checkbox" class="uh-switch" id="hideDescription" data-key />
+            <span class="row-label">Hide description</span>
+          </label>
+        </div>
       </section>
 
-      <section class="block">
-        <h2>Header</h2>
-        <label class="row"
-          ><input type="checkbox" id="hideNotificationBell" /> Notification bell</label
-        >
+      <section class="group" data-group="topHeader">
+        <div class="group-head">
+          <label class="row parent">
+            <input type="checkbox" class="uh-switch" id="bulkTopHeader" />
+            <span class="row-label">Hide top header</span>
+          </label>
+          <button type="button" class="collapse-btn" aria-expanded="true" aria-label="Collapse section">
+            —
+          </button>
+        </div>
+        <div class="group-children">
+          <label class="row child">
+            <input type="checkbox" class="uh-switch" id="hideNotificationBell" data-key />
+            <span class="row-label">Hide notifications</span>
+          </label>
+        </div>
       </section>
 
-      <section class="block">
-        <h2>Browse</h2>
-        <label class="row"><input type="checkbox" id="hideShorts" /> Shorts (shelves &amp; nav)</label>
-        <label class="row"><input type="checkbox" id="hideHomeFeed" /> Home feed grid</label>
-        <label class="row"><input type="checkbox" id="hideTrendingNav" /> Trending / Explore in guide</label>
-      </section>
+      <label class="row leaf">
+        <input type="checkbox" class="uh-switch" id="hideInaptSearchResults" data-key />
+        <span class="row-label">Hide inapt search results</span>
+      </label>
 
-      <section class="block">
-        <h2>Player</h2>
-        <label class="row"><input type="checkbox" id="hideEndScreen" /> End-screen suggestions</label>
-        <label class="row"
-          ><input type="checkbox" id="disableAutoplay" /> Turn off autoplay next video (best effort)</label
-        >
-      </section>
+      <label class="row leaf">
+        <input type="checkbox" class="uh-switch" id="hideTrendingNav" data-key />
+        <span class="row-label">Hide explore, trending</span>
+      </label>
 
-      <section class="block">
-        <h2>Extra</h2>
-        <label class="row"><input type="checkbox" id="hideMerchShelf" /> Merch / product shelves</label>
-        <label class="row"
-          ><input type="checkbox" id="hideSearchMovieOffers" /> Search: movie offer modules</label
-        >
-      </section>
+      <label class="row leaf">
+        <input type="checkbox" class="uh-switch" id="hideMoreFromYoutube" data-key />
+        <span class="row-label">Hide more from YouTube</span>
+      </label>
+
+      <label class="row leaf">
+        <input type="checkbox" class="uh-switch" id="hideSubscriptionsNav" data-key />
+        <span class="row-label">Hide subscriptions</span>
+      </label>
+
+      <label class="row leaf">
+        <input type="checkbox" class="uh-switch" id="disableAutoplay" data-key />
+        <span class="row-label">Disable autoplay</span>
+      </label>
+
+      <label class="row leaf">
+        <input type="checkbox" class="uh-switch" id="disableAnnotations" data-key />
+        <span class="row-label">Disable annotations</span>
+      </label>
     </main>
 
     <footer class="foot">
-      <button type="button" id="resetAll" class="btn-secondary">Reset all</button>
-      <p class="legal">
-        Not affiliated with YouTube. Selectors may need updates when YouTube changes layout.
-      </p>
+      <div class="foot-links">
+        <a href="https://github.com" target="_blank" rel="noopener noreferrer" id="linkDonate">Donate</a>
+        <a href="https://github.com" target="_blank" rel="noopener noreferrer" id="linkFeature">Request feature</a>
+        <a href="https://github.com" target="_blank" rel="noopener noreferrer" id="linkSupport">Support</a>
+      </div>
+      <button type="button" class="btn-reset" id="resetAll">Reset all</button>
+      <p class="legal">Not affiliated with YouTube or Google.</p>
     </footer>
 
     <script src="../shared/options.js"></script>
