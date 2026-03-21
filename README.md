@@ -14,6 +14,10 @@ Open-source browser extension that hides distracting parts of **YouTube** (recom
 
 Firefox uses Manifest V3 with slightly different packaging. This repo currently ships a **Chromium MV3** manifest. For Firefox you can try [temporary installation](https://extensionworkshop.com/documentation/develop/temporary-installation-in-firefox/) after adjusting `manifest.json` per Mozilla docs, or track a follow-up `manifest.firefox.json`.
 
+### Publishing to Chrome, Brave, Firefox
+
+**Brave** uses the same extensions as Chrome — publish once on the **Chrome Web Store**; Brave users install from there (there is no separate Brave store). Step-by-step for Chrome Web Store, AMO (Firefox), zips, icons, and privacy policy: see [docs/PUBLISHING.md](docs/PUBLISHING.md).
+
 ## Usage
 
 1. Pin the extension if the toolbar icon is hidden.
@@ -50,9 +54,14 @@ From the repo root (requires [Node.js](https://nodejs.org/) 18+):
 ```bash
 npm install
 npm test
+npm run test:coverage   # optional; see note below
 ```
 
-CI runs the same suite on every push and pull request (see `.github/workflows/ci.yml`).
+The suite includes **70** cases: options merge/migration, mapping ↔ option parity, `unhookedApplyOptionClasses` behavior (VM + mock DOM), `styles.css` ↔ mapping parity, `manifest.json` + on-disk assets, `popup.html` IDs, and content-script wiring.
+
+**Coverage note:** shared scripts run inside `vm.runInContext` (same as in the browser), so V8 does not attribute line hits to those files — the coverage report is informational, not a full line metric.
+
+CI runs `npm test` on every push and pull request (see `.github/workflows/ci.yml`).
 
 ## Manual QA checklist
 
