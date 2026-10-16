@@ -1,67 +1,31 @@
-# Publishing Unhooked
+# Packaging and publishing
 
-This extension is **Manifest V3** and Chromium-first. **Brave** is Chromium-based: users install from the **Chrome Web Store** (or load unpacked). There is **no separate Brave store**.
+Unhooked targets Chromium Manifest V3. Chrome, Brave, and Edge can load the repository directly through **Load unpacked**. Firefox has not been validated for this fork.
 
----
+## Produce a reviewable package
 
-## Before you ship
+From the repository root, with Node.js 22.12+:
 
-1. **Version** — bump `"version"` in [`manifest.json`](../manifest.json) (semver: `major.minor.build`).
-2. **Icons** — the store expects icons; add `icons` in `manifest.json` (e.g. 16, 48, 128 PNG). Without them, listing review may still pass but the UI looks broken.
-3. **Privacy policy** — host permissions on YouTube usually require a **public privacy policy URL** (what data you collect: here, only local `storage` for settings — state that clearly).
-4. **Zip the extension** — zip **the extension root** (files like `manifest.json`, `popup/`, `content/`, `shared/` at the **top level** of the zip, not a nested parent folder).
-
-```bash
-# From repo root (adjust paths if needed)
-zip -r unhooked.zip manifest.json popup content shared LICENSE
+```sh
+npm install
+npm test
+npm run test:browser
+npm run format:check
+npm run package
 ```
 
-5. **QA** — run through the manual checklist in the main [README](../README.md).
+The packaging script validates manifest assets and produces a minimal release directory and zip under `dist/`. The zip root contains `manifest.json`, extension scripts/styles, icons, and the MIT license; it excludes tests, dependencies, development scripts, and repository metadata. Extract the zip and load its directory through `chrome://extensions` to verify the actual package.
 
----
+## Validate before submitting
 
-## Google Chrome (Chrome Web Store)
+Check each supported platform in a signed-in browser, including profiles, direct content, search, messages, dynamically inserted cards, SPA navigation, pause/resume, per-site disable, presets, popup keyboard navigation, theme, and persistence. Representative automated fixtures do not establish current live login coverage. Test YouTube desktop, mobile, live chat, playlists, end screens, and embeds separately.
 
-1. Create a [Chrome Web Store developer account](https://chrome.google.com/webstore/devconsole/) (one-time registration fee).
-2. **New item** → upload `unhooked.zip`.
-3. Fill in **store listing**: description, screenshots (1280×800 or 640×400), category, language.
-4. **Privacy** tab: link your privacy policy; explain **single purpose** (modify YouTube UI) and **permission justification** (`storage`, `host_permissions` for youtube.com / m.youtube.com / youtube-nocookie.com).
-5. Submit for review. Review can take from hours to several days.
+The release should identify itself as an independent Unhook-style extension, preserve upstream MIT attribution, and avoid implying affiliation with the commercial Unhook product or supported social platforms. Use screenshots of the actual extension and describe the specific controls available on each site.
 
-Official: [Publish in the Chrome Web Store](https://developer.chrome.com/docs/webstore/publish).
+## Store submission
 
----
+Use the relevant developer dashboard for Chrome Web Store or Microsoft Edge Add-ons. Brave users can install the Chrome listing. Prepare a listing description, icons/screenshots, support URL, and a public privacy-policy URL. Follow the current dashboard requirements and platform review process; this repository does not submit or publish automatically.
 
-## Brave
+The extension's single purpose is to let people hide distracting interface elements on the listed social websites. Permission explanations should match the actual manifest: `storage` saves local settings; the exact supported hosts allow content scripts to apply local CSS and the YouTube autoplay control. The extension has no remote service, telemetry, or account, and does not send browsing data elsewhere. Keep those statements accurate if future behavior changes.
 
-- **Same listing as Chrome** — Brave can install extensions from the [Chrome Web Store](https://chrome.google.com/webstore). You do **not** publish twice for Brave.
-- Users who want your exact build can still use **Load unpacked** in `brave://extensions`.
-
----
-
-## Mozilla Firefox (Add-ons / AMO)
-
-Firefox supports MV3, but rules and manifest details can differ from Chrome (e.g. `browser_specific_settings.gecko`, `strict_min_version`, optional `background` service worker differences).
-
-1. Create [Firefox Add-on Developer Hub](https://addons.mozilla.org/developers/) account.
-2. **Submit a New Add-on** → upload a zip of the extension.
-3. If the reviewer flags Chrome-only APIs, add a `browser_specific_settings` block and test with `web-ext` (see [Extension Workshop](https://extensionworkshop.com/documentation/develop/getting-started-with-web-ext/)).
-4. Source code: if you minify or bundle, you may need to attach readable source per [Mozilla policy](https://extensionworkshop.com/documentation/publish/source-code-submission/).
-
-This repo ships one `manifest.json`; you may need a small Firefox-specific manifest tweak after first review — plan a follow-up commit if AMO requests changes.
-
-Official: [Distributing your extension](https://extensionworkshop.com/documentation/publish/).
-
----
-
-## Microsoft Edge (optional)
-
-Edge uses the same MV3 model. You can publish to [Partner Center](https://partner.microsoft.com/dashboard/microsoftedge/overview) with the **same zip** (sometimes after minor manifest notes). Many developers ship Chrome first, then Edge.
-
----
-
-## Ongoing updates
-
-1. Bump `manifest.json` version.
-2. Re-zip and upload a **new package** in each store’s dashboard.
-3. Keep the privacy policy and permission text in sync if behavior changes.
+For an update, bump the manifest version, rerun validation and packaging, manually inspect the generated package, and upload it through the store dashboard. Document platform selector changes and any new permissions in release notes.

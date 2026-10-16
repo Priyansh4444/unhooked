@@ -1,57 +1,73 @@
 (function () {
   "use strict";
-
-  var host = location.hostname;
-  var isMobile = host === "m.youtube.com";
-  var isEmbed =
-    location.pathname.startsWith("/embed/") ||
-    document.documentElement.matches("html.embed");
-
-  function loadAndApply() {
-    var api = chrome.storage && chrome.storage.local;
-    if (!api) return;
-    api.get([UNHOOKED_STORAGE_KEY], function (data) {
-      var opts = mergeUnhookedOptions(data[UNHOOKED_STORAGE_KEY]);
-      unhookedApplyOptionClasses(document.documentElement, opts, {
-        isMobile: isMobile,
-        isEmbed: isEmbed
-      });
-      if (!opts.extensionDisabled && opts.disableAutoplay) scheduleAutoplayOff();
-    });
+  // Legacy UNHOOKED_STORAGE_KEY is projected by unhookedYouTubeOptions through mergeUnhookedOptions.
+  var raw = {}, pending = {}, loaded = false, running = false, generation = 0;
+  var autoplayTimer = null, autoplayDeadline = null, routeTimer = null, lastURL = "";
+  function stopAutoplay() {
+    window.clearInterval(autoplayTimer);
+    window.clearTimeout(autoplayDeadline);
+    autoplayTimer = null; autoplayDeadline = null;
   }
-
-  var autoplayTimer = null;
-  function scheduleAutoplayOff() {
-    if (autoplayTimer) return;
-    autoplayTimer = window.setInterval(tryTurnOffAutoplay, 800);
-    window.setTimeout(function () {
-      clearInterval(autoplayTimer);
-      autoplayTimer = null;
-    }, 120000);
-  }
-
   function tryTurnOffAutoplay() {
+    var opts = unhookedYouTubeOptions(raw);
+    if (!running || opts.extensionDisabled || !opts.disableAutoplay) { stopAutoplay(); return; }
     var btn = document.querySelector(".ytp-autonav-toggle-button");
-    if (!btn) return;
-    var on =
-      btn.getAttribute("aria-checked") === "true" ||
-      btn.classList.contains("ytp-autonav-toggle-button-checked");
-    if (on) btn.click();
+    if (btn && (btn.getAttribute("aria-checked") === "true" || btn.classList.contains("ytp-autonav-toggle-button-checked"))) btn.click();
   }
-
-  loadAndApply();
-
-  if (chrome.storage && chrome.storage.onChanged) {
-    chrome.storage.onChanged.addListener(function (changes, area) {
-      if (area !== "local" || !changes[UNHOOKED_STORAGE_KEY]) return;
-      var next = mergeUnhookedOptions(changes[UNHOOKED_STORAGE_KEY].newValue);
-      unhookedApplyOptionClasses(document.documentElement, next, {
-        isMobile: isMobile,
-        isEmbed: isEmbed
-      });
-      if (!next.extensionDisabled && next.disableAutoplay) scheduleAutoplayOff();
+  function scheduleAutoplayOff() {
+    if (autoplayTimer !== null) return;
+    tryTurnOffAutoplay();
+    autoplayTimer = window.setInterval(tryTurnOffAutoplay, 800);
+    autoplayDeadline = window.setTimeout(stopAutoplay, 120000);
+  }
+  function render() {
+    var html = document.documentElement;
+    if (!html || !loaded || !running) return;
+    var opts = unhookedYouTubeOptions(raw);
+    unhookedApplyOptionClasses(html, opts, {
+      isMobile: location.hostname === "m.youtube.com",
+      isEmbed: location.pathname.startsWith("/embed/") || html.matches("html.embed")
     });
+    if (!opts.extensionDisabled && opts.disableAutoplay) scheduleAutoplayOff(); else stopAutoplay();
+    lastURL = location.href;
   }
-
-  document.addEventListener("yt-navigate-finish", loadAndApply);
+  function changed(changes, area) {
+    if (area !== "local") return;
+    if (loaded) unhookedMergeChanges(raw, changes);
+    else Object.keys(changes).forEach(function (key) { pending[key] = changes[key].newValue; });
+    render();
+  }
+  function navigated() { if (lastURL !== location.href) render(); }
+  function start() {
+    if (running) return;
+    running = true; loaded = false; pending = {};
+    var current = ++generation;
+    chrome.storage.onChanged.addListener(changed);
+    chrome.storage.local.get(null, function (data) {
+      if (!running || current !== generation) return;
+      if (chrome.runtime.lastError) return;
+      raw = data || {};
+      Object.keys(pending).forEach(function (key) {
+        if (typeof pending[key] === "undefined") delete raw[key]; else raw[key] = pending[key];
+      });
+      loaded = true; pending = {}; render();
+    });
+    document.addEventListener("yt-navigate-finish", render);
+    document.addEventListener("DOMContentLoaded", render);
+    window.addEventListener("popstate", navigated);
+    window.addEventListener("hashchange", navigated);
+    routeTimer = window.setInterval(navigated, 250);
+  }
+  function stop() {
+    running = false; generation++; stopAutoplay();
+    window.clearInterval(routeTimer); routeTimer = null;
+    chrome.storage.onChanged.removeListener(changed);
+    document.removeEventListener("yt-navigate-finish", render);
+    document.removeEventListener("DOMContentLoaded", render);
+    window.removeEventListener("popstate", navigated);
+    window.removeEventListener("hashchange", navigated);
+  }
+  window.addEventListener("pagehide", stop);
+  window.addEventListener("pageshow", start);
+  start();
 })();

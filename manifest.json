@@ -1,13 +1,36 @@
 {
   "manifest_version": 3,
   "name": "Unhooked",
-  "version": "0.2.0",
-  "description": "Hide YouTube recommendations, Shorts, comments, and other distractions. Unofficial, not affiliated with YouTube or Google.",
-  "permissions": ["storage"],
+  "version": "0.3.0",
+  "description": "Hide distracting feeds on YouTube, X, Reddit, Instagram, TikTok, Facebook, LinkedIn, and Threads. Your choices stay local.",
+  "permissions": [
+    "storage"
+  ],
   "host_permissions": [
     "*://www.youtube.com/*",
     "*://m.youtube.com/*",
-    "*://www.youtube-nocookie.com/*"
+    "*://www.youtube-nocookie.com/*",
+    "*://x.com/*",
+    "*://www.x.com/*",
+    "*://twitter.com/*",
+    "*://www.twitter.com/*",
+    "*://reddit.com/*",
+    "*://www.reddit.com/*",
+    "*://old.reddit.com/*",
+    "*://new.reddit.com/*",
+    "*://sh.reddit.com/*",
+    "*://instagram.com/*",
+    "*://www.instagram.com/*",
+    "*://tiktok.com/*",
+    "*://www.tiktok.com/*",
+    "*://facebook.com/*",
+    "*://www.facebook.com/*",
+    "*://linkedin.com/*",
+    "*://www.linkedin.com/*",
+    "*://threads.com/*",
+    "*://www.threads.com/*",
+    "*://threads.net/*",
+    "*://www.threads.net/*"
   ],
   "action": {
     "default_popup": "popup/popup.html",
@@ -20,12 +43,48 @@
         "*://m.youtube.com/*",
         "*://www.youtube-nocookie.com/*"
       ],
-      "css": ["content/styles.css"],
+      "css": [
+        "content/styles.css"
+      ],
       "js": [
         "shared/options.js",
+        "shared/sites.js",
+        "shared/settings.js",
         "shared/mappings.js",
         "shared/apply-option-classes.js",
         "content/content.js"
+      ],
+      "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "*://x.com/*",
+        "*://www.x.com/*",
+        "*://twitter.com/*",
+        "*://www.twitter.com/*",
+        "*://reddit.com/*",
+        "*://www.reddit.com/*",
+        "*://old.reddit.com/*",
+        "*://new.reddit.com/*",
+        "*://sh.reddit.com/*",
+        "*://instagram.com/*",
+        "*://www.instagram.com/*",
+        "*://tiktok.com/*",
+        "*://www.tiktok.com/*",
+        "*://facebook.com/*",
+        "*://www.facebook.com/*",
+        "*://linkedin.com/*",
+        "*://www.linkedin.com/*",
+        "*://threads.com/*",
+        "*://www.threads.com/*",
+        "*://threads.net/*",
+        "*://www.threads.net/*"
+      ],
+      "js": [
+        "shared/options.js",
+        "shared/sites.js",
+        "shared/settings.js",
+        "content/social.js"
       ],
       "run_at": "document_start"
     }

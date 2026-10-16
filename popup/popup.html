@@ -10,7 +10,7 @@
     <header class="topbar">
       <div class="brand">
         <span class="logo" aria-hidden="true"></span>
-        <span class="brand-name">Unhooked</span>
+        <div><span class="brand-name">unhooked<span class="brand-dot">.</span></span><span class="brand-caption">A little less noise.</span></div>
       </div>
       <div class="top-actions">
         <input type="checkbox" id="extensionDisabled" class="sr-only" tabindex="-1" />
@@ -22,7 +22,7 @@
           class="icon-btn power"
           id="btnPower"
           title="Extension on"
-          aria-label="Toggle extension"
+          aria-label="Pause on all sites"
           aria-pressed="true"
         >
           <span class="icon-power" aria-hidden="true"></span>
@@ -30,7 +30,29 @@
       </div>
     </header>
 
-    <main class="sections">
+    <main>
+      <section class="intro">
+        <div class="eyebrow">YOUR ATTENTION, YOUR CHOICE</div>
+        <h1>Keep the good parts.</h1>
+        <p>Choose what stays out of your way.</p>
+      </section>
+      <section class="site-card" aria-label="Site settings">
+        <label class="picker-label" for="sitePicker">CUSTOMIZE A SITE</label>
+        <div class="site-heading"><select id="sitePicker" aria-label="Choose a site"></select><span id="siteState" class="state-badge">Loading</span></div>
+        <label class="enable-row" for="siteEnabled"><span>Enable controls on this site</span><input id="siteEnabled" type="checkbox" class="uh-switch" /></label>
+      </section>
+      <section class="preset-section" aria-label="Site presets">
+        <div class="section-caption">START WITH A PRESET</div>
+        <div class="presets">
+          <button type="button" data-preset="balanced"><strong>Balanced</strong><span>Quiet the feeds</span></button>
+          <button type="button" data-preset="focused"><strong>Focus</strong><span>Every control on</span></button>
+          <button type="button" data-preset="clear"><strong>Show everything</strong><span>Every control off</span></button>
+        </div>
+        <p class="preset-note">Presets affect only this site's controls.</p>
+      </section>
+      <div class="controls-heading"><h2>Fine-tune your space</h2><span id="activeCount"></span></div>
+      <p id="pausedNote" class="paused-note" hidden>Paused on all sites. Your choices are saved. Resume with the power button.</p>
+      <div class="sections" id="youtubeControls">
       <label class="row leaf">
         <input type="checkbox" class="uh-switch" id="hideHomeFeed" data-key />
         <span class="row-label">Hide home feed</span>
@@ -181,19 +203,19 @@
         <input type="checkbox" class="uh-switch" id="disableAnnotations" data-key />
         <span class="row-label">Disable annotations</span>
       </label>
+      </div>
+      <div class="sections" id="socialControls" hidden></div>
     </main>
 
     <footer class="foot">
-      <div class="foot-links">
-        <a href="https://github.com" target="_blank" rel="noopener noreferrer" id="linkDonate">Donate</a>
-        <a href="https://github.com" target="_blank" rel="noopener noreferrer" id="linkFeature">Request feature</a>
-        <a href="https://github.com" target="_blank" rel="noopener noreferrer" id="linkSupport">Support</a>
-      </div>
-      <button type="button" class="btn-reset" id="resetAll">Reset all</button>
-      <p class="legal">Not affiliated with YouTube or Google.</p>
+      <div class="footer-line"><a href="https://github.com/Priyansh4444/unhooked" target="_blank" rel="noopener noreferrer">Source &amp; support ↗</a><button type="button" class="btn-reset" id="resetAll">Reset this site</button></div>
+      <p id="saveStatus" role="status" aria-live="polite">Loading your choices…</p>
+      <p class="legal">Private by design. Preferences stay in your browser.</p>
     </footer>
 
     <script src="../shared/options.js"></script>
+    <script src="../shared/sites.js"></script>
+    <script src="../shared/settings.js"></script>
     <script src="popup.js"></script>
   </body>
 </html>

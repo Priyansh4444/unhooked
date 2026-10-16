@@ -1,78 +1,76 @@
 # Unhooked
 
-Open-source browser extension that hides distracting parts of **YouTube** (recommendations, Shorts, comments, end screens, and more). Inspired by the idea behind “distraction-free YouTube” extensions; **not affiliated with YouTube or Google**.
+Choose which distractions to hide on **YouTube, X / Twitter, Reddit, Instagram, TikTok, Facebook, LinkedIn, and Threads**. This Chromium Manifest V3 extension has per-site switches, explicit presets, a global pause button, and local preferences.
 
-## Install (development)
+This project is a fork of [Havockeyan/UnhookYoutube-opensource](https://github.com/Havockeyan/UnhookYoutube-opensource), an MIT-licensed independent alternative inspired by Unhook, at commit `fec15f3`. It is **not a fork of the commercial Unhook extension** and is not affiliated with Unhook or any supported platform. This fork lives at [Priyansh4444/unhooked](https://github.com/Priyansh4444/unhooked). See [LICENSE](LICENSE) and [the architecture notes](docs/ARCHITECTURE.md).
 
-### Chrome / Edge / Brave
+## Install locally
 
-1. Open `chrome://extensions` (or `edge://extensions`).
-2. Enable **Developer mode**.
-3. Click **Load unpacked** and choose this folder (`unhooked-opensource`).
+1. Clone or download this repository.
+2. Open `chrome://extensions`, `brave://extensions`, or `edge://extensions`.
+3. Enable **Developer mode**, select **Load unpacked**, and choose the repository folder containing `manifest.json`.
+4. Pin Unhooked in your browser toolbar. Reload social-media tabs that were already open before installation or an extension update.
 
-### Firefox
+A ready-to-load release directory and zip can be generated with `npm run package`. Load the generated extension directory or extract the zip first. No build is required to load this repository. Firefox has not been validated and is not a supported release target yet.
 
-Firefox uses Manifest V3 with slightly different packaging. This repo currently ships a **Chromium MV3** manifest. For Firefox you can try [temporary installation](https://extensionworkshop.com/documentation/develop/temporary-installation-in-firefox/) after adjusting `manifest.json` per Mozilla docs, or track a follow-up `manifest.firefox.json`.
+## Choose your controls
 
-### Publishing to Chrome, Brave, Firefox
+Open the toolbar popup, choose a site, and turn on the controls you want. **Every hide starts off** on a fresh install. The site picker works regardless of the current tab.
 
-**Brave** uses the same extensions as Chrome — publish once on the **Chrome Web Store**; Brave users install from there (there is no separate Brave store). Step-by-step for Chrome Web Store, AMO (Firefox), zips, icons, and privacy policy: see [docs/PUBLISHING.md](docs/PUBLISHING.md).
+- **Balanced** turns on the site's feed and recommendation controls, leaving optional stories/Reels controls off. On YouTube it hides Home, related videos, Shorts, and end-screen suggestions, and disables autoplay.
+- **Focus** turns every available control on for that site.
+- **Show everything** and **Reset this site** turn that site's controls off.
+- **Enable controls on this site** suspends one site's controls without losing the selected options.
+- The header power button **pauses all sites**. Resume restores the chosen controls.
+- The theme button cycles system, dark, and light.
 
-## Usage
+Presets and reset change only the selected site's feature preferences. They never change global pause, site enable, theme, or another site's choices. The footer reports successful saves and storage errors.
 
-1. Pin the extension if the toolbar icon is hidden.
-2. Open YouTube, click **Unhooked**, and enable the toggles you want.
-3. Use the **power** control in the popup header to pause the extension entirely (no CSS hides applied).
-4. **Theme** cycles system → dark → light (stored separately from YouTube options).
-5. Refresh the tab if something looks stale after a YouTube UI update.
+## Supported controls and routes
 
-### Options (Unhook-style parity)
+| Site | Controls | Feed suppression applies to |
+| --- | --- | --- |
+| YouTube | All original detailed controls: Home, related sidebar, live chat, playlists, fundraiser, end-screen feed/cards, Shorts, comments/avatars, mixes, merch/tickets/offers, player actions, channel row, description, notifications, unrelated search shelves, Explore/subscriptions/service links, autoplay, annotations | Existing desktop/mobile/embed YouTube engine |
+| X / Twitter | Home timeline, Explore timeline, sidebar trends and suggested accounts | `/`, `/home`; Explore control on `/explore` |
+| Reddit | Home/Popular/All feed, recommendation panels | `/`, `/r/popular`, `/r/all` |
+| Instagram | Home posts, Explore grid, suggested accounts, stories tray, Reels viewer | `/`; separate Explore and Reels routes |
+| TikTok | For You/Following feed, Explore feed, suggested accounts, Live directory | `/`, `/foryou`, `/following`; separate `/explore` and `/live` |
+| Facebook | Home feed, right sidebar, stories tray, Reels viewer | `/`, `/home.php`; separate `/reel` and `/reels` |
+| LinkedIn | Home feed, sidebar news/recommendations | `/`, `/feed` |
+| Threads | For You/Following feed, suggested accounts | `/`, `/following`, `/for_you` |
 
-Grouped toggles match the commercial Unhook layout where possible: **video sidebar** (recommended, live chat, playlist, fundraiser), **end screen feed** vs **end screen cards**, **comments** (+ profile photos), **video info** (buttons, channel, description), **top header** (notifications), **inapt search** clutter, **explore/trending**, **more from YouTube** (guide links like Premium, Music, Studio), **subscriptions** (guide link only — not your subscriptions feed page), **mixes**, **merch/tickets/offers**, **autoplay**, **annotations/cards teaser**.
+New social feed controls preserve profiles, direct posts/videos, search, messages, communities/groups, and job pages. Ancillary panels may be hidden on explicitly supported routes. Unknown routes leave primary content visible. Both `threads.com` and legacy `threads.net` are included, along with X's `twitter.com` alias and Reddit's `old`, `new`, and `sh` hosts. Exact hosts are listed in [manifest.json](manifest.json); arbitrary subdomains and mobile Facebook are not included.
 
-Edit the **Donate / Request feature / Support** URLs in [`popup/popup.html`](popup/popup.html) (`#linkDonate`, etc.) to point at your own links.
+YouTube's established rules are preserved, including mobile and privacy-enhanced embeds. Its **Hide subscriptions** option hides the guide link, not the subscriptions page. Autoplay uses the player's own toggle on a best-effort basis; disabling the option or pausing stops polling immediately and never turns autoplay back on automatically. Player layouts may differ.
 
-## Permissions
+## Privacy and settings
 
-- **storage** — save your toggle settings locally.
-- **Host access** — `youtube.com`, `m.youtube.com`, and `youtube-nocookie.com` only, to inject hide rules on the site and in embeds.
+Preferences live in `chrome.storage.local` on your device. The extension has no account, server, analytics, remote selectors, or network requests. It requests `storage` plus access to the explicitly supported website hosts to apply its content scripts. It does not request all-site access, browsing history, tabs, cookies, or a background worker.
 
-## Limitations
+Preferences use independent boolean storage keys (`unhooked.site.x.hideHomeFeed`, for example), so a toggle cannot overwrite another site's settings. Existing YouTube `unhookedOptions` values and aliases are read as fallbacks. Explicit new values, including `false`, take precedence. This migration is read-only: downgrading to the old extension does not include edits made through the new scalar preferences.
 
-- YouTube changes the DOM often; some selectors may need updates over time.
-- **Autoplay off** clicks the in-player autonav control when it appears (best effort, not guaranteed on every layout).
-- Hiding “home feed” targets the main grid on the home page; other tabs are unchanged unless you enable a matching rule.
-- **Hide subscriptions** removes the **Subscriptions** item from the **guide** only; it does not alter `/feed/subscriptions` content when you navigate there directly.
-- **More from YouTube** hides common guide links (Premium, Music, Kids, Studio, etc.); adjust selectors in [`content/styles.css`](content/styles.css) if YouTube changes URLs.
-- **Disable annotations** mostly targets legacy card teasers / branding; true in-video annotations are largely gone on YouTube.
-- **Hide recommended / related column** hides only the related-videos UI (not the whole right column), so **live chat replay** can stay visible. If chat still does not appear, try turning off other sidebar-related options or refresh after a YouTube UI update.
+## Development and verification
 
-## Automated tests
+Requires Node.js 22.12+.
 
-From the repo root (requires [Node.js](https://nodejs.org/) 18+):
-
-```bash
+```sh
 npm install
 npm test
-npm run test:coverage   # optional; see note below
+npm run test:browser
+npm run format:check
+npm run package
 ```
 
-The suite includes **70** cases: options merge/migration, mapping ↔ option parity, `unhookedApplyOptionClasses` behavior (VM + mock DOM), `styles.css` ↔ mapping parity, `manifest.json` + on-disk assets, `popup.html` IDs, and content-script wiring.
+Unit tests cover legacy migration, boolean validation, exact host ownership, route protection, preset isolation, storage races, lifecycle cleanup, autoplay cancellation, and manifest/asset parity. Browser tests load the actual unpacked extension in Chromium and exercise the popup, real storage events, generated CSS, dynamic content, SPA routes, and reversible pause/site switches against representative fixtures.
 
-**Coverage note:** shared scripts run inside `vm.runInContext` (same as in the browser), so V8 does not attribute line hits to those files — the coverage report is informational, not a full line metric.
+**Fixture coverage is not live login coverage.** Platform layouts change frequently; representative HTML fixtures prove the layouts recorded in the tests, not every current production variant or localization. Instagram, Facebook, LinkedIn, Threads, and other login-dependent layouts require verification in a signed-in browser before claiming complete live support. An unsupported or changed selector can leave content visible; pause or disable the site if a layout behaves unexpectedly. Report the URL, platform layout, and relevant DOM selector when a rule needs maintenance.
 
-CI runs `npm test` on every push and pull request (see `.github/workflows/ci.yml`).
+Run manual checks on each signed-in platform for home → profile → direct post → search → messages → home, plus discovery routes. Check newly loaded feed cards, pause/resume, per-site disable, and keyboard access to popup controls. YouTube also needs watch/live/playlist/end-screen/mobile/embed checks. Publication steps are in [docs/PUBLISHING.md](docs/PUBLISHING.md).
 
-## Manual QA checklist
+## Extending a platform
 
-- [ ] Watch page: related column, comments, description, channel row, actions.
-- [ ] Live stream: chat hidden when enabled.
-- [ ] Home: grid hidden when enabled.
-- [ ] Shorts entry in guide and Shorts shelves on home/search.
-- [ ] End screen overlay after video ends.
-- [ ] `m.youtube.com` watch + home (mobile layout).
-- [ ] Embedded player on another site (`youtube-nocookie` / `youtube` iframe).
+Add exact hosts, conservative route classification, feature labels/descriptions, and scoped CSS selectors to [shared/sites.js](shared/sites.js), then update manifest matches and fixture coverage. A single reversible controller handles all social platforms; it never removes site DOM nodes or writes preferences. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE). Original copyright and license are retained.
