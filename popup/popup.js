@@ -17,11 +17,7 @@
     selected = "youtube";
   const PRESETS = ["balanced", "focused", "clear"];
   const $ = (id) => document.getElementById(id);
-  function siteSummary(state) {
-    if (state.paused) return "Paused";
-    if (!state.enabled) return "Off";
-    return Object.values(state.features).filter(Boolean).length + " on";
-  }
+  const countOn = (state) => Object.values(state.features).filter(Boolean).length;
   function status(message, error) {
     $("saveStatus").textContent = message;
     $("saveStatus").classList.toggle("error", !!error);
@@ -40,35 +36,27 @@
     if (!loaded) return;
     const site = unhookedSiteById(selected),
       state = unhookedResolveSettings(raw, site);
-    $("btnPower").classList.toggle("off", state.paused);
-    $("btnPower").setAttribute("aria-pressed", String(!state.paused));
-    $("btnPower").setAttribute(
-      "aria-label",
-      state.paused ? "Resume on all sites" : "Pause on all sites"
-    );
-    $("btnPower").title = state.paused ? "Resume on all sites" : "Pause on all sites";
+    $("btnPower").setAttribute("aria-pressed", String(state.paused));
+    $("powerLabel").textContent = state.paused ? "Resume" : "Pause all";
     $("pausedNote").hidden = !state.paused;
+    document.body.classList.toggle("is-paused", state.paused);
     UNHOOKED_SITES.forEach((s) => {
-      const tile = $("site-" + s.id),
-        summary = unhookedResolveSettings(raw, s);
-      tile.checked = s.id === selected;
-      $("meta-" + s.id).textContent = siteSummary(summary);
-      tile.closest(".site-tile").dataset.state =
-        summary.paused || !summary.enabled
-          ? "off"
-          : Object.values(summary.features).some(Boolean)
-            ? "on"
-            : "idle";
+      const input = $("site-" + s.id),
+        summary = unhookedResolveSettings(raw, s),
+        on = countOn(summary);
+      input.checked = s.id === selected;
+      $("meta-" + s.id).textContent = summary.enabled ? String(on) : "off";
+      input.setAttribute(
+        "aria-label",
+        s.label + ", " + (summary.enabled ? on + " of " + s.features.length + " on" : "off")
+      );
+      input.closest(".site").dataset.state = !summary.enabled ? "off" : on ? "on" : "idle";
     });
     $("siteName").textContent = site.label;
     $("siteEnabled").checked = state.enabled;
-    $("siteState").textContent = state.paused
-      ? "Paused on every site"
-      : state.enabled
-        ? "Controls apply on " + site.hosts[0]
-        : "Controls are off for this site";
-    const active = Object.values(state.features).filter(Boolean).length;
-    $("activeCount").textContent = active + " of " + site.features.length + " on";
+    $("siteEnabled").setAttribute("aria-label", "Controls on " + site.label);
+    $("siteState").textContent =
+      (state.enabled ? "Active on " : "Off on ") + site.hosts[0].replace(/^www\./, "");
     // Mark one preset that matches the current choices; on some sites two presets coincide.
     const matching = PRESETS.find((preset) => {
       const patch = unhookedPresetPatch(selected, preset);
@@ -79,7 +67,6 @@
     PRESETS.forEach((preset) => {
       $("preset-" + preset).setAttribute("aria-pressed", String(preset === matching));
     });
-    document.body.classList.toggle("is-paused", state.paused);
     $("youtubeControls").hidden = selected !== "youtube";
     $("socialControls").hidden = selected === "youtube";
     if (selected === "youtube") {
@@ -137,22 +124,22 @@
   }
   function init() {
     UNHOOKED_SITES.forEach((site) => {
-      const tile = document.createElement("label"),
+      const item = document.createElement("label"),
         input = document.createElement("input"),
         name = document.createElement("span"),
         meta = document.createElement("span");
-      tile.className = "site-tile";
+      item.className = "site";
       input.type = "radio";
       input.name = "site";
       input.value = site.id;
       input.id = "site-" + site.id;
-      input.setAttribute("aria-describedby", "meta-" + site.id);
-      name.className = "tile-name";
+      name.className = "site-name";
       name.textContent = site.label;
-      meta.className = "tile-meta";
+      meta.className = "site-meta";
+      meta.setAttribute("aria-hidden", "true");
       meta.id = "meta-" + site.id;
-      tile.append(input, name, meta);
-      $("sitePicker").append(tile);
+      item.append(input, name, meta);
+      $("sitePicker").append(item);
     });
     document.querySelectorAll("[data-preset]").forEach((button) => {
       button.id = "preset-" + button.dataset.preset;

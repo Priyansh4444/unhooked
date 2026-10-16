@@ -1,52 +1,54 @@
-/* Palette comes from the icon: deep forest and hook mint. */
+/*
+ * Two panes, no cards. The site rail carries the icon's colours (forest and hook mint);
+ * the settings pane stays quiet and is structured by alignment and spacing alone.
+ */
 :root {
   color-scheme: light;
-  --bg: #f1f4f2;
-  --surface: #fff;
-  --text: #15211e;
-  --muted: #56645f;
-  --line: #d9e1dc;
-  --accent: #1d6a53;
-  --tint: #e3f1ea;
-  --switch: #b5c3bc;
-  --tile-on-bg: #102923;
-  --tile-on-text: #f1fbf6;
-  --tile-on-meta: #92edc6;
+  --forest: #102923;
+  --mint: #92edc6;
+  --rail-text: #c9ddd4;
+  --rail-dim: #7f9a90;
+  --rail-line: rgb(146 237 198 / 0.18);
+  --paper: #f6f8f6;
+  --ink: #14201c;
+  --stone: #5a6863;
+  --line: #dde4e0;
+  --moss: #1d6a53;
+  --hover: #eaf1ed;
+  --switch: #b9c6c0;
+  --thumb-on: #fff;
   --danger: #a8392f;
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
 }
 [data-popup-theme="dark"] {
   color-scheme: dark;
-  --bg: #0f1a17;
-  --surface: #16241f;
-  --text: #e7f1ec;
-  --muted: #a1b4ac;
-  --line: #2a3c36;
-  --accent: #92edc6;
-  --tint: #1d3a31;
-  --switch: #4a605a;
-  --tile-on-bg: #92edc6;
-  --tile-on-text: #0c201b;
-  --tile-on-meta: #1d5444;
+  --forest: #0c201b;
+  --paper: #17231f;
+  --ink: #e6efe9;
+  --stone: #9db0a8;
+  --line: #2a3a34;
+  --moss: #92edc6;
+  --hover: #1e2d28;
+  --switch: #44574f;
+  --thumb-on: #0c201b;
   --danger: #ff9b8f;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-popup-theme]) {
     color-scheme: dark;
-    --bg: #0f1a17;
-    --surface: #16241f;
-    --text: #e7f1ec;
-    --muted: #a1b4ac;
-    --line: #2a3c36;
-    --accent: #92edc6;
-    --tint: #1d3a31;
-    --switch: #4a605a;
-    --tile-on-bg: #92edc6;
-    --tile-on-text: #0c201b;
-    --tile-on-meta: #1d5444;
+    --forest: #0c201b;
+    --paper: #17231f;
+    --ink: #e6efe9;
+    --stone: #9db0a8;
+    --line: #2a3a34;
+    --moss: #92edc6;
+    --hover: #1e2d28;
+    --switch: #44574f;
+    --thumb-on: #0c201b;
     --danger: #ff9b8f;
   }
 }
+
 * {
   box-sizing: border-box;
 }
@@ -61,15 +63,15 @@
   clip-path: inset(50%);
   white-space: nowrap;
 }
-/* Chromium action popups are limited to 600px: one scroll area, fixed header and footer. */
+/* Chromium action popups are capped at 600px tall. */
 body {
-  margin: 0;
+  display: grid;
+  grid-template-columns: 124px 1fr;
   width: 400px;
   height: 600px;
-  display: flex;
-  flex-direction: column;
-  color: var(--text);
-  background: var(--bg);
+  margin: 0;
+  color: var(--ink);
+  background: var(--paper);
   font:
     13px/1.45 system-ui,
     -apple-system,
@@ -91,301 +93,265 @@ input:disabled {
   cursor: wait;
 }
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--moss);
   outline-offset: 2px;
 }
-/* Pressable elements confirm the press; scale also shrinks their content. */
-.icon-btn,
-.presets button,
-.paused-note button,
-.btn-reset,
-.collapse-btn {
-  transition: transform 160ms var(--ease-out);
+.rail :focus-visible,
+.rail .site:has(input:focus-visible) {
+  outline: 2px solid var(--mint);
+  outline-offset: -2px;
 }
-.icon-btn:active,
-.presets button:active,
-.paused-note button:active,
-.btn-reset:active,
-.collapse-btn:active {
-  transform: scale(0.97);
+h1,
+p {
+  margin: 0;
 }
 
-/* Header */
-.topbar {
-  flex-shrink: 0;
+/* Site rail */
+.rail {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 14px 16px 12px 18px;
+  flex-direction: column;
+  min-height: 0;
+  padding: 16px 0 12px;
+  background: var(--forest);
+  color: var(--rail-text);
 }
 .brand {
   display: flex;
   align-items: center;
-  gap: 9px;
-}
-.logo {
-  border-radius: 7px;
-}
-.brand-name {
-  font-size: 17px;
+  gap: 8px;
+  padding: 0 14px 18px;
+  color: #f2fbf7;
+  font-size: 14px;
   font-weight: 700;
-  letter-spacing: -0.4px;
+  letter-spacing: -0.2px;
 }
-.top-actions {
-  display: flex;
-  gap: 6px;
+.brand img {
+  border-radius: 6px;
 }
-.icon-btn {
-  --btn-bg: var(--surface);
-  width: 32px;
-  height: 32px;
-  display: grid;
-  place-items: center;
-  border: 1px solid var(--line);
-  border-radius: 50%;
-  background: var(--btn-bg);
-  color: var(--text);
-}
-.icon-btn.power {
-  --btn-bg: var(--accent);
-  border-color: var(--accent);
-  color: var(--surface);
-}
-.icon-btn.power.off {
-  --btn-bg: var(--surface);
-  border-color: var(--line);
-  color: var(--muted);
-}
-.icon-theme {
-  width: 14px;
-  height: 14px;
-  border: 1.5px solid currentColor;
-  border-radius: 50%;
-  background: linear-gradient(90deg, transparent 50%, currentColor 50%);
-}
-.icon-power {
-  position: relative;
-  width: 14px;
-  height: 14px;
-  border: 1.5px solid currentColor;
-  border-radius: 50%;
-}
-.icon-power:after {
-  content: "";
-  position: absolute;
-  left: 4.5px;
-  top: -4px;
-  width: 2px;
-  height: 8px;
-  border-radius: 1px;
-  background: currentColor;
-  box-shadow: 0 0 0 2px var(--btn-bg);
-}
-
-main {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-width: thin;
-  padding-bottom: 8px;
-}
-
-/* Paused banner */
-.paused-note {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin: 0 14px 10px;
-  padding: 9px 9px 9px 13px;
-  border-radius: 10px;
-  background: var(--text);
-  color: var(--bg);
-  font-size: 12px;
-  transition:
-    opacity 200ms var(--ease-out),
-    transform 200ms var(--ease-out);
-  @starting-style {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
-}
-.paused-note button {
-  flex-shrink: 0;
-  padding: 5px 12px;
-  border: 0;
-  border-radius: 7px;
-  background: var(--bg);
-  color: var(--text);
-  font-weight: 600;
-}
-
-/* Site grid: every site's state at a glance, the selected one in the icon's colours. */
 .sites {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
+  min-width: 0;
   margin: 0;
-  padding: 2px 14px 14px;
+  padding: 0;
   border: 0;
+  transition: opacity 150ms ease;
 }
-.site-tile {
+.site {
   position: relative;
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-  padding: 9px 10px 8px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--surface);
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 7px 12px 7px 14px;
   cursor: pointer;
-  /* Selection is instant (arrow keys drive it); only the press animates. */
-  transition: transform 160ms var(--ease-out);
 }
-.site-tile:active {
-  transform: scale(0.97);
-}
-/* The real radio covers the tile, so clicks, arrows, and focus stay native. */
-.site-tile input {
+/* The real radio covers the row, so clicks, arrow keys, and focus stay native. */
+.site input {
   position: absolute;
   inset: 0;
   margin: 0;
   opacity: 0;
   cursor: pointer;
 }
-.site-tile:has(input:focus-visible) {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-.tile-name {
+.site-name {
   overflow: hidden;
-  font-size: 12px;
-  font-weight: 600;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
-.tile-meta {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  color: var(--muted);
-  font-size: 11px;
+.site-meta {
+  flex-shrink: 0;
+  color: var(--rail-dim);
+  font-size: 11.5px;
   font-variant-numeric: tabular-nums;
 }
-.tile-meta:before {
-  content: "";
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
+.site[data-state="on"] .site-meta {
+  color: var(--mint);
+}
+.site[data-state="off"] .site-name {
+  color: var(--rail-dim);
+}
+.site:has(input:checked) {
+  background: rgb(146 237 198 / 0.12);
+  box-shadow: inset 2px 0 0 var(--mint);
+  color: #fff;
+  font-weight: 600;
+}
+.rail-foot {
+  display: grid;
+  gap: 10px;
+  margin-top: auto;
+  padding: 0 10px;
+}
+.pause {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid var(--rail-line);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--mint);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: transform 160ms var(--ease-out);
+}
+/* Paused is the one filled control, so the state is obvious at a glance. */
+.pause[aria-pressed="true"] {
+  border-color: var(--mint);
+  background: var(--mint);
+  color: var(--forest);
+}
+.pause:active,
+.theme:active {
+  transform: scale(0.97);
+}
+.icon-power {
+  position: relative;
+  width: 12px;
+  height: 12px;
   border: 1.5px solid currentColor;
-  flex-shrink: 0;
+  border-radius: 50%;
 }
-.site-tile[data-state="on"] .tile-meta:before {
-  border-color: var(--accent);
-  background: var(--accent);
+.icon-power:after {
+  content: "";
+  position: absolute;
+  top: -4px;
+  left: 3.5px;
+  width: 2px;
+  height: 7px;
+  border-radius: 1px;
+  background: currentColor;
+  box-shadow: 0 0 0 2px var(--forest);
 }
-.site-tile[data-state="off"] .tile-name {
-  color: var(--muted);
+.pause[aria-pressed="true"] .icon-power:after {
+  box-shadow: 0 0 0 2px var(--mint);
 }
-.site-tile:has(input:checked) {
-  border-color: var(--tile-on-bg);
-  background: var(--tile-on-bg);
-  color: var(--tile-on-text);
+.rail-links {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2px;
+  font-size: 11.5px;
 }
-.site-tile:has(input:checked) .tile-name {
-  color: var(--tile-on-text);
+.rail-links a {
+  color: var(--rail-text);
+  text-decoration: none;
 }
-.site-tile:has(input:checked) .tile-meta {
-  color: var(--tile-on-meta);
+.theme {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--rail-text);
+  transition: transform 160ms var(--ease-out);
 }
-.site-tile[data-state="on"]:has(input:checked) .tile-meta:before {
-  border-color: var(--tile-on-meta);
-  background: var(--tile-on-meta);
+.icon-theme {
+  width: 13px;
+  height: 13px;
+  border: 1.5px solid currentColor;
+  border-radius: 50%;
+  background: linear-gradient(90deg, transparent 50%, currentColor 50%);
 }
 
-/* Selected site */
+/* Settings pane */
+.pane {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
 .site-head {
-  margin: 0 18px;
-  padding-top: 4px;
+  padding: 16px 18px 12px;
 }
 .site-title {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  cursor: pointer;
 }
-.site-name {
-  display: block;
-  font-size: 18px;
-  font-weight: 700;
-  letter-spacing: -0.4px;
-  line-height: 1.25;
-}
-.site-state {
-  display: block;
-  color: var(--muted);
-  font-size: 11.5px;
-}
-.presets {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 3px;
-  margin-top: 12px;
-  padding: 3px;
-  border-radius: 9px;
-  background: var(--line);
-}
-.presets button {
-  padding: 6px 4px;
-  border: 0;
-  border-radius: 7px;
-  background: transparent;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 600;
-}
-.presets button[aria-pressed="true"] {
-  background: var(--surface);
-  color: var(--text);
-  box-shadow: 0 0 0 1px var(--line);
-}
-
-/* Controls list */
-.controls-heading {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  padding: 16px 18px 4px;
-}
-h2 {
-  margin: 0;
-  font-size: 13px;
+h1 {
+  font-size: 20px;
   font-weight: 650;
+  letter-spacing: -0.4px;
+  line-height: 1.2;
 }
-#activeCount {
-  color: var(--muted);
+#siteState {
+  margin-top: 2px;
+  color: var(--stone);
   font-size: 11.5px;
   font-variant-numeric: tabular-nums;
 }
-.sections {
-  padding: 0 8px;
+.site-title .uh-switch {
+  margin-top: 3px;
+}
+.paused-note {
+  margin-top: 10px;
+  font-size: 12px;
+  transition:
+    opacity 200ms var(--ease-out),
+    transform 200ms var(--ease-out);
+  @starting-style {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+}
+.paused-note button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--moss);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.presets {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin-top: 12px;
+  font-size: 12px;
+}
+#presetLabel {
+  color: var(--stone);
+}
+.presets button {
+  padding: 3px 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font-weight: 500;
+}
+/* The matching preset reads like a selected tab: heavier with an underline. */
+.presets button[aria-pressed="true"] {
+  font-weight: 650;
+  box-shadow: inset 0 -2px 0 var(--moss);
+}
+main {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  padding: 6px 0 10px;
+  border-top: 1px solid var(--line);
   transition: opacity 150ms ease;
 }
-/* While paused, choices stay editable but read as dormant. */
-.is-paused .sections {
-  opacity: 0.6;
+/* Paused choices stay editable but read as dormant. */
+.is-paused main,
+.is-paused .sites {
+  opacity: 0.55;
 }
 .row {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 14px;
-  min-height: 40px;
-  padding: 10px 10px;
-  border-radius: 8px;
+  gap: 12px;
+  padding: 9px 18px;
   cursor: pointer;
 }
 .row .uh-switch {
@@ -394,50 +360,42 @@ h2 {
 .row-label,
 .feature-copy {
   flex: 1;
-  font-size: 13px;
-}
-.row-label,
-.feature-copy strong {
+  min-width: 0;
   font-weight: 550;
 }
 .feature-copy strong {
   display: block;
+  font-weight: inherit;
 }
-.feature-copy small,
-.feature-hint {
+.feature-hint,
+.feature-copy small {
   display: block;
   margin-top: 2px;
-  color: var(--muted);
+  color: var(--stone);
   font-size: 11.5px;
   font-weight: 400;
   line-height: 1.45;
 }
-.sections > .row + .row,
-.sections > .row + .group,
-.sections > .group + .row,
-.sections > .group + .group {
-  border-top: 1px solid var(--line);
-  border-radius: 0;
-}
 .group-head {
-  display: flex;
-  align-items: flex-start;
+  position: relative;
 }
-.group-head .row {
-  flex: 1;
+/* The chevron sits beside the switch so every label shares one left edge. */
+.group-head .row-label {
+  padding-right: 28px;
 }
 .collapse-btn {
-  order: -1;
-  flex-shrink: 0;
-  width: 24px;
-  height: 24px;
-  margin: 8px -6px 0 3px;
+  position: absolute;
+  top: 7px;
+  right: 54px;
   display: grid;
   place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
   border: 0;
   border-radius: 6px;
   background: transparent;
-  color: var(--muted);
+  color: var(--stone);
 }
 .collapse-btn:before {
   content: "";
@@ -452,14 +410,11 @@ h2 {
   transform: rotate(-45deg);
 }
 .group-children {
-  margin: 0 0 6px 18px;
-  padding-left: 4px;
+  margin: 0 0 4px 18px;
   border-left: 1px solid var(--line);
 }
 .group-children .row {
-  min-height: 36px;
-  padding-top: 8px;
-  padding-bottom: 8px;
+  padding-left: 12px;
 }
 .group.collapsed .group-children {
   display: none;
@@ -495,17 +450,11 @@ h2 {
 }
 .uh-switch:checked,
 .uh-switch:indeterminate {
-  background: var(--accent);
+  background: var(--moss);
 }
-[data-popup-theme="dark"] .uh-switch:checked:after,
-[data-popup-theme="dark"] .uh-switch:indeterminate:after {
-  background: var(--tile-on-text);
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-popup-theme]) .uh-switch:checked:after,
-  :root:not([data-popup-theme]) .uh-switch:indeterminate:after {
-    background: var(--tile-on-text);
-  }
+.uh-switch:checked:after,
+.uh-switch:indeterminate:after {
+  background: var(--thumb-on);
 }
 .uh-switch:checked:after {
   transform: translateX(13px);
@@ -514,23 +463,19 @@ h2 {
   transform: translateX(6.5px);
 }
 
-/* Footer */
 .foot {
-  flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 11px 18px;
+  gap: 12px;
+  padding: 10px 18px;
   border-top: 1px solid var(--line);
-  background: var(--surface);
   font-size: 11.5px;
 }
 #saveStatus {
   flex: 1;
   min-width: 0;
-  margin: 0;
   overflow: hidden;
-  color: var(--muted);
+  color: var(--stone);
   white-space: nowrap;
   text-overflow: ellipsis;
 }
@@ -538,50 +483,54 @@ h2 {
   color: var(--danger);
   white-space: normal;
 }
-.btn-reset {
+#resetAll {
   padding: 2px 0;
   border: 0;
-  background: transparent;
-  color: var(--text);
-  font-weight: 550;
+  background: none;
+  color: var(--ink);
+  font-weight: 600;
+  transition: transform 160ms var(--ease-out);
 }
-.foot a {
-  color: var(--accent);
-  text-decoration: none;
+#resetAll:active {
+  transform: scale(0.97);
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .site-tile:not(:has(input:checked)):hover {
-    border-color: var(--muted);
+  .site:not(:has(input:checked)):hover {
+    color: #fff;
+  }
+  .pause[aria-pressed="false"]:hover {
+    border-color: var(--mint);
+  }
+  .rail-links a:hover,
+  .theme:hover {
+    color: #fff;
   }
   .presets button:not([aria-pressed="true"]):hover {
-    color: var(--text);
-  }
-  .row:hover {
-    background: var(--tint);
-  }
-  .btn-reset:hover,
-  .foot a:hover {
-    text-decoration: underline;
+    box-shadow: inset 0 -2px 0 var(--line);
   }
   .collapse-btn:hover {
-    color: var(--text);
+    color: var(--ink);
+  }
+  .row:hover {
+    background: var(--hover);
+  }
+  #resetAll:hover,
+  .rail-links a:hover {
+    text-decoration: underline;
   }
 }
 
-/* Reduced motion keeps colour feedback and drops movement. */
+/* Reduced motion keeps colour and opacity feedback and drops movement. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *:before,
   *:after {
     transition-property: background-color, border-color, color, opacity !important;
   }
-  .site-tile:active,
-  .icon-btn:active,
-  .presets button:active,
-  .paused-note button:active,
-  .btn-reset:active,
-  .collapse-btn:active {
+  .pause:active,
+  .theme:active,
+  #resetAll:active {
     transform: none;
   }
 }

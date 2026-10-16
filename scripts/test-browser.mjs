@@ -318,8 +318,8 @@ try {
   );
   const text = (selector) => popup.locator(selector).textContent();
   await waitFor(
-    async () => (await text("#meta-x")) === "3 on",
-    "Popup: the site tile shows how many controls are on"
+    async () => (await text("#meta-x")) === "3",
+    "Popup: the site rail shows how many controls are on"
   );
   // On X, Balanced and Focus coincide; exactly one preset is marked.
   assert.deepEqual(
@@ -332,23 +332,22 @@ try {
   await popup.locator("#social-hideExplore").uncheck();
   await waitFor(
     async () =>
-      (await text("#meta-x")) === "2 on" &&
+      (await text("#meta-x")) === "2" &&
       (await popup.locator("[aria-pressed=true][data-preset]").count()) === 0,
-    "Popup: custom choices update the tile and clear the preset mark"
+    "Popup: custom choices update the rail count and clear the preset mark"
   );
   await popup.locator("#social-hideExplore").check();
   await popup.locator("#btnPower").click();
   await waitFor(
     async () =>
       (await popup.locator("#pausedNote").isVisible()) &&
-      (await text("#meta-reddit")) === "Paused" &&
+      (await text("#powerLabel")) === "Resume" &&
       (await popup.locator("body.is-paused").count()) === 1,
-    "Popup: pausing shows the banner and marks every site paused"
+    "Popup: pausing shows the notice, relabels the rail button, and dims choices"
   );
   await popup.locator("#btnResume").click();
   await waitFor(
-    async () =>
-      (await popup.locator("#pausedNote").isHidden()) && (await text("#meta-x")) === "3 on",
+    async () => (await popup.locator("#pausedNote").isHidden()) && (await text("#meta-x")) === "3",
     "Popup: Resume restores every site"
   );
   await popup.locator("#site-x").focus();
@@ -409,7 +408,7 @@ try {
     "Popup: theme button persists dark theme"
   );
   results.push(
-    "popup: site tiles, preset marking, pause banner, keyboard selection, reset isolation, concurrent writes and theme"
+    "popup: site rail, preset marking, pause notice, keyboard selection, reset isolation, concurrent writes and theme"
   );
   console.log(`PASS ${results.at(-1)}`);
   await popup.setViewportSize({ width: 400, height: 600 });

@@ -15,7 +15,7 @@ A ready-to-load release directory and zip can be generated with `npm run package
 
 ## Choose your controls
 
-Open the toolbar popup, choose a site, and turn on the controls you want. **Every hide starts off** on a fresh install. The site grid shows how many controls are on for each site and works regardless of the current tab.
+Open the toolbar popup, choose a site, and turn on the controls you want. **Every hide starts off** on a fresh install. The site list shows how many controls are on for each site and works regardless of the current tab.
 
 - **Balanced** turns on the site's feed and recommendation controls, leaving optional stories/Reels controls off. On YouTube it hides Home, related videos, Shorts, and end-screen suggestions, and disables autoplay.
 - **Focus** turns every available control on for that site.
