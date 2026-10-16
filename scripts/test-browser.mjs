@@ -116,9 +116,39 @@ try {
       original.after(clone);
     });
     await visible(page, "#late-post", false, `${fixture.id}: dynamic feed insertion is hidden`);
+    // Our own idempotent writes must not feed back into the self-healing observer.
+    assert.equal(
+      await page.evaluate(
+        () =>
+          new Promise((resolve) => {
+            const records = [];
+            const observer = new MutationObserver((list) => records.push(...list));
+            observer.observe(document.documentElement, { attributes: true, childList: true });
+            setTimeout(() => {
+              observer.disconnect();
+              resolve(records.length);
+            }, 600);
+          })
+      ),
+      0,
+      `${fixture.id}: settled page has no extension mutation loop`
+    );
+    // Site frameworks may reset <html> classes or drop unknown nodes during hydration.
+    await page.evaluate(() => {
+      document.documentElement.className = "";
+      document.getElementById("unhooked-social-rules").remove();
+    });
+    await visible(page, "#feed", false, `${fixture.id}: page-cleared state is restored`);
+    const second = await context.newPage();
+    await second.goto(fixture.url);
+    await visible(second, "#feed", false, `${fixture.id}: second tab applies the same choice`);
     await popup.locator("#btnPower").click();
-    await visible(page, "#feed", true, `${fixture.id}: pause restores existing DOM`);
+    await visible(page, "#feed", true, `${fixture.id}: pause reaches the first tab`);
+    await visible(second, "#feed", true, `${fixture.id}: pause reaches the second tab`);
     await popup.locator("#btnPower").click();
+    await visible(page, "#feed", false, `${fixture.id}: resume reaches the first tab`);
+    await visible(second, "#feed", false, `${fixture.id}: resume reaches the second tab`);
+    await second.close();
     await popup.locator("#siteEnabled").uncheck();
     await visible(page, "#feed", true, `${fixture.id}: site disable restores existing DOM`);
     await popup.locator("#siteEnabled").check();
@@ -139,6 +169,17 @@ try {
     await page.evaluate((route) => history.pushState({}, "", route), new URL(fixture.url).pathname);
     await visible(page, "#feed", false, `${fixture.id}: SPA return to home reapplies hiding`);
 
+    if (fixture.sidebarAnywhere) {
+      await preset(fixture.id, "clear");
+      await set({ [`unhooked.site.${fixture.id}.${fixture.sidebarAnywhere}`]: true });
+      await page.evaluate(() => history.pushState({}, "", "/unrecognized/route"));
+      await visible(page, "#suggestions", false, `${fixture.id}: sidebar hides on unknown routes`);
+      await visible(page, "#feed", true, `${fixture.id}: unknown route keeps primary content`);
+      await page.evaluate(
+        (route) => history.pushState({}, "", route),
+        new URL(fixture.url).pathname
+      );
+    }
     for (const [feature, targets] of Object.entries(fixture.features)) {
       await preset(fixture.id, "clear");
       await set({ [`unhooked.site.${fixture.id}.${feature}`]: true });
@@ -152,7 +193,7 @@ try {
     await preset(fixture.id, "clear");
     await page.close();
     results.push(
-      `${fixture.id}: live storage, CSS, dynamic DOM, pause, site disable, protected routes, SPA, ancillary controls`
+      `${fixture.id}: live storage, CSS, dynamic DOM, self-healing, cross-tab pause, site disable, protected routes, SPA, ancillary controls`
     );
     console.log(`PASS ${results.at(-1)}`);
   }
@@ -209,6 +250,10 @@ try {
     false,
     "YouTube: existing saved settings still hide recommendations"
   );
+  await youtube.evaluate(() => {
+    document.documentElement.className = "";
+  });
+  await visible(youtube, "#feed", false, "YouTube: page-cleared classes are restored");
   await waitFor(
     () =>
       youtube
@@ -286,6 +331,7 @@ try {
   );
   assert.equal(concurrent["unhooked.site.x.hideExplore"], false);
   assert.equal(concurrent["unhooked.site.reddit.hideRecommendations"], true);
+  await popup.locator("#siteEnabled").uncheck();
   await popup.locator("#resetAll").click();
   await waitFor(
     () =>
@@ -294,6 +340,10 @@ try {
         .isChecked()
         .then((value) => !value),
     "Popup: reset clears the selected site"
+  );
+  await waitFor(
+    () => popup.locator("#siteEnabled").isChecked(),
+    "Popup: reset turns the selected site back on"
   );
   assert.equal(
     (

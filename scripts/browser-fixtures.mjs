@@ -9,6 +9,7 @@ export const fixtures = [
     search: "/search?q=focus",
     messages: "/messages",
     html: `<div data-testid="primaryColumn"><section role="region" aria-label="Timeline: Your Home Timeline"><div data-testid="cellInnerDiv"><article id="feed">A recommended post</article></div></section></div><div data-testid="sidebarColumn"><aside id="suggestions">Who to follow</aside><div data-testid="trend" id="trends">Trending</div></div>`,
+    sidebarAnywhere: "hideRecommendations",
     features: { hideRecommendations: ["suggestions", "trends"] }
   },
   {
@@ -19,6 +20,7 @@ export const fixtures = [
     search: "/search/?q=focus",
     messages: "/message/inbox/",
     html: `<shreddit-feed><shreddit-post><article id="feed">A front-page post</article></shreddit-post></shreddit-feed><div data-testid="right-sidebar" id="suggestions">Recommended communities</div>`,
+    sidebarAnywhere: "hideRecommendations",
     features: { hideRecommendations: ["suggestions"] }
   },
   {
@@ -39,6 +41,7 @@ export const fixtures = [
     search: "/search?q=focus",
     messages: "/messages",
     html: `<div id="main-content-homepage"><div data-e2e="recommend-list-item-container"><article id="feed">A For You video</article></div></div><aside data-e2e="suggest-accounts" id="suggestions">Suggested accounts</aside>`,
+    sidebarAnywhere: "hideSuggestions",
     features: { hideSuggestions: ["suggestions"] }
   },
   {
@@ -87,6 +90,27 @@ export const discoveryFixtures = [
     path: "/explore/",
     feature: "hideExplore",
     html: '<main><div><article id="discovery">Explore photos</article></div></main>'
+  },
+  {
+    id: "x",
+    origin: "https://x.com",
+    path: "/explore/tabs/trending",
+    feature: "hideExplore",
+    html: '<div data-testid="primaryColumn"><section role="region" aria-label="Timeline: Explore"><article id="discovery">Trending tab</article></section></div>'
+  },
+  {
+    id: "reddit",
+    origin: "https://www.reddit.com",
+    path: "/r/popular/hot/",
+    feature: "hideHomeFeed",
+    html: '<shreddit-feed><article id="discovery">Popular, sorted by hot</article></shreddit-feed>'
+  },
+  {
+    id: "instagram",
+    origin: "https://www.instagram.com",
+    path: "/reels/C1abc/",
+    feature: "hideReels",
+    html: '<main><article id="discovery">Reels viewer after scrolling</article></main>'
   },
   {
     id: "instagram",
