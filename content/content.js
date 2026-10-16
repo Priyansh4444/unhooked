@@ -1,14 +1,8 @@
 (function () {
   "use strict";
-  var raw = {},
-    pending = {},
-    loaded = false,
-    running = false,
-    generation = 0;
-  var autoplayTimer = null,
-    autoplayDeadline = null,
-    routeTimer = null,
-    lastURL = "";
+  var options = unhookedYouTubeOptions({}),
+    autoplayTimer = null,
+    autoplayDeadline = null;
   function stopAutoplay() {
     window.clearInterval(autoplayTimer);
     window.clearTimeout(autoplayDeadline);
@@ -16,8 +10,7 @@
     autoplayDeadline = null;
   }
   function tryTurnOffAutoplay() {
-    var opts = unhookedYouTubeOptions(raw);
-    if (!running || opts.extensionDisabled || !opts.disableAutoplay) {
+    if (options.extensionDisabled || !options.disableAutoplay) {
       stopAutoplay();
       return;
     }
@@ -35,68 +28,17 @@
     autoplayTimer = window.setInterval(tryTurnOffAutoplay, 800);
     autoplayDeadline = window.setTimeout(stopAutoplay, 120000);
   }
-  function render() {
-    var html = document.documentElement;
-    if (!html || !loaded || !running) return;
-    var opts = unhookedYouTubeOptions(raw);
-    unhookedApplyOptionClasses(html, opts, {
-      isMobile: location.hostname === "m.youtube.com",
-      isEmbed: location.pathname.startsWith("/embed/") || html.matches("html.embed")
-    });
-    if (!opts.extensionDisabled && opts.disableAutoplay) scheduleAutoplayOff();
-    else stopAutoplay();
-    lastURL = location.href;
-  }
-  function changed(changes, area) {
-    if (area !== "local") return;
-    if (loaded) unhookedMergeChanges(raw, changes);
-    else
-      Object.keys(changes).forEach(function (key) {
-        pending[key] = changes[key].newValue;
+  unhookedRunController({
+    documentEvents: ["yt-navigate-finish"],
+    render: function (raw, html) {
+      options = unhookedYouTubeOptions(raw);
+      unhookedApplyOptionClasses(html, options, {
+        isMobile: location.hostname === "m.youtube.com",
+        isEmbed: location.pathname.startsWith("/embed/") || html.matches("html.embed")
       });
-    render();
-  }
-  function navigated() {
-    if (lastURL !== location.href) render();
-  }
-  function start() {
-    if (running) return;
-    running = true;
-    loaded = false;
-    pending = {};
-    var current = ++generation;
-    chrome.storage.onChanged.addListener(changed);
-    chrome.storage.local.get(null, function (data) {
-      if (!running || current !== generation) return;
-      if (chrome.runtime.lastError) return;
-      raw = data || {};
-      Object.keys(pending).forEach(function (key) {
-        if (typeof pending[key] === "undefined") delete raw[key];
-        else raw[key] = pending[key];
-      });
-      loaded = true;
-      pending = {};
-      render();
-    });
-    document.addEventListener("yt-navigate-finish", render);
-    document.addEventListener("DOMContentLoaded", render);
-    window.addEventListener("popstate", navigated);
-    window.addEventListener("hashchange", navigated);
-    routeTimer = window.setInterval(navigated, 250);
-  }
-  function stop() {
-    running = false;
-    generation++;
-    stopAutoplay();
-    window.clearInterval(routeTimer);
-    routeTimer = null;
-    chrome.storage.onChanged.removeListener(changed);
-    document.removeEventListener("yt-navigate-finish", render);
-    document.removeEventListener("DOMContentLoaded", render);
-    window.removeEventListener("popstate", navigated);
-    window.removeEventListener("hashchange", navigated);
-  }
-  window.addEventListener("pagehide", stop);
-  window.addEventListener("pageshow", start);
-  start();
+      if (!options.extensionDisabled && options.disableAutoplay) scheduleAutoplayOff();
+      else stopAutoplay();
+    },
+    stop: stopAutoplay
+  });
 })();

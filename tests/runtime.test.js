@@ -10,7 +10,10 @@ function runtime(name, initial = {}) {
     attrs = {};
   let nextId = 0,
     getCallback,
-    clicks = 0;
+    clicks = 0,
+    appended = 0,
+    created = null;
+  const observers = new Set();
   const getCallbacks = [];
   const html = {
     classList: {
@@ -31,6 +34,7 @@ function runtime(name, initial = {}) {
       attrs[key] = value;
     },
     appendChild(node) {
+      appended++;
       node.isConnected = true;
     }
   };
@@ -45,9 +49,22 @@ function runtime(name, initial = {}) {
       clicks++;
     }
   };
+  class MutationObserver {
+    constructor(callback) {
+      this.callback = callback;
+    }
+    observe(target, options) {
+      this.options = options;
+      observers.add(this);
+    }
+    disconnect() {
+      observers.delete(this);
+    }
+  }
   const context = vm.createContext({
     URL,
     console,
+    MutationObserver,
     location: {
       hostname: name === "social" ? "x.com" : "www.youtube.com",
       pathname: name === "social" ? "/home" : "/watch",
@@ -55,7 +72,7 @@ function runtime(name, initial = {}) {
     },
     document: {
       documentElement: html,
-      createElement: () => ({}),
+      createElement: () => (created = {}),
       querySelector: () => button,
       addEventListener: add,
       removeEventListener: remove
@@ -106,6 +123,7 @@ function runtime(name, initial = {}) {
     "shared/settings.js",
     "shared/mappings.js",
     "shared/apply-option-classes.js",
+    "shared/runtime.js",
     "content/" + (name === "social" ? "social" : "content") + ".js"
   ])
     vm.runInContext(readFileSync(new URL("../" + file, import.meta.url), "utf8"), context);
@@ -116,7 +134,13 @@ function runtime(name, initial = {}) {
     intervals,
     timeouts,
     changed,
+    observers,
     clicks: () => clicks,
+    appended: () => appended,
+    styleNode: () => created,
+    mutate() {
+      observers.forEach((observer) => observer.callback([]));
+    },
     load: (data = initial) => getCallback(data),
     loadAt: (index, data = initial) => getCallbacks[index](data),
     change(data) {
@@ -174,6 +198,37 @@ describe("content lifecycle", () => {
     r.load();
     expect(r.intervals.size).toBe(1);
     expect(r.changed.size).toBe(1);
+  });
+  it("restores state when the page resets <html> classes or removes the stylesheet", () => {
+    const r = runtime("social", { "unhooked.site.x.hideHomeFeed": true });
+    expect(r.observers.size).toBe(0);
+    r.load();
+    expect(r.observers.size).toBe(1);
+    const [observer] = r.observers;
+    expect(observer.options).toMatchObject({ attributes: true, childList: true });
+    expect(observer.options.attributeFilter).toContain("class");
+    r.classes.clear();
+    delete r.attrs["data-uh-route"];
+    r.mutate();
+    expect(r.classes.has("uh-social-x-hideHomeFeed")).toBe(true);
+    expect(r.attrs["data-uh-route"]).toBe("home");
+    expect(r.appended()).toBe(1);
+    // A site framework removed our <style>; the same node is attached again.
+    const style = r.styleNode();
+    style.isConnected = false;
+    r.mutate();
+    expect(r.appended()).toBe(2);
+    expect(r.styleNode()).toBe(style);
+    r.event("pagehide");
+    expect(r.observers.size).toBe(0);
+  });
+  it("re-renders YouTube classes after the page clears them", () => {
+    const r = runtime("youtube", { "unhooked.site.youtube.hideHomeFeed": true });
+    r.load();
+    expect(r.classes.has("uh-hide-home-feed")).toBe(true);
+    r.classes.clear();
+    r.mutate();
+    expect(r.classes.has("uh-hide-home-feed")).toBe(true);
   });
   it.each([
     "unhooked.paused",

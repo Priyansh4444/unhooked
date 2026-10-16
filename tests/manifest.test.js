@@ -27,6 +27,7 @@ describe("manifest.json", () => {
       "shared/settings.js",
       "shared/mappings.js",
       "shared/apply-option-classes.js",
+      "shared/runtime.js",
       "content/content.js"
     ]);
     expect(cs.css).toContain("content/styles.css");

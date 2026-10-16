@@ -49,6 +49,7 @@
         "shared/settings.js",
         "shared/mappings.js",
         "shared/apply-option-classes.js",
+        "shared/runtime.js",
         "content/content.js"
       ],
       "all_frames": true,
@@ -78,7 +79,13 @@
         "*://threads.net/*",
         "*://www.threads.net/*"
       ],
-      "js": ["shared/options.js", "shared/sites.js", "shared/settings.js", "content/social.js"],
+      "js": [
+        "shared/options.js",
+        "shared/sites.js",
+        "shared/settings.js",
+        "shared/runtime.js",
+        "content/social.js"
+      ],
       "run_at": "document_start"
     }
   ],
