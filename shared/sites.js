@@ -62,7 +62,8 @@
     if (id === "instagram") {
       if (p === "/") return "home";
       if (p === "/explore") return "discovery";
-      if (/^\/reels?(\/|$)/.test(p)) return "shorts";
+      if (p === "/reels" || p === "/reel") return "shorts";
+      if (/^\/reel\/[^/]+$/.test(p)) return "detail";
       if (/^\/direct(\/|$)/.test(p)) return "messages";
       if (/^\/(p|tv)\/[^/]+$/.test(p)) return "detail";
       if (/^\/[^/]+$/.test(p) && !/^\/(accounts|about|legal|stories)$/.test(p)) return "profile";

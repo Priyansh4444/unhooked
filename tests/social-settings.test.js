@@ -91,6 +91,13 @@ describe("site boundaries and protected routes", () => {
     expect(css).not.toContain('[data-uh-route="other"]');
     expect(css).not.toContain('[data-uh-route="messages"]');
   });
+  it("preserves direct Instagram reels while allowing the dedicated Reels feed control", () => {
+    const c = load(), site = c.unhookedSiteById("instagram");
+    expect(site.classify(new URL("https://www.instagram.com/reel/ABC123/"))).toBe("detail");
+    expect(site.classify(new URL("https://www.instagram.com/reels/"))).toBe("shorts");
+    const reels = site.features.find((feature) => feature.id === "hideReels");
+    expect(reels.rules[0].routes).toEqual(["shorts"]);
+  });
   it("registry hosts exactly match every manifest host", () => {
     const c = load(), manifest = JSON.parse(readFileSync(new URL("../manifest.json", import.meta.url), "utf8"));
     expect(c.UNHOOKED_SITES.flatMap((site) => site.hosts).sort()).toEqual(manifest.host_permissions.map((pattern) => pattern.split("/")[2]).sort());
