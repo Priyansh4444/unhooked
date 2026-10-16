@@ -52,24 +52,18 @@
       rules: [{ routes: routes, selectors: selectors }]
     };
   }
+  // "*" is for sidebar-only selectors that never cover the page's primary content.
   var home = ["home"],
     discovery = ["discovery"],
-    ancillary = ["home", "discovery", "profile", "detail", "search"];
+    anywhere = ["*"];
   function path(url) {
     return url.pathname.replace(/\/+$/, "") || "/";
   }
   function classify(id, url) {
     var p = path(url);
-    if (id === "youtube") {
-      if (p === "/") return "home";
-      if (p === "/watch" || p.startsWith("/embed/")) return "detail";
-      if (p.startsWith("/shorts")) return "shorts";
-      if (p === "/results") return "search";
-      return "other";
-    }
     if (id === "x") {
       if (p === "/home" || p === "/") return "home";
-      if (p === "/explore") return "discovery";
+      if (/^\/explore(\/|$)/.test(p)) return "discovery";
       if (p === "/search") return "search";
       if (/^\/(messages|i\/chat)(\/|$)/.test(p)) return "messages";
       if (/^\/[^/]+\/status\/[^/]+$/.test(p)) return "detail";
@@ -80,7 +74,9 @@
         return "profile";
     }
     if (id === "reddit") {
-      if (p === "/" || /^\/r\/(popular|all)$/.test(p)) return "home";
+      // Front page, r/popular, and r/all, including their sort tabs (/best, /r/all/new, ...).
+      if (p === "/" || /^(\/r\/(popular|all))?(\/(best|hot|new|top|rising))?$/.test(p))
+        return "home";
       if (/\/comments\//.test(p)) return "detail";
       if (/^\/(message|chat)(\/|$)/.test(p)) return "messages";
       if (p === "/search" || /^\/r\/[^/]+\/search$/.test(p)) return "search";
@@ -89,7 +85,8 @@
     if (id === "instagram") {
       if (p === "/") return "home";
       if (p === "/explore") return "discovery";
-      if (p === "/reels" || p === "/reel") return "shorts";
+      // The Reels tab rewrites its URL to /reels/<id>/ while scrolling; shared links use /reel/<id>/.
+      if (p === "/reels" || p === "/reel" || /^\/reels\/[^/]+$/.test(p)) return "shorts";
       if (/^\/reel\/[^/]+$/.test(p)) return "detail";
       if (/^\/direct(\/|$)/.test(p)) return "messages";
       if (/^\/(p|tv)\/[^/]+$/.test(p)) return "detail";
@@ -197,7 +194,7 @@
           "hideRecommendations",
           "Hide sidebar distractions",
           "Hide trends and suggested accounts in the sidebar.",
-          ancillary,
+          anywhere,
           [
             '[data-testid="sidebarColumn"] [aria-label^="Timeline:"]',
             '[data-testid="sidebarColumn"] [data-testid="trend"]',
@@ -224,7 +221,7 @@
           "hideRecommendations",
           "Hide recommendation panels",
           "Hide recent and recommended communities in sidebars.",
-          ancillary,
+          anywhere,
           [
             '[data-testid="right-sidebar"]',
             "reddit-recent-pages",
@@ -312,7 +309,7 @@
           "hideSuggestions",
           "Hide suggested accounts",
           "Hide suggested accounts in the navigation sidebar.",
-          ancillary,
+          anywhere,
           ['[data-e2e="suggest-accounts"]'],
           true
         ),
@@ -441,9 +438,9 @@
                   return (
                     'html[data-uh-site="' +
                     s.id +
-                    '"][data-uh-route="' +
-                    route +
-                    '"].' +
+                    '"]' +
+                    (route === "*" ? "" : '[data-uh-route="' + route + '"]') +
+                    "." +
                     root.unhookedFeatureClass(s.id, f.id) +
                     " " +
                     selector

@@ -187,6 +187,42 @@ describe("site boundaries and protected routes", () => {
     const reels = site.features.find((feature) => feature.id === "hideReels");
     expect(reels.rules[0].routes).toEqual(["shorts"]);
   });
+  it.each([
+    ["x", "/explore/tabs/trending", "discovery"],
+    ["x", "/explore/tabs/for-you/", "discovery"],
+    ["x", "/explorer", "profile"],
+    ["reddit", "/best/", "home"],
+    ["reddit", "/new", "home"],
+    ["reddit", "/r/popular/hot/", "home"],
+    ["reddit", "/r/all/top", "home"],
+    ["reddit", "/r/rust/hot/", "other"],
+    ["instagram", "/reels/C1abc/", "shorts"],
+    ["instagram", "/reel/C1abc/", "detail"]
+  ])("%s classifies %s as %s", (id, path, route) => {
+    const site = load().unhookedSiteById(id);
+    expect(site.classify(new URL("https://" + site.hosts[0] + path))).toBe(route);
+  });
+  it("applies sidebar-only rules on every route, including unknown ones", () => {
+    const c = load();
+    for (const [id, feature] of [
+      ["x", "hideRecommendations"],
+      ["reddit", "hideRecommendations"],
+      ["tiktok", "hideSuggestions"]
+    ]) {
+      const site = c.unhookedSiteById(id);
+      const rules = site.features.find((f) => f.id === feature).rules;
+      expect(rules.every((rule) => rule.routes.join() === "*")).toBe(true);
+      const css = c.unhookedCompileSiteCSS(site);
+      expect(css).toContain(
+        'html[data-uh-site="' + id + '"].' + c.unhookedFeatureClass(id, feature) + " "
+      );
+    }
+    // Primary-content rules stay route scoped.
+    for (const site of c.UNHOOKED_SITES)
+      for (const feature of site.features)
+        if (feature.id === "hideHomeFeed")
+          expect(feature.rules.every((rule) => !rule.routes.includes("*"))).toBe(true);
+  });
   it("registry hosts exactly match every manifest host", () => {
     const c = load(),
       manifest = JSON.parse(readFileSync(new URL("../manifest.json", import.meta.url), "utf8"));
