@@ -1,57 +1,44 @@
 (function () {
   "use strict";
-
-  var host = location.hostname;
-  var isMobile = host === "m.youtube.com";
-  var isEmbed =
-    location.pathname.startsWith("/embed/") ||
-    document.documentElement.matches("html.embed");
-
-  function loadAndApply() {
-    var api = chrome.storage && chrome.storage.local;
-    if (!api) return;
-    api.get([UNHOOKED_STORAGE_KEY], function (data) {
-      var opts = mergeUnhookedOptions(data[UNHOOKED_STORAGE_KEY]);
-      unhookedApplyOptionClasses(document.documentElement, opts, {
-        isMobile: isMobile,
-        isEmbed: isEmbed
-      });
-      if (!opts.extensionDisabled && opts.disableAutoplay) scheduleAutoplayOff();
-    });
+  var options = unhookedYouTubeOptions({}),
+    autoplayTimer = null,
+    autoplayDeadline = null;
+  function stopAutoplay() {
+    window.clearInterval(autoplayTimer);
+    window.clearTimeout(autoplayDeadline);
+    autoplayTimer = null;
+    autoplayDeadline = null;
   }
-
-  var autoplayTimer = null;
-  function scheduleAutoplayOff() {
-    if (autoplayTimer) return;
-    autoplayTimer = window.setInterval(tryTurnOffAutoplay, 800);
-    window.setTimeout(function () {
-      clearInterval(autoplayTimer);
-      autoplayTimer = null;
-    }, 120000);
-  }
-
   function tryTurnOffAutoplay() {
+    if (options.extensionDisabled || !options.disableAutoplay) {
+      stopAutoplay();
+      return;
+    }
     var btn = document.querySelector(".ytp-autonav-toggle-button");
-    if (!btn) return;
-    var on =
-      btn.getAttribute("aria-checked") === "true" ||
-      btn.classList.contains("ytp-autonav-toggle-button-checked");
-    if (on) btn.click();
+    if (
+      btn &&
+      (btn.getAttribute("aria-checked") === "true" ||
+        btn.classList.contains("ytp-autonav-toggle-button-checked"))
+    )
+      btn.click();
   }
-
-  loadAndApply();
-
-  if (chrome.storage && chrome.storage.onChanged) {
-    chrome.storage.onChanged.addListener(function (changes, area) {
-      if (area !== "local" || !changes[UNHOOKED_STORAGE_KEY]) return;
-      var next = mergeUnhookedOptions(changes[UNHOOKED_STORAGE_KEY].newValue);
-      unhookedApplyOptionClasses(document.documentElement, next, {
-        isMobile: isMobile,
-        isEmbed: isEmbed
+  function scheduleAutoplayOff() {
+    if (autoplayTimer !== null) return;
+    tryTurnOffAutoplay();
+    autoplayTimer = window.setInterval(tryTurnOffAutoplay, 800);
+    autoplayDeadline = window.setTimeout(stopAutoplay, 120000);
+  }
+  unhookedRunController({
+    documentEvents: ["yt-navigate-finish"],
+    render: function (raw, html) {
+      options = unhookedYouTubeOptions(raw);
+      unhookedApplyOptionClasses(html, options, {
+        isMobile: location.hostname === "m.youtube.com",
+        isEmbed: location.pathname.startsWith("/embed/") || html.matches("html.embed")
       });
-      if (!next.extensionDisabled && next.disableAutoplay) scheduleAutoplayOff();
-    });
-  }
-
-  document.addEventListener("yt-navigate-finish", loadAndApply);
+      if (!options.extensionDisabled && options.disableAutoplay) scheduleAutoplayOff();
+      else stopAutoplay();
+    },
+    stop: stopAutoplay
+  });
 })();

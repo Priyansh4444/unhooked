@@ -5,10 +5,21 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "test:browser": "node scripts/test-browser.mjs",
+    "package": "node scripts/package.mjs",
+    "icons": "node scripts/create-icons.mjs",
+    "format": "prettier --write shared content popup tests scripts manifest.json package.json README.md docs .github/workflows/ci.yml vitest.config.js",
+    "format:check": "prettier --check shared content popup tests scripts manifest.json package.json README.md docs .github/workflows/ci.yml vitest.config.js"
   },
   "devDependencies": {
-    "@vitest/coverage-v8": "^3.0.5",
-    "vitest": "^3.0.5"
+    "@vitest/coverage-v8": "^4.1.12",
+    "fflate": "^0.8.3",
+    "playwright": "^1.64.1",
+    "prettier": "^3.9.10",
+    "vitest": "^4.1.12"
+  },
+  "engines": {
+    "node": ">=22.12.0"
   }
 }
