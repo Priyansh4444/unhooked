@@ -11,7 +11,7 @@ This project is a fork of [Havockeyan/UnhookYoutube-opensource](https://github.c
 3. Enable **Developer mode**, select **Load unpacked**, and choose the repository folder containing `manifest.json`.
 4. Pin Unhooked in your browser toolbar. Reload social-media tabs that were already open before installation or an extension update.
 
-A ready-to-load release directory and zip can be generated with `npm run package`. Load the generated extension directory or extract the zip first. No build is required to load this repository. Firefox has not been validated and is not a supported release target yet.
+A ready-to-load release directory and zip can be generated with `npm run package`. Load `dist/unhooked`, or extract `dist/unhooked-0.3.0.zip` first. No build is required to load this repository. Firefox has not been validated and is not a supported release target yet.
 
 ## Choose your controls
 
@@ -28,16 +28,16 @@ Presets and reset change only the selected site's feature preferences. They neve
 
 ## Supported controls and routes
 
-| Site | Controls | Feed suppression applies to |
-| --- | --- | --- |
-| YouTube | All original detailed controls: Home, related sidebar, live chat, playlists, fundraiser, end-screen feed/cards, Shorts, comments/avatars, mixes, merch/tickets/offers, player actions, channel row, description, notifications, unrelated search shelves, Explore/subscriptions/service links, autoplay, annotations | Existing desktop/mobile/embed YouTube engine |
-| X / Twitter | Home timeline, Explore timeline, sidebar trends and suggested accounts | `/`, `/home`; Explore control on `/explore` |
-| Reddit | Home/Popular/All feed, recommendation panels | `/`, `/r/popular`, `/r/all` |
-| Instagram | Home posts, Explore grid, suggested accounts, stories tray, Reels viewer | `/`; separate Explore and Reels routes |
-| TikTok | For You/Following feed, Explore feed, suggested accounts, Live directory | `/`, `/foryou`, `/following`; separate `/explore` and `/live` |
-| Facebook | Home feed, right sidebar, stories tray, Reels viewer | `/`, `/home.php`; separate `/reel` and `/reels` |
-| LinkedIn | Home feed, sidebar news/recommendations | `/`, `/feed` |
-| Threads | For You/Following feed, suggested accounts | `/`, `/following`, `/for_you` |
+| Site        | Controls                                                                                                                                                                                                                                                                                                             | Feed suppression applies to                                   |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| YouTube     | All original detailed controls: Home, related sidebar, live chat, playlists, fundraiser, end-screen feed/cards, Shorts, comments/avatars, mixes, merch/tickets/offers, player actions, channel row, description, notifications, unrelated search shelves, Explore/subscriptions/service links, autoplay, annotations | Existing desktop/mobile/embed YouTube engine                  |
+| X / Twitter | Home timeline, Explore timeline, sidebar trends and suggested accounts                                                                                                                                                                                                                                               | `/`, `/home`; Explore control on `/explore`                   |
+| Reddit      | Home/Popular/All feed, recommendation panels                                                                                                                                                                                                                                                                         | `/`, `/r/popular`, `/r/all`                                   |
+| Instagram   | Home posts, Explore grid, suggested accounts, stories tray, Reels viewer                                                                                                                                                                                                                                             | `/`; separate Explore and Reels routes                        |
+| TikTok      | For You/Following feed, Explore feed, suggested accounts, Live directory                                                                                                                                                                                                                                             | `/`, `/foryou`, `/following`; separate `/explore` and `/live` |
+| Facebook    | Home feed, right sidebar, stories tray, Reels viewer                                                                                                                                                                                                                                                                 | `/`, `/home.php`; separate `/reel` and `/reels`               |
+| LinkedIn    | Home feed, sidebar news/recommendations                                                                                                                                                                                                                                                                              | `/`, `/feed`                                                  |
+| Threads     | For You/Following feed, suggested accounts                                                                                                                                                                                                                                                                           | `/`, `/following`, `/for_you`                                 |
 
 New social feed controls preserve profiles, direct posts/videos, search, messages, communities/groups, and job pages. Ancillary panels may be hidden on explicitly supported routes. Unknown routes leave primary content visible. Both `threads.com` and legacy `threads.net` are included, along with X's `twitter.com` alias and Reddit's `old`, `new`, and `sh` hosts. Exact hosts are listed in [manifest.json](manifest.json); arbitrary subdomains and mobile Facebook are not included.
 
@@ -55,6 +55,7 @@ Requires Node.js 22.12+.
 
 ```sh
 npm install
+npx playwright install chromium
 npm test
 npm run test:browser
 npm run format:check

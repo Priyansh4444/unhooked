@@ -5,11 +5,17 @@
 (function (root) {
   "use strict";
 
-  root.unhookedApplyOptionClasses = function unhookedApplyOptionClasses(element, options, hostInfo) {
+  root.unhookedApplyOptionClasses = function unhookedApplyOptionClasses(
+    element,
+    options,
+    hostInfo
+  ) {
     var KEY_TO_CLASS = root.UNHOOKED_KEY_TO_CLASS;
     var KEYS = root.UNHOOKED_OPTION_KEYS;
     if (!KEY_TO_CLASS || !KEYS) {
-      throw new Error("Unhooked: load shared/options.js and shared/mappings.js before apply-option-classes.js");
+      throw new Error(
+        "Unhooked: load shared/options.js and shared/mappings.js before apply-option-classes.js"
+      );
     }
 
     var allClasses = Object.values(KEY_TO_CLASS);

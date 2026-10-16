@@ -13,9 +13,9 @@ describe("content/content.js wiring", () => {
     expect(src).not.toContain("UNHOOKED_KEY_TO_CLASS");
   });
 
-  it("uses mergeUnhookedOptions and UNHOOKED_STORAGE_KEY from shared/options.js", () => {
-    expect(src).toContain("mergeUnhookedOptions");
-    expect(src).toContain("UNHOOKED_STORAGE_KEY");
+  it("uses the shared settings projection and storage change merger", () => {
+    expect(src).toContain("unhookedYouTubeOptions");
+    expect(src).toContain("unhookedMergeChanges");
   });
 
   it("listens for chrome.storage.onChanged and yt-navigate-finish", () => {

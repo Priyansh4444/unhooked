@@ -30,6 +30,7 @@ describe("manifest.json", () => {
       "content/content.js"
     ]);
     expect(cs.css).toContain("content/styles.css");
+    expect(cs.all_frames).toBe(true);
     expect(manifest.action?.default_popup).toBe("popup/popup.html");
   });
 
@@ -68,7 +69,6 @@ describe("manifest.json", () => {
     expect(matches).toContain("youtube-nocookie.com");
   });
 });
-
 
 describe("precise social permissions", () => {
   const manifest = JSON.parse(readFileSync(join(root, "manifest.json"), "utf8"));

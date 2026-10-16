@@ -20,14 +20,37 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"
           cache: npm
 
       - name: Install dependencies
         run: npm ci
 
+      - name: Check formatting
+        run: npm run format:check
+
       - name: Run tests
         run: npm test
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Package extension
+        run: npm run package
+
+      - name: Test packaged extension in Chromium
+        env:
+          UNHOOKED_EXTENSION_PATH: dist/unhooked
+        run: npm run test:browser
+
+      - name: Upload extension and browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unhooked
+          path: |
+            dist/
+            test-results/
 
       - name: Coverage report (informational)
         run: npm run test:coverage

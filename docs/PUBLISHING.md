@@ -8,6 +8,7 @@ From the repository root, with Node.js 22.12+:
 
 ```sh
 npm install
+npx playwright install chromium
 npm test
 npm run test:browser
 npm run format:check
@@ -15,6 +16,12 @@ npm run package
 ```
 
 The packaging script validates manifest assets and produces a minimal release directory and zip under `dist/`. The zip root contains `manifest.json`, extension scripts/styles, icons, and the MIT license; it excludes tests, dependencies, development scripts, and repository metadata. Extract the zip and load its directory through `chrome://extensions` to verify the actual package.
+
+To run the same browser journeys against the packaged directory:
+
+```sh
+UNHOOKED_EXTENSION_PATH=dist/unhooked npm run test:browser
+```
 
 ## Validate before submitting
 

@@ -2,8 +2,14 @@
   "use strict";
   var site = unhookedSiteForHost(location.hostname);
   if (!site || site.id === "youtube") return;
-  var raw = {}, pending = {}, loaded = false, running = false, generation = 0;
-  var routeTimer = null, lastURL = "", style = null;
+  var raw = {},
+    pending = {},
+    loaded = false,
+    running = false,
+    generation = 0;
+  var routeTimer = null,
+    lastURL = "",
+    style = null;
   function render() {
     var html = document.documentElement;
     if (!html || !loaded || !running) return;
@@ -18,7 +24,10 @@
     if (html.getAttribute("data-uh-route") !== route) html.setAttribute("data-uh-route", route);
     var state = unhookedResolveSettings(raw, site);
     site.features.forEach(function (feature) {
-      html.classList.toggle(unhookedFeatureClass(site.id, feature.id), !state.paused && state.enabled && state.features[feature.id]);
+      html.classList.toggle(
+        unhookedFeatureClass(site.id, feature.id),
+        !state.paused && state.enabled && state.features[feature.id]
+      );
     });
     lastURL = location.href;
   }
@@ -26,13 +35,20 @@
     if (area !== "local") return;
     if (loaded) unhookedMergeChanges(raw, changes);
     // Keep removal tombstones until the initial storage read returns.
-    else Object.keys(changes).forEach(function (key) { pending[key] = changes[key].newValue; });
+    else
+      Object.keys(changes).forEach(function (key) {
+        pending[key] = changes[key].newValue;
+      });
     render();
   }
-  function navigated() { if (lastURL !== location.href) render(); }
+  function navigated() {
+    if (lastURL !== location.href) render();
+  }
   function start() {
     if (running) return;
-    running = true; loaded = false; pending = {};
+    running = true;
+    loaded = false;
+    pending = {};
     var current = ++generation;
     chrome.storage.onChanged.addListener(changed);
     chrome.storage.local.get(null, function (data) {
@@ -40,9 +56,12 @@
       if (chrome.runtime.lastError) return;
       raw = data || {};
       Object.keys(pending).forEach(function (key) {
-        if (typeof pending[key] === "undefined") delete raw[key]; else raw[key] = pending[key];
+        if (typeof pending[key] === "undefined") delete raw[key];
+        else raw[key] = pending[key];
       });
-      loaded = true; pending = {}; render();
+      loaded = true;
+      pending = {};
+      render();
     });
     window.addEventListener("popstate", navigated);
     window.addEventListener("hashchange", navigated);
@@ -51,8 +70,10 @@
     routeTimer = window.setInterval(navigated, 250);
   }
   function stop() {
-    running = false; generation++;
-    window.clearInterval(routeTimer); routeTimer = null;
+    running = false;
+    generation++;
+    window.clearInterval(routeTimer);
+    routeTimer = null;
     chrome.storage.onChanged.removeListener(changed);
     window.removeEventListener("popstate", navigated);
     window.removeEventListener("hashchange", navigated);
