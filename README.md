@@ -15,13 +15,13 @@ A ready-to-load release directory and zip can be generated with `npm run package
 
 ## Choose your controls
 
-Open the toolbar popup, choose a site, and turn on the controls you want. **Every hide starts off** on a fresh install. The site picker works regardless of the current tab.
+Open the toolbar popup, choose a site, and turn on the controls you want. **Every hide starts off** on a fresh install. The site grid shows how many controls are on for each site and works regardless of the current tab.
 
 - **Balanced** turns on the site's feed and recommendation controls, leaving optional stories/Reels controls off. On YouTube it hides Home, related videos, Shorts, and end-screen suggestions, and disables autoplay.
 - **Focus** turns every available control on for that site.
-- **Show everything** turns that site's controls off. **Reset this site** also turns the site back on.
+- **Show all** turns that site's controls off. **Reset site** also turns the site back on.
 - **Enable controls on this site** suspends one site's controls without losing the selected options.
-- The header power button **pauses all sites**. Resume restores the chosen controls.
+- The header power button **pauses all sites**. **Resume** restores the chosen controls.
 - The theme button cycles system, dark, and light.
 
 Presets and reset change only the selected site's feature preferences. They never change global pause, site enable, theme, or another site's choices. The footer reports successful saves and storage errors.

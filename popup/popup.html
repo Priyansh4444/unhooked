@@ -9,11 +9,8 @@
   <body>
     <header class="topbar">
       <div class="brand">
-        <span class="logo" aria-hidden="true"></span>
-        <div>
-          <span class="brand-name">unhooked<span class="brand-dot">.</span></span
-          ><span class="brand-caption">A little less noise.</span>
-        </div>
+        <img class="logo" src="../icons/icon.svg" width="26" height="26" alt="" />
+        <span class="brand-name">unhooked</span>
       </div>
       <div class="top-actions">
         <button type="button" class="icon-btn" id="btnTheme" title="Theme" aria-label="Cycle theme">
@@ -23,7 +20,7 @@
           type="button"
           class="icon-btn power"
           id="btnPower"
-          title="Extension on"
+          title="Pause on all sites"
           aria-label="Pause on all sites"
           aria-pressed="true"
         >
@@ -33,159 +30,140 @@
     </header>
 
     <main>
-      <section class="intro">
-        <div class="eyebrow">YOUR ATTENTION, YOUR CHOICE</div>
-        <h1>Keep the good parts.</h1>
-        <p>Choose what stays out of your way.</p>
-      </section>
-      <section class="site-card" aria-label="Site settings">
-        <label class="picker-label" for="sitePicker">CUSTOMIZE A SITE</label>
-        <div class="site-heading">
-          <select id="sitePicker" aria-label="Choose a site"></select
-          ><span id="siteState" class="state-badge">Loading</span>
+      <div id="pausedNote" class="paused-note" role="status" hidden>
+        <span>Paused on every site. Your choices are kept.</span>
+        <button type="button" id="btnResume">Resume</button>
+      </div>
+      <fieldset class="sites" id="sitePicker">
+        <legend class="visually-hidden">Site</legend>
+      </fieldset>
+      <section class="site-head" aria-labelledby="siteName">
+        <label class="site-title" for="siteEnabled">
+          <span>
+            <span id="siteName" class="site-name">Loading</span>
+            <span id="siteState" class="site-state">Loading</span>
+          </span>
+          <input id="siteEnabled" type="checkbox" class="uh-switch" />
+        </label>
+        <div class="presets" role="group" aria-label="Presets for this site">
+          <button type="button" data-preset="balanced" title="Quiet the feeds">Balanced</button>
+          <button type="button" data-preset="focused" title="Turn every control on">Focus</button>
+          <button type="button" data-preset="clear" title="Turn every control off">Show all</button>
         </div>
-        <label class="enable-row" for="siteEnabled"
-          ><span>Enable controls on this site</span
-          ><input id="siteEnabled" type="checkbox" class="uh-switch"
-        /></label>
-      </section>
-      <section class="preset-section" aria-label="Site presets">
-        <div class="section-caption">START WITH A PRESET</div>
-        <div class="presets">
-          <button type="button" data-preset="balanced">
-            <strong>Balanced</strong><span>Quiet the feeds</span>
-          </button>
-          <button type="button" data-preset="focused">
-            <strong>Focus</strong><span>Every control on</span>
-          </button>
-          <button type="button" data-preset="clear">
-            <strong>Show everything</strong><span>Every control off</span>
-          </button>
-        </div>
-        <p class="preset-note">Presets affect only this site's controls.</p>
       </section>
       <div class="controls-heading">
-        <h2>Fine-tune your space</h2>
+        <h2>Controls</h2>
         <span id="activeCount"></span>
       </div>
-      <p id="pausedNote" class="paused-note" hidden>
-        Paused on all sites. Your choices are saved. Resume with the power button.
-      </p>
       <div class="sections" id="youtubeControls">
         <label class="row leaf">
-          <input type="checkbox" class="uh-switch" id="hideHomeFeed" />
           <span class="row-label">Hide home feed</span>
+          <input type="checkbox" class="uh-switch" id="hideHomeFeed" />
         </label>
 
         <section class="group" data-group="sidebar">
           <div class="group-head">
             <label class="row parent">
-              <input type="checkbox" class="uh-switch" id="bulkVideoSidebar" />
               <span class="row-label">Hide video sidebar</span>
+              <input type="checkbox" class="uh-switch" id="bulkVideoSidebar" />
             </label>
             <button
               type="button"
               class="collapse-btn"
               aria-expanded="true"
               aria-label="Collapse section"
-            >
-              —
-            </button>
+            ></button>
           </div>
           <div class="group-children">
             <label class="row child">
-              <input type="checkbox" class="uh-switch" id="hideRelatedSidebar" />
               <span class="row-label">Hide recommended</span>
+              <input type="checkbox" class="uh-switch" id="hideRelatedSidebar" />
             </label>
             <label class="row child">
-              <input type="checkbox" class="uh-switch" id="hideLiveChat" />
               <span class="row-label">Hide live chat</span>
+              <input type="checkbox" class="uh-switch" id="hideLiveChat" />
             </label>
             <label class="row child">
-              <input type="checkbox" class="uh-switch" id="hidePlaylistSidebar" />
               <span class="row-label">Hide playlist</span>
+              <input type="checkbox" class="uh-switch" id="hidePlaylistSidebar" />
             </label>
             <label class="row child">
-              <input type="checkbox" class="uh-switch" id="hideFundraiser" />
               <span class="row-label">Hide fundraiser</span>
+              <input type="checkbox" class="uh-switch" id="hideFundraiser" />
             </label>
           </div>
         </section>
 
         <label class="row leaf">
-          <input type="checkbox" class="uh-switch" id="hideEndScreenFeed" />
           <span class="row-label">Hide end screen feed</span>
+          <input type="checkbox" class="uh-switch" id="hideEndScreenFeed" />
         </label>
         <label class="row leaf">
-          <input type="checkbox" class="uh-switch" id="hideEndScreenCards" />
           <span class="row-label">Hide end screen cards</span>
+          <input type="checkbox" class="uh-switch" id="hideEndScreenCards" />
         </label>
 
         <label class="row leaf">
-          <input type="checkbox" class="uh-switch" id="hideShorts" />
           <span class="row-label">Hide Shorts</span>
+          <input type="checkbox" class="uh-switch" id="hideShorts" />
         </label>
 
         <section class="group" data-group="comments">
           <div class="group-head">
             <label class="row parent">
-              <input type="checkbox" class="uh-switch" id="hideComments" />
               <span class="row-label">Hide comments</span>
+              <input type="checkbox" class="uh-switch" id="hideComments" />
             </label>
             <button
               type="button"
               class="collapse-btn"
               aria-expanded="true"
               aria-label="Collapse section"
-            >
-              —
-            </button>
+            ></button>
           </div>
           <div class="group-children">
             <label class="row child">
-              <input type="checkbox" class="uh-switch" id="hideCommentAvatars" />
               <span class="row-label">Hide profile photos</span>
+              <input type="checkbox" class="uh-switch" id="hideCommentAvatars" />
             </label>
           </div>
         </section>
 
         <label class="row leaf">
-          <input type="checkbox" class="uh-switch" id="hideMixes" />
           <span class="row-label">Hide mixes</span>
+          <input type="checkbox" class="uh-switch" id="hideMixes" />
         </label>
 
         <label class="row leaf">
-          <input type="checkbox" class="uh-switch" id="hideMerchTicketsOffers" />
           <span class="row-label">Hide merch, tickets, offers</span>
+          <input type="checkbox" class="uh-switch" id="hideMerchTicketsOffers" />
         </label>
 
         <section class="group" data-group="videoInfo">
           <div class="group-head">
             <label class="row parent">
-              <input type="checkbox" class="uh-switch" id="bulkVideoInfo" />
               <span class="row-label">Hide video info</span>
+              <input type="checkbox" class="uh-switch" id="bulkVideoInfo" />
             </label>
             <button
               type="button"
               class="collapse-btn"
               aria-expanded="true"
               aria-label="Collapse section"
-            >
-              —
-            </button>
+            ></button>
           </div>
           <div class="group-children">
             <label class="row child">
-              <input type="checkbox" class="uh-switch" id="hideVideoActionsBar" />
               <span class="row-label">Hide buttons bar</span>
+              <input type="checkbox" class="uh-switch" id="hideVideoActionsBar" />
             </label>
             <label class="row child">
-              <input type="checkbox" class="uh-switch" id="hideChannelRow" />
               <span class="row-label">Hide channel</span>
+              <input type="checkbox" class="uh-switch" id="hideChannelRow" />
             </label>
             <label class="row child">
-              <input type="checkbox" class="uh-switch" id="hideDescription" />
               <span class="row-label">Hide description</span>
+              <input type="checkbox" class="uh-switch" id="hideDescription" />
             </label>
           </div>
         </section>
@@ -193,67 +171,63 @@
         <section class="group" data-group="topHeader">
           <div class="group-head">
             <label class="row parent">
-              <input type="checkbox" class="uh-switch" id="bulkTopHeader" />
               <span class="row-label">Hide top header</span>
+              <input type="checkbox" class="uh-switch" id="bulkTopHeader" />
             </label>
             <button
               type="button"
               class="collapse-btn"
               aria-expanded="true"
               aria-label="Collapse section"
-            >
-              —
-            </button>
+            ></button>
           </div>
           <div class="group-children">
             <label class="row child">
-              <input type="checkbox" class="uh-switch" id="hideNotificationBell" />
               <span class="row-label">Hide notifications</span>
+              <input type="checkbox" class="uh-switch" id="hideNotificationBell" />
             </label>
           </div>
         </section>
 
         <label class="row leaf">
-          <input type="checkbox" class="uh-switch" id="hideInaptSearchResults" />
           <span class="row-label">Hide inapt search results</span>
+          <input type="checkbox" class="uh-switch" id="hideInaptSearchResults" />
         </label>
 
         <label class="row leaf">
-          <input type="checkbox" class="uh-switch" id="hideTrendingNav" />
           <span class="row-label">Hide explore, trending</span>
+          <input type="checkbox" class="uh-switch" id="hideTrendingNav" />
         </label>
 
         <label class="row leaf">
-          <input type="checkbox" class="uh-switch" id="hideMoreFromYoutube" />
           <span class="row-label">Hide more from YouTube</span>
+          <input type="checkbox" class="uh-switch" id="hideMoreFromYoutube" />
         </label>
 
         <label class="row leaf">
-          <input type="checkbox" class="uh-switch" id="hideSubscriptionsNav" />
           <span class="row-label">Hide subscriptions</span>
+          <input type="checkbox" class="uh-switch" id="hideSubscriptionsNav" />
         </label>
 
         <label class="row leaf">
-          <input type="checkbox" class="uh-switch" id="disableAutoplay" />
           <span class="row-label">Disable autoplay</span>
+          <input type="checkbox" class="uh-switch" id="disableAutoplay" />
         </label>
 
         <label class="row leaf">
-          <input type="checkbox" class="uh-switch" id="disableAnnotations" />
           <span class="row-label">Disable annotations</span>
+          <input type="checkbox" class="uh-switch" id="disableAnnotations" />
         </label>
       </div>
       <div class="sections" id="socialControls" hidden></div>
     </main>
 
     <footer class="foot">
-      <div class="footer-line">
-        <a href="https://github.com/Priyansh4444/unhooked" target="_blank" rel="noopener noreferrer"
-          >Source &amp; support ↗</a
-        ><button type="button" class="btn-reset" id="resetAll">Reset this site</button>
-      </div>
       <p id="saveStatus" role="status" aria-live="polite">Loading your choices…</p>
-      <p class="legal">Private by design. Preferences stay in your browser.</p>
+      <button type="button" class="btn-reset" id="resetAll">Reset site</button>
+      <a href="https://github.com/Priyansh4444/unhooked" target="_blank" rel="noopener noreferrer"
+        >Source</a
+      >
     </footer>
 
     <script src="../shared/options.js"></script>

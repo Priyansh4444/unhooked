@@ -15,7 +15,13 @@
     pending = {},
     loaded = false,
     selected = "youtube";
+  const PRESETS = ["balanced", "focused", "clear"];
   const $ = (id) => document.getElementById(id);
+  function siteSummary(state) {
+    if (state.paused) return "Paused";
+    if (!state.enabled) return "Off";
+    return Object.values(state.features).filter(Boolean).length + " on";
+  }
   function status(message, error) {
     $("saveStatus").textContent = message;
     $("saveStatus").classList.toggle("error", !!error);
@@ -42,14 +48,38 @@
     );
     $("btnPower").title = state.paused ? "Resume on all sites" : "Pause on all sites";
     $("pausedNote").hidden = !state.paused;
+    UNHOOKED_SITES.forEach((s) => {
+      const tile = $("site-" + s.id),
+        summary = unhookedResolveSettings(raw, s);
+      tile.checked = s.id === selected;
+      $("meta-" + s.id).textContent = siteSummary(summary);
+      tile.closest(".site-tile").dataset.state =
+        summary.paused || !summary.enabled
+          ? "off"
+          : Object.values(summary.features).some(Boolean)
+            ? "on"
+            : "idle";
+    });
+    $("siteName").textContent = site.label;
     $("siteEnabled").checked = state.enabled;
     $("siteState").textContent = state.paused
-      ? "Paused globally"
+      ? "Paused on every site"
       : state.enabled
-        ? "Enabled"
-        : "Site off";
-    $("siteState").classList.toggle("inactive", state.paused || !state.enabled);
-    $("activeCount").textContent = Object.values(state.features).filter(Boolean).length + " on";
+        ? "Controls apply on " + site.hosts[0]
+        : "Controls are off for this site";
+    const active = Object.values(state.features).filter(Boolean).length;
+    $("activeCount").textContent = active + " of " + site.features.length + " on";
+    // Mark one preset that matches the current choices; on some sites two presets coincide.
+    const matching = PRESETS.find((preset) => {
+      const patch = unhookedPresetPatch(selected, preset);
+      return site.features.every(
+        (f) => patch[unhookedPreferenceKey(selected, f.id)] === state.features[f.id]
+      );
+    });
+    PRESETS.forEach((preset) => {
+      $("preset-" + preset).setAttribute("aria-pressed", String(preset === matching));
+    });
+    document.body.classList.toggle("is-paused", state.paused);
     $("youtubeControls").hidden = selected !== "youtube";
     $("socialControls").hidden = selected === "youtube";
     if (selected === "youtube") {
@@ -68,7 +98,7 @@
         container.dataset.site = selected;
         site.features.forEach((feature) => {
           const row = document.createElement("label");
-          row.className = "row social-row";
+          row.className = "row";
           const input = document.createElement("input");
           input.type = "checkbox";
           input.className = "uh-switch";
@@ -81,7 +111,7 @@
           const desc = document.createElement("small");
           desc.textContent = feature.description;
           text.append(label, desc);
-          row.append(input, text);
+          row.append(text, input);
           container.append(row);
         });
       }
@@ -102,19 +132,34 @@
       }
       Object.assign(raw, patch);
       render();
-      status(message || "Saved in this browser");
+      status(message || "Saved");
     });
   }
   function init() {
-    const controls = Array.from(document.querySelectorAll("input, select, button"));
+    UNHOOKED_SITES.forEach((site) => {
+      const tile = document.createElement("label"),
+        input = document.createElement("input"),
+        name = document.createElement("span"),
+        meta = document.createElement("span");
+      tile.className = "site-tile";
+      input.type = "radio";
+      input.name = "site";
+      input.value = site.id;
+      input.id = "site-" + site.id;
+      input.setAttribute("aria-describedby", "meta-" + site.id);
+      name.className = "tile-name";
+      name.textContent = site.label;
+      meta.className = "tile-meta";
+      meta.id = "meta-" + site.id;
+      tile.append(input, name, meta);
+      $("sitePicker").append(tile);
+    });
+    document.querySelectorAll("[data-preset]").forEach((button) => {
+      button.id = "preset-" + button.dataset.preset;
+    });
+    const controls = Array.from(document.querySelectorAll("input, button"));
     controls.forEach((el) => {
       el.disabled = true;
-    });
-    UNHOOKED_SITES.forEach((site) => {
-      const option = document.createElement("option");
-      option.value = site.id;
-      option.textContent = site.label;
-      $("sitePicker").append(option);
     });
     chrome.storage.onChanged.addListener((changes, area) => {
       if (area !== "local") return;
@@ -141,12 +186,12 @@
         el.disabled = false;
       });
       render();
-      status("Preferences stay in this browser");
+      status("Choices stay in this browser");
     });
     $("sitePicker").addEventListener("change", (e) => {
+      if (e.target.name !== "site") return;
       selected = e.target.value;
       render();
-      status("Editing " + unhookedSiteById(selected).label);
     });
     $("siteEnabled").addEventListener("change", (e) =>
       write(unhookedFeaturePatch(selected, "enabled", e.target.checked))
@@ -155,6 +200,9 @@
       write({
         [UNHOOKED_PAUSED_KEY]: !unhookedResolveSettings(raw, unhookedSiteById(selected)).paused
       })
+    );
+    $("btnResume").addEventListener("click", () =>
+      write({ [UNHOOKED_PAUSED_KEY]: false }, "Resumed on every site")
     );
     $("btnTheme").addEventListener("click", () => {
       const current = THEMES.includes(raw[UNHOOKED_POPUP_THEME_KEY])
@@ -191,9 +239,7 @@
       button.addEventListener("click", () => {
         write(
           unhookedPresetPatch(selected, button.dataset.preset),
-          button.querySelector("strong").textContent +
-            " applied to " +
-            unhookedSiteById(selected).label
+          button.textContent + " applied to " + unhookedSiteById(selected).label
         );
       })
     );
@@ -203,7 +249,7 @@
           unhookedPresetPatch(selected, "clear"),
           unhookedFeaturePatch(selected, "enabled", true)
         ),
-        "Controls reset for " + unhookedSiteById(selected).label
+        unhookedSiteById(selected).label + " reset"
       )
     );
     document.querySelectorAll(".collapse-btn").forEach((button) =>
@@ -211,7 +257,7 @@
         const group = button.closest(".group"),
           collapsed = group.classList.toggle("collapsed");
         button.setAttribute("aria-expanded", String(!collapsed));
-        button.textContent = collapsed ? "+" : "−";
+        button.setAttribute("aria-label", collapsed ? "Expand section" : "Collapse section");
       })
     );
   }

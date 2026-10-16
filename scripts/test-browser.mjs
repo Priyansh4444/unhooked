@@ -99,7 +99,7 @@ try {
     const page = await context.newPage();
     await preset(fixture.id, "clear");
     await set({ "unhooked.paused": false, [`unhooked.site.${fixture.id}.enabled`]: true });
-    await popup.locator("#sitePicker").selectOption(fixture.id);
+    await popup.locator(`#site-${fixture.id}`).check();
     await page.goto(fixture.url);
     await page.waitForFunction((id) => document.documentElement.dataset.uhSite === id, fixture.id);
     await visible(page, "#feed", true, `${fixture.id}: starts visible`);
@@ -201,7 +201,7 @@ try {
   for (const fixture of discoveryFixtures) {
     const page = await context.newPage();
     await preset(fixture.id, "clear");
-    await popup.locator("#sitePicker").selectOption(fixture.id);
+    await popup.locator(`#site-${fixture.id}`).check();
     await page.goto(fixture.origin + fixture.path);
     await visible(page, "#discovery", true, `${fixture.id}: ${fixture.path} starts visible`);
     await popup.locator(`#social-${fixture.feature}`).check();
@@ -310,15 +310,57 @@ try {
   // Popup interaction checks are below the fixture checks so failures retain the full DOM evidence.
   await popup.reload();
   await popup.waitForFunction(() => typeof globalThis.unhookedSiteById === "function");
-  await popup.locator("#sitePicker").selectOption("x");
+  await popup.locator("#site-x").check();
   await popup.locator('[data-preset="focused"]').click();
   await waitFor(
     () => popup.locator("#social-hideHomeFeed").isChecked(),
     "Popup: Focus preset checks home feed"
   );
+  const text = (selector) => popup.locator(selector).textContent();
+  await waitFor(
+    async () => (await text("#meta-x")) === "3 on",
+    "Popup: the site tile shows how many controls are on"
+  );
+  // On X, Balanced and Focus coincide; exactly one preset is marked.
+  assert.deepEqual(
+    await popup
+      .locator("[data-preset]")
+      .evaluateAll((buttons) => buttons.map((button) => button.getAttribute("aria-pressed"))),
+    ["true", "false", "false"],
+    "Popup: one matching preset is marked"
+  );
+  await popup.locator("#social-hideExplore").uncheck();
+  await waitFor(
+    async () =>
+      (await text("#meta-x")) === "2 on" &&
+      (await popup.locator("[aria-pressed=true][data-preset]").count()) === 0,
+    "Popup: custom choices update the tile and clear the preset mark"
+  );
+  await popup.locator("#social-hideExplore").check();
+  await popup.locator("#btnPower").click();
+  await waitFor(
+    async () =>
+      (await popup.locator("#pausedNote").isVisible()) &&
+      (await text("#meta-reddit")) === "Paused" &&
+      (await popup.locator("body.is-paused").count()) === 1,
+    "Popup: pausing shows the banner and marks every site paused"
+  );
+  await popup.locator("#btnResume").click();
+  await waitFor(
+    async () =>
+      (await popup.locator("#pausedNote").isHidden()) && (await text("#meta-x")) === "3 on",
+    "Popup: Resume restores every site"
+  );
+  await popup.locator("#site-x").focus();
+  await popup.keyboard.press("ArrowRight");
+  await waitFor(
+    async () => (await popup.locator("#siteName").textContent()) === "Reddit",
+    "Popup: arrow keys move between sites"
+  );
+  await popup.locator("#site-x").check();
   const otherPopup = await context.newPage();
   await otherPopup.goto(`chrome-extension://${extensionId}/popup/popup.html`);
-  await otherPopup.locator("#sitePicker").selectOption("reddit");
+  await otherPopup.locator("#site-reddit").check();
   await Promise.all([
     popup.locator("#social-hideExplore").uncheck(),
     otherPopup.locator("#social-hideRecommendations").check()
@@ -367,7 +409,7 @@ try {
     "Popup: theme button persists dark theme"
   );
   results.push(
-    "popup: controls, presets, site reset isolation, concurrent preference writes and theme"
+    "popup: site tiles, preset marking, pause banner, keyboard selection, reset isolation, concurrent writes and theme"
   );
   console.log(`PASS ${results.at(-1)}`);
   await popup.setViewportSize({ width: 400, height: 600 });
