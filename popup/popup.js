@@ -34,7 +34,6 @@
     if (!loaded) return;
     const site = unhookedSiteById(selected),
       state = unhookedResolveSettings(raw, site);
-    $("extensionDisabled").checked = state.paused;
     $("btnPower").classList.toggle("off", state.paused);
     $("btnPower").setAttribute("aria-pressed", String(!state.paused));
     $("btnPower").setAttribute(
@@ -157,9 +156,6 @@
         [UNHOOKED_PAUSED_KEY]: !unhookedResolveSettings(raw, unhookedSiteById(selected)).paused
       })
     );
-    $("extensionDisabled").addEventListener("change", (e) =>
-      write({ [UNHOOKED_PAUSED_KEY]: e.target.checked })
-    );
     $("btnTheme").addEventListener("click", () => {
       const current = THEMES.includes(raw[UNHOOKED_POPUP_THEME_KEY])
         ? raw[UNHOOKED_POPUP_THEME_KEY]
@@ -203,7 +199,10 @@
     );
     $("resetAll").addEventListener("click", () =>
       write(
-        unhookedPresetPatch(selected, "clear"),
+        Object.assign(
+          unhookedPresetPatch(selected, "clear"),
+          unhookedFeaturePatch(selected, "enabled", true)
+        ),
         "Controls reset for " + unhookedSiteById(selected).label
       )
     );

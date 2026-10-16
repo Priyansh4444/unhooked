@@ -19,7 +19,7 @@ Open the toolbar popup, choose a site, and turn on the controls you want. **Ever
 
 - **Balanced** turns on the site's feed and recommendation controls, leaving optional stories/Reels controls off. On YouTube it hides Home, related videos, Shorts, and end-screen suggestions, and disables autoplay.
 - **Focus** turns every available control on for that site.
-- **Show everything** and **Reset this site** turn that site's controls off.
+- **Show everything** turns that site's controls off. **Reset this site** also turns the site back on.
 - **Enable controls on this site** suspends one site's controls without losing the selected options.
 - The header power button **pauses all sites**. Resume restores the chosen controls.
 - The theme button cycles system, dark, and light.

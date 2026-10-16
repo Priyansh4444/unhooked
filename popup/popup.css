@@ -74,15 +74,6 @@ select:disabled {
   outline: 3px solid var(--accent);
   outline-offset: 3px;
 }
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-}
 .topbar {
   display: flex;
   justify-content: space-between;
@@ -148,12 +139,19 @@ select:disabled {
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: var(--surface);
+  --btn-bg: var(--surface);
+  background: var(--btn-bg);
   color: var(--accent);
 }
-.icon-btn.off {
+.icon-btn.power {
+  --btn-bg: var(--accent);
+  border-color: var(--accent);
+  color: var(--surface);
+}
+.icon-btn.power.off {
+  --btn-bg: var(--bg);
+  border-color: var(--border);
   color: var(--muted);
-  background: var(--bg);
 }
 .icon-theme {
   width: 14px;
@@ -177,7 +175,7 @@ select:disabled {
   width: 2px;
   height: 8px;
   background: currentColor;
-  box-shadow: 0 0 0 2px var(--surface);
+  box-shadow: 0 0 0 2px var(--btn-bg);
 }
 .intro {
   padding: 14px 22px 18px;
