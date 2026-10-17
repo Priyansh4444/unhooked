@@ -34,6 +34,8 @@ jobs:
 
       - name: Install browsers
         run: |
+          # Ubuntu 24.04 blocks the unprivileged user namespaces Chromium's sandbox needs.
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
           # Chromium (not branded Chrome) still loads unpacked extensions from the command line.
           echo "CHROME_PATH=$(bunx @puppeteer/browsers install chromium@latest --path "$RUNNER_TEMP/browsers" | tail -1 | cut -d' ' -f2-)" >> "$GITHUB_ENV"
           echo "FIREFOX_PATH=$(bunx @puppeteer/browsers install firefox@stable --path "$RUNNER_TEMP/browsers" | tail -1 | cut -d' ' -f2-)" >> "$GITHUB_ENV"
