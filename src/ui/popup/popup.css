@@ -1,51 +1,56 @@
 /*
- * Two panes, no cards. The site rail carries the icon's colours (forest and hook mint);
- * the settings pane stays quiet and is structured by alignment and spacing alone.
+ * After Anomaly (anomaly.com): a signal-red rule, a grained black column, condensed caps
+ * display, and one misregistered dictionary entry. Red is the only accent; everything else is
+ * black, white and graphite.
  */
+@font-face {
+  font-family: "Bayon";
+  src: url("./fonts/bayon-latin.woff2") format("woff2");
+  font-display: block;
+  unicode-range: U+0000-00FF, U+2013-2014, U+2018-201D, U+2022, U+2026;
+}
+
 :root {
   color-scheme: light;
-  --forest: #102923;
-  --mint: #92edc6;
-  --rail-text: #c9ddd4;
-  --rail-dim: #7f9a90;
-  --rail-line: rgb(146 237 198 / 0.18);
-  --paper: #f6f8f6;
-  --ink: #14201c;
-  --stone: #5a6863;
-  --line: #dde4e0;
-  --moss: #1d6a53;
-  --hover: #eaf1ed;
-  --switch: #b9c6c0;
-  --thumb-on: #fff;
-  --danger: #a8392f;
+  --signal: #e00000;
+  --signal-ink: #fff;
+  --rail: #0e0e0e;
+  --rail-text: #d6d6d6;
+  --rail-dim: #7d7d7d;
+  --paper: #fdfdfd;
+  --ink: #000;
+  --graphite: #6b6b6b;
+  --line: #e4e4e4;
+  --hover: #f3f3f3;
+  --switch: #cfcfcf;
+  --danger: #b00000;
+  --display: "Bayon", "Arial Narrow", "Helvetica Neue Condensed", sans-serif;
+  --body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: ui-monospace, "SFMono-Regular", "Courier New", monospace;
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  /* Film grain for the black column. */
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 [data-popup-theme="dark"] {
   color-scheme: dark;
-  --forest: #0c201b;
-  --paper: #17231f;
-  --ink: #e6efe9;
-  --stone: #9db0a8;
-  --line: #2a3a34;
-  --moss: #92edc6;
-  --hover: #1e2d28;
-  --switch: #44574f;
-  --thumb-on: #0c201b;
-  --danger: #ff9b8f;
+  --paper: #141414;
+  --ink: #f2f2f2;
+  --graphite: #a3a3a3;
+  --line: #2b2b2b;
+  --hover: #1e1e1e;
+  --switch: #3d3d3d;
+  --danger: #ff6b6b;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-popup-theme]) {
     color-scheme: dark;
-    --forest: #0c201b;
-    --paper: #17231f;
-    --ink: #e6efe9;
-    --stone: #9db0a8;
-    --line: #2a3a34;
-    --moss: #92edc6;
-    --hover: #1e2d28;
-    --switch: #44574f;
-    --thumb-on: #0c201b;
-    --danger: #ff9b8f;
+    --paper: #141414;
+    --ink: #f2f2f2;
+    --graphite: #a3a3a3;
+    --line: #2b2b2b;
+    --hover: #1e1e1e;
+    --switch: #3d3d3d;
+    --danger: #ff6b6b;
   }
 }
 
@@ -63,20 +68,17 @@
   clip-path: inset(50%);
   white-space: nowrap;
 }
-/* Chromium action popups are capped at 600px tall. */
+/* Chromium action popups are capped at 600px tall. The red rule frames the top, as on Anomaly. */
 body {
   display: grid;
-  grid-template-columns: 124px 1fr;
+  grid-template-columns: 128px 1fr;
   width: 400px;
   height: 600px;
   margin: 0;
+  border-top: 4px solid var(--signal);
   color: var(--ink);
   background: var(--paper);
-  font:
-    13px/1.45 system-ui,
-    -apple-system,
-    "Segoe UI",
-    sans-serif;
+  font: 13px/1.45 var(--body);
   -webkit-font-smoothing: antialiased;
 }
 button,
@@ -89,44 +91,34 @@ button {
 }
 button:disabled,
 input:disabled {
-  opacity: 0.55;
+  opacity: 0.5;
   cursor: wait;
 }
 :focus-visible {
-  outline: 2px solid var(--moss);
+  outline: 2px solid var(--signal);
   outline-offset: 2px;
 }
-.rail :focus-visible,
-.rail .site:has(input:focus-visible) {
-  outline: 2px solid var(--mint);
-  outline-offset: -2px;
-}
 h1,
+h2,
 p {
   margin: 0;
 }
 
-/* Site rail */
+/* ---- Rail: grained black, the selected site a solid red block ---------------------------------- */
 .rail {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  padding: 16px 0 12px;
-  background: var(--forest);
+  padding: 14px 0 12px;
+  background: var(--grain), var(--rail);
   color: var(--rail-text);
 }
 .brand {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 14px 18px;
-  color: #f2fbf7;
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: -0.2px;
-}
-.brand img {
-  border-radius: 6px;
+  padding: 0 14px 14px;
+  color: #fff;
+  font: 400 28px/0.9 var(--display);
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
 }
 .sites {
   min-width: 0;
@@ -141,10 +133,10 @@ p {
   align-items: baseline;
   justify-content: space-between;
   gap: 6px;
-  padding: 7px 12px 7px 14px;
+  padding: 6px 12px 6px 14px;
   cursor: pointer;
 }
-/* The real radio covers the row, so clicks, arrow keys, and focus stay native. */
+/* The real radio covers the row, so clicks, arrow keys and focus stay native. */
 .site input {
   position: absolute;
   inset: 0;
@@ -164,21 +156,48 @@ p {
   font-variant-numeric: tabular-nums;
 }
 .site[data-state="on"] .site-meta {
-  color: var(--mint);
+  color: #fff;
 }
 .site[data-state="off"] .site-name {
   color: var(--rail-dim);
 }
 .site:has(input:checked) {
-  background: rgb(146 237 198 / 0.12);
-  box-shadow: inset 2px 0 0 var(--mint);
-  color: #fff;
-  font-weight: 600;
+  background: var(--signal);
+  color: var(--signal-ink);
+  font-weight: 650;
 }
+.site:has(input:checked) .site-meta,
+.site:has(input:checked) .site-name {
+  color: var(--signal-ink);
+}
+.rail .site:has(input:focus-visible) {
+  outline: 2px solid #fff;
+  outline-offset: -2px;
+}
+
+/* The signature: a dictionary entry, misregistered like a bad photocopy. Static on purpose:
+   moving text would be the kind of hook this extension removes. */
+.definition {
+  margin: auto 14px 14px;
+  color: #ededed;
+  font: 10.5px/1.5 var(--mono);
+  text-transform: uppercase;
+  text-shadow:
+    1.5px 0 0 rgb(224 0 0 / 0.85),
+    -1px 0 0 rgb(0 190 255 / 0.25);
+  mask-image: repeating-linear-gradient(to bottom, #000 0 2px, rgb(0 0 0 / 0.6) 2px 3px);
+}
+.definition .headword {
+  font-weight: 700;
+}
+.definition i {
+  font-style: normal;
+  color: var(--rail-dim);
+}
+
 .rail-foot {
   display: grid;
-  gap: 10px;
-  margin-top: auto;
+  gap: 8px;
   padding: 0 10px;
 }
 .pause {
@@ -187,20 +206,20 @@ p {
   gap: 8px;
   width: 100%;
   padding: 7px 10px;
-  border: 1px solid var(--rail-line);
-  border-radius: 8px;
+  border: 1px solid #3a3a3a;
+  border-radius: 0;
   background: transparent;
-  color: var(--mint);
+  color: #fff;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 650;
   white-space: nowrap;
   transition: transform 160ms var(--ease-out);
 }
-/* Paused is the one filled control, so the state is obvious at a glance. */
+/* Paused is the one filled control in the rail. */
 .pause[aria-pressed="true"] {
-  border-color: var(--mint);
-  background: var(--mint);
-  color: var(--forest);
+  border-color: var(--signal);
+  background: var(--signal);
+  color: var(--signal-ink);
 }
 .pause:active,
 .theme:active {
@@ -220,12 +239,11 @@ p {
   left: 3.5px;
   width: 2px;
   height: 7px;
-  border-radius: 1px;
   background: currentColor;
-  box-shadow: 0 0 0 2px var(--forest);
+  box-shadow: 0 0 0 2px var(--rail);
 }
 .pause[aria-pressed="true"] .icon-power:after {
-  box-shadow: 0 0 0 2px var(--mint);
+  box-shadow: 0 0 0 2px var(--signal);
 }
 .rail-links {
   display: flex;
@@ -236,7 +254,9 @@ p {
 }
 .rail-links a {
   color: var(--rail-text);
-  text-decoration: none;
+  text-decoration: underline;
+  text-decoration-color: var(--signal);
+  text-underline-offset: 3px;
 }
 .theme {
   display: grid;
@@ -245,7 +265,6 @@ p {
   height: 26px;
   padding: 0;
   border: 0;
-  border-radius: 6px;
   background: transparent;
   color: var(--rail-text);
   transition: transform 160ms var(--ease-out);
@@ -258,7 +277,7 @@ p {
   background: linear-gradient(90deg, transparent 50%, currentColor 50%);
 }
 
-/* Settings pane */
+/* ---- Pane --------------------------------------------------------------------------------------- */
 .pane {
   display: flex;
   flex-direction: column;
@@ -266,7 +285,7 @@ p {
   min-height: 0;
 }
 .site-head {
-  padding: 16px 18px 12px;
+  padding: 14px 18px 12px;
 }
 .site-title {
   display: flex;
@@ -275,23 +294,25 @@ p {
   gap: 12px;
 }
 h1 {
-  font-size: 20px;
-  font-weight: 650;
-  letter-spacing: -0.4px;
-  line-height: 1.2;
+  font: 400 34px/0.95 var(--display);
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
 }
 #siteState {
-  margin-top: 2px;
-  color: var(--stone);
+  margin-top: 4px;
+  color: var(--graphite);
   font-size: 11.5px;
-  font-variant-numeric: tabular-nums;
 }
 .site-title .uh-switch {
-  margin-top: 3px;
+  margin-top: 6px;
 }
 .paused-note {
   margin-top: 10px;
+  padding: 7px 10px;
+  background: var(--signal);
+  color: var(--signal-ink);
   font-size: 12px;
+  font-weight: 600;
   transition:
     opacity 200ms var(--ease-out),
     transform 200ms var(--ease-out);
@@ -304,12 +325,13 @@ h1 {
   padding: 0;
   border: 0;
   background: none;
-  color: var(--moss);
-  font-weight: 600;
+  color: inherit;
+  font-weight: 700;
   text-decoration: underline;
   text-underline-offset: 2px;
 }
-/* Text choices (presets, focus memory): the current one is heavier and underlined. */
+
+/* Text choices (presets, focus memory): the current one gets Anomaly's red underline. */
 .choices {
   display: flex;
   align-items: baseline;
@@ -321,112 +343,46 @@ h1 {
   margin-top: 12px;
 }
 #presetLabel {
-  color: var(--stone);
+  color: var(--graphite);
 }
 .choices button {
-  padding: 3px 0;
+  padding: 2px 0;
   border: 0;
   background: none;
   color: var(--ink);
   font-weight: 500;
 }
 .choices button[aria-pressed="true"] {
-  font-weight: 650;
-  box-shadow: inset 0 -2px 0 var(--moss);
+  font-weight: 700;
+  box-shadow: inset 0 -2px 0 var(--signal);
 }
-/* Sections in the pane (Focus mode, Hide, Twitch) are separated by one rule, not boxes. */
-main section:not([hidden]) + section:not([hidden]) {
-  margin-top: 4px;
-  border-top: 1px solid var(--line);
-}
-main h2 {
-  margin: 0;
-  padding: 10px 18px 0;
-  color: var(--stone);
-  font-size: 11.5px;
-  font-weight: 600;
-}
-.row .choices {
-  flex-shrink: 0;
-  margin-top: 1px;
-}
-#focusToggle:disabled {
-  cursor: not-allowed;
-}
-.slider-row {
-  flex-wrap: wrap;
-  align-items: baseline;
-}
-.slider-row output {
-  color: var(--stone);
-  font-size: 11.5px;
-  font-variant-numeric: tabular-nums;
-}
-.slider-row input[type="range"] {
-  flex-basis: 100%;
-  margin: 4px 0 0;
-  accent-color: var(--moss);
-}
-.shortcut-line {
-  margin: 0 18px 10px;
-  color: var(--stone);
-  font-size: 11.5px;
-}
-.log-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  padding: 10px 18px 0;
-}
-.log-head h2 {
-  padding: 0;
-}
-.log-head button {
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--ink);
-  font-size: 11.5px;
-  font-weight: 600;
-}
-.link-log {
-  margin: 0;
-  padding: 4px 18px 10px;
-  list-style: none;
-}
-.link-log li {
-  min-width: 0;
-  padding: 5px 0;
-}
-.link-log a {
-  display: block;
-  overflow: hidden;
-  color: var(--ink);
-  font-weight: 550;
-  text-decoration: none;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.link-log small,
-.log-empty {
-  color: var(--stone);
-  font-size: 11.5px;
-}
+
 main {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
-  padding: 6px 0 10px;
-  border-top: 1px solid var(--line);
+  padding: 2px 0 10px;
+  border-top: 1px solid var(--ink);
   transition: opacity 150ms ease;
 }
 /* Paused choices stay editable but read as dormant. */
 .is-paused main,
 .is-paused .sites {
-  opacity: 0.55;
+  opacity: 0.5;
 }
+main section:not([hidden]) + section:not([hidden]) {
+  margin-top: 6px;
+  border-top: 1px solid var(--line);
+}
+main h2 {
+  padding: 12px 18px 0;
+  font: 400 17px/1 var(--display);
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
 .row {
   display: flex;
   align-items: flex-start;
@@ -438,11 +394,15 @@ main {
 .row .uh-switch {
   margin-top: 1px;
 }
+.row .choices {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
 .row-label,
 .feature-copy {
   flex: 1;
   min-width: 0;
-  font-weight: 550;
+  font-weight: 600;
 }
 .feature-copy strong {
   display: block;
@@ -452,11 +412,34 @@ main {
 .feature-copy small {
   display: block;
   margin-top: 2px;
-  color: var(--stone);
+  color: var(--graphite);
   font-size: 11.5px;
   font-weight: 400;
   line-height: 1.45;
 }
+#focusToggle:disabled {
+  cursor: not-allowed;
+}
+.slider-row {
+  flex-wrap: wrap;
+  align-items: baseline;
+}
+.slider-row output {
+  color: var(--graphite);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+.slider-row input[type="range"] {
+  flex-basis: 100%;
+  margin: 4px 0 0;
+  accent-color: var(--signal);
+}
+.shortcut-line {
+  margin: 0 18px 10px;
+  color: var(--graphite);
+  font-size: 11.5px;
+}
+
 .group-head {
   position: relative;
 }
@@ -474,9 +457,8 @@ main {
   height: 24px;
   padding: 0;
   border: 0;
-  border-radius: 6px;
   background: transparent;
-  color: var(--stone);
+  color: var(--graphite);
 }
 .collapse-btn:before {
   content: "";
@@ -492,7 +474,7 @@ main {
 }
 .group-children {
   margin: 0 0 4px 18px;
-  border-left: 1px solid var(--line);
+  border-left: 2px solid var(--line);
 }
 .group-children .row {
   padding-left: 12px;
@@ -501,16 +483,62 @@ main {
   display: none;
 }
 
-/* Switch: the thumb slides, the track changes colour. */
+.log-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 12px 18px 0;
+}
+.log-head h2 {
+  padding: 0;
+}
+.log-head button,
+#resetAll {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font-size: 11.5px;
+  font-weight: 650;
+  text-decoration: underline;
+  text-decoration-color: var(--signal);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+.link-log {
+  margin: 0;
+  padding: 4px 18px 10px;
+  list-style: none;
+}
+.link-log li {
+  min-width: 0;
+  padding: 5px 0;
+}
+.link-log a {
+  display: block;
+  overflow: hidden;
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.link-log small,
+.log-empty {
+  color: var(--graphite);
+  font-size: 11.5px;
+}
+
+/* Switch: square-shouldered like the rest of the system; red when on. */
 .uh-switch {
   appearance: none;
   position: relative;
   flex-shrink: 0;
-  width: 32px;
-  height: 19px;
+  width: 34px;
+  height: 18px;
   margin: 0;
   border: 0;
-  border-radius: 10px;
+  border-radius: 2px;
   background: var(--switch);
   cursor: pointer;
   transition: background-color 150ms ease;
@@ -518,30 +546,23 @@ main {
 .uh-switch:after {
   content: "";
   position: absolute;
-  top: 2.5px;
-  left: 2.5px;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
+  top: 3px;
+  left: 3px;
+  width: 12px;
+  height: 12px;
+  border-radius: 1px;
   background: #fff;
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.2);
-  transition:
-    transform 160ms var(--ease-out),
-    background-color 150ms ease;
+  transition: transform 160ms var(--ease-out);
 }
 .uh-switch:checked,
 .uh-switch:indeterminate {
-  background: var(--moss);
-}
-.uh-switch:checked:after,
-.uh-switch:indeterminate:after {
-  background: var(--thumb-on);
+  background: var(--signal);
 }
 .uh-switch:checked:after {
-  transform: translateX(13px);
+  transform: translateX(16px);
 }
 .uh-switch:indeterminate:after {
-  transform: translateX(6.5px);
+  transform: translateX(8px);
 }
 
 .foot {
@@ -556,7 +577,7 @@ main {
   flex: 1;
   min-width: 0;
   overflow: hidden;
-  color: var(--stone);
+  color: var(--graphite);
   white-space: nowrap;
   text-overflow: ellipsis;
 }
@@ -565,11 +586,6 @@ main {
   white-space: normal;
 }
 #resetAll {
-  padding: 2px 0;
-  border: 0;
-  background: none;
-  color: var(--ink);
-  font-weight: 600;
   transition: transform 160ms var(--ease-out);
 }
 #resetAll:active {
@@ -579,9 +595,10 @@ main {
 @media (hover: hover) and (pointer: fine) {
   .site:not(:has(input:checked)):hover {
     color: #fff;
+    box-shadow: inset 3px 0 0 var(--signal);
   }
   .pause[aria-pressed="false"]:hover {
-    border-color: var(--mint);
+    border-color: var(--signal);
   }
   .rail-links a:hover,
   .theme:hover {
@@ -596,11 +613,9 @@ main {
   .row:hover {
     background: var(--hover);
   }
-  #resetAll:hover,
-  .log-head button:hover,
-  .link-log a:hover,
-  .rail-links a:hover {
+  .link-log a:hover {
     text-decoration: underline;
+    text-decoration-color: var(--signal);
   }
 }
 
