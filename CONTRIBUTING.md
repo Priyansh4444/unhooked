@@ -38,7 +38,10 @@ src/
     preferences.ts         hide-control preferences: scalar keys, presets, pause, legacy fallback
     page-runtime.ts        content lifecycle for hide controls: storage sync, SPA routes, self-healing
     keys.ts                shortcut matching
-  ui/popup/                the popup (bundled from index.html)
+  ui/
+    shared/                theme.css (dark tokens, fonts, switch) and the bundled fonts with licences
+    popup/                 the toolbar popup
+    picker/                the click-to-hide page; sketches.ts maps each drawn part to a control
 build.ts, build/manifest.ts   bundling, and the one source for every browser's manifest
 e2e/                       end-to-end tests (Chrome + Firefox)
 ```
@@ -56,7 +59,7 @@ Each folder under `sites/` with a `content.ts` is bundled to `dist/sites/<name>/
 
 ### Add a hide-control site
 
-1. `sites/hosts.ts`: add its hosts. 2. `sites/registry.ts`: add a route classifier and its features (conservative selectors; feed rules on `home`, sidebar-only rules on `*`). 3. Add the site to `SOCIAL_SITES` in `build/manifest.ts`. 4. Add a fixture to `e2e/social-fixtures.mjs`.
+1. `sites/hosts.ts`: add its hosts. 2. `sites/registry.ts`: add a route classifier and its features (conservative selectors; feed rules on `home`, sidebar-only rules on `*`). 3. Add the site to `SOCIAL_SITES` in `build/manifest.ts`. 4. Draw it in `ui/picker/sketches.ts`; a unit test fails until every feature appears in a sketch. 5. Add a fixture to `e2e/social-fixtures.mjs`.
 
 ## How focus modes work
 
@@ -95,7 +98,7 @@ bun e2e/run.mjs chrome social popup        # only some suites
 MINIFY=1 bun e2e/run.mjs chrome            # the minified bundle, as shipped
 ```
 
-Suites `smoke`, `social`, `youtube-controls`, `popup`, `twitter` and `twitch` run against stubbed pages and need no network (`popup` is Chrome only: Firefox won't let automation open extension pages). `twitch-cards`, `excalidraw` and the `youtube*` suites use the live sites deliberately, so they need network and can fail when a site changes.
+Suites `smoke`, `social`, `youtube-controls`, `popup`, `picker`, `twitter` and `twitch` run against stubbed pages and need no network (`popup` and `picker` are Chrome only: Firefox won't let automation open extension pages). `twitch-cards`, `excalidraw` and the `youtube*` suites use the live sites deliberately, so they need network and can fail when a site changes.
 
 ## Releasing
 

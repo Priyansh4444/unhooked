@@ -20,7 +20,6 @@ export const STORAGE_KEYS = Object.freeze({
   PAUSED: "unhooked.paused",
   /** Saved YouTube options from the upstream Unhook-style extension (read-only fallback). */
   LEGACY_YOUTUBE_OPTIONS: "unhookedOptions",
-  POPUP_THEME: "unhookedPopupTheme",
   YOUTUBE_PERSISTENCE_MODE: "youtube_persistence_mode",
   TWITTER_PERSISTENCE_MODE: "twitter_persistence_mode",
   EXCALIDRAW_PERSISTENCE_MODE: "excalidraw_persistence_mode",

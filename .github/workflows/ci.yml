@@ -44,7 +44,7 @@ jobs:
       - name: End-to-end (Chromium, minified)
         env:
           MINIFY: "1"
-        run: bun e2e/run.mjs chrome smoke social youtube-controls popup twitter twitch
+        run: bun e2e/run.mjs chrome smoke social youtube-controls popup picker twitter twitch
 
       - name: End-to-end (Firefox, minified)
         env:

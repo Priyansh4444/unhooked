@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Unhooked</title>
+    <link rel="stylesheet" href="../shared/theme.css" />
     <link rel="stylesheet" href="popup.css" />
   </head>
   <body>
@@ -12,20 +13,13 @@
         <span>unhooked</span>
       </div>
       <fieldset class="sites" id="sitePicker">
-        <legend class="visually-hidden">Site</legend>
+        <legend class="label">Sites</legend>
       </fieldset>
-      <p class="definition" aria-hidden="true">
-        <span class="headword">un·hooked</span> <i>adj.</i><br />No longer caught by the feed.<br />SYN:
-        free, clear, present.
-      </p>
       <div class="rail-foot">
         <button type="button" class="pause" id="btnPower" aria-pressed="false">
           <span class="icon-power" aria-hidden="true"></span><span id="powerLabel">Pause all</span>
         </button>
         <div class="rail-links">
-          <button type="button" class="theme" id="btnTheme" aria-label="Cycle theme">
-            <span class="icon-theme" aria-hidden="true"></span>
-          </button>
           <a
             href="https://github.com/Priyansh4444/unhooked"
             target="_blank"
@@ -49,15 +43,19 @@
           Paused on every site. <button type="button" id="btnResume">Resume</button>
         </p>
         <div class="choices" id="presets" role="group" aria-labelledby="presetLabel">
-          <span id="presetLabel">Preset</span>
+          <span id="presetLabel" class="label">Preset</span>
           <button type="button" data-preset="balanced" title="Quiet the feeds">Balanced</button>
           <button type="button" data-preset="focused" title="Turn every control on">Focus</button>
           <button type="button" data-preset="clear" title="Turn every control off">Show all</button>
         </div>
+        <button type="button" class="picker-link" id="openPicker">
+          <span class="dots" aria-hidden="true"></span>
+          <span>Click away parts on a sketch of <span id="pickerSite">this site</span></span>
+        </button>
       </header>
       <main>
         <section id="focusSection" aria-labelledby="focusHeading" hidden>
-          <h2 id="focusHeading">Focus mode</h2>
+          <h2 id="focusHeading" class="label">Focus mode</h2>
           <label class="row">
             <span class="row-label"
               >Focus this tab<small class="feature-hint" id="focusHint"></small
@@ -102,7 +100,7 @@
         </section>
 
         <section id="controlsSection" aria-labelledby="controlsHeading">
-          <h2 id="controlsHeading">Hide</h2>
+          <h2 id="controlsHeading" class="label">Hide</h2>
           <div class="sections" id="youtubeControls">
             <label class="row leaf">
               <span class="row-label">Hide home feed</span>
@@ -290,7 +288,7 @@
             <input type="range" id="twitchDelay" min="100" max="800" step="50" />
           </div>
           <div class="log-head">
-            <h2 id="logHeading">Recent links</h2>
+            <h2 id="logHeading" class="label">Recent links</h2>
             <button type="button" id="twitchLogClear">Clear</button>
           </div>
           <ol class="link-log" id="twitchLogList" aria-labelledby="logHeading"></ol>

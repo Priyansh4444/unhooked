@@ -23,7 +23,6 @@ import { SITE_HOSTS, siteForUrl, type SiteId } from "../../sites/hosts.ts";
 import { CONTROL_SITES, controlSiteById, type ControlSite } from "../../sites/registry.ts";
 import { TWITCH_ACTIONS, type ChatUrlEntry } from "../../sites/twitch/protocol.ts";
 
-const THEMES = ["system", "dark", "light"] as const;
 const YOUTUBE_GROUPS: Record<string, string[]> = {
   bulkVideoSidebar: ["hideRelatedSidebar", "hideLiveChat", "hidePlaylistSidebar", "hideFundraiser"],
   bulkVideoInfo: ["hideVideoActionsBar", "hideChannelRow", "hideDescription"],
@@ -185,6 +184,8 @@ function renderHeader(control: ControlSite | undefined, paused: boolean): void {
     $("siteState").textContent = "Focus mode for the canvas";
   }
   $("presets").hidden = !control;
+  $("openPicker").hidden = !control;
+  $("pickerSite").textContent = label;
   $("resetAll").hidden = !control;
   $("pausedNote").hidden = !paused;
   $("btnPower").setAttribute("aria-pressed", String(paused));
@@ -309,11 +310,6 @@ function render(): void {
   renderFocus();
   renderControls(control);
   renderTwitch();
-  const theme = THEMES.find((t) => t === raw[STORAGE_KEYS.POPUP_THEME]) ?? "system";
-  if (theme === "system") delete document.documentElement.dataset.popupTheme;
-  else document.documentElement.dataset.popupTheme = theme;
-  $("btnTheme").title = `Theme: ${theme}`;
-  $("btnTheme").setAttribute("aria-label", `Theme: ${theme}. Change theme`);
 }
 
 // ---- building --------------------------------------------------------------------------------
@@ -401,11 +397,9 @@ function bind(): void {
     write({ [STORAGE_KEYS.PAUSED]: value }, value ? "Paused on every site" : "Resumed");
   $("btnPower").addEventListener("click", () => void setPaused(!isPaused(raw)));
   $("btnResume").addEventListener("click", () => void setPaused(false));
-  $("btnTheme").addEventListener("click", () => {
-    const current = THEMES.find((t) => t === raw[STORAGE_KEYS.POPUP_THEME]) ?? "system";
-    void write({
-      [STORAGE_KEYS.POPUP_THEME]: THEMES[(THEMES.indexOf(current) + 1) % THEMES.length],
-    });
+  $("openPicker").addEventListener("click", () => {
+    void ext.tabs.create({ url: ext.runtime.getURL(`ui/picker/index.html#${selected}`) });
+    window.close();
   });
 
   for (const feature of controlSiteById("youtube")!.features) {
@@ -552,7 +546,7 @@ async function init(): Promise<void> {
   for (const el of controls) el.disabled = false;
   render();
   await refreshSelected();
-  status("Choices stay in this browser");
+  status("Saved in this browser");
 }
 
 void init();

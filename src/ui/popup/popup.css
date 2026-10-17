@@ -1,124 +1,30 @@
 /*
- * After Anomaly (anomaly.com): a signal-red rule, a grained black column, condensed caps
- * display, and one misregistered dictionary entry. Red is the only accent; everything else is
- * black, white and graphite.
+ * Popup layout. Tokens, fonts and the switch come from ../shared/theme.css.
+ * A session-list rail on the left (like anoma.ly's OpenCode panels), the selected site on the
+ * right. Hairlines, not boxes; red only where the extension is acting.
  */
-@font-face {
-  font-family: "Bayon";
-  src: url("./fonts/bayon-latin.woff2") format("woff2");
-  font-display: block;
-  unicode-range: U+0000-00FF, U+2013-2014, U+2018-201D, U+2022, U+2026;
-}
 
-:root {
-  color-scheme: light;
-  --signal: #e00000;
-  --signal-ink: #fff;
-  --rail: #0e0e0e;
-  --rail-text: #d6d6d6;
-  --rail-dim: #7d7d7d;
-  --paper: #fdfdfd;
-  --ink: #000;
-  --graphite: #6b6b6b;
-  --line: #e4e4e4;
-  --hover: #f3f3f3;
-  --switch: #cfcfcf;
-  --danger: #b00000;
-  --display: "Bayon", "Arial Narrow", "Helvetica Neue Condensed", sans-serif;
-  --body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --mono: ui-monospace, "SFMono-Regular", "Courier New", monospace;
-  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
-  /* Film grain for the black column. */
-  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-}
-[data-popup-theme="dark"] {
-  color-scheme: dark;
-  --paper: #141414;
-  --ink: #f2f2f2;
-  --graphite: #a3a3a3;
-  --line: #2b2b2b;
-  --hover: #1e1e1e;
-  --switch: #3d3d3d;
-  --danger: #ff6b6b;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-popup-theme]) {
-    color-scheme: dark;
-    --paper: #141414;
-    --ink: #f2f2f2;
-    --graphite: #a3a3a3;
-    --line: #2b2b2b;
-    --hover: #1e1e1e;
-    --switch: #3d3d3d;
-    --danger: #ff6b6b;
-  }
-}
-
-* {
-  box-sizing: border-box;
-}
-[hidden] {
-  display: none !important;
-}
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-/* Chromium action popups are capped at 600px tall. The red rule frames the top, as on Anomaly. */
+/* Chromium action popups are capped at 600px tall. */
 body {
   display: grid;
-  grid-template-columns: 128px 1fr;
+  grid-template-columns: 132px 1fr;
   width: 400px;
   height: 600px;
-  margin: 0;
-  border-top: 4px solid var(--signal);
-  color: var(--ink);
-  background: var(--paper);
-  font: 13px/1.45 var(--body);
-  -webkit-font-smoothing: antialiased;
-}
-button,
-input {
-  font: inherit;
-  color: inherit;
-}
-button {
-  cursor: pointer;
-}
-button:disabled,
-input:disabled {
-  opacity: 0.5;
-  cursor: wait;
-}
-:focus-visible {
-  outline: 2px solid var(--signal);
-  outline-offset: 2px;
-}
-h1,
-h2,
-p {
-  margin: 0;
 }
 
-/* ---- Rail: grained black, the selected site a solid red block ---------------------------------- */
+/* ---- Rail ----------------------------------------------------------------------------------------- */
 .rail {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  padding: 14px 0 12px;
-  background: var(--grain), var(--rail);
-  color: var(--rail-text);
+  padding: 16px 0 12px;
+  border-right: 1px solid var(--rule);
+  background: var(--panel);
 }
 .brand {
-  padding: 0 14px 14px;
-  color: #fff;
-  font: 400 28px/0.9 var(--display);
-  letter-spacing: 0.3px;
-  text-transform: uppercase;
+  padding: 0 14px 16px;
+  color: var(--bright);
+  font: 19px/1 var(--serif);
 }
 .sites {
   min-width: 0;
@@ -127,13 +33,17 @@ p {
   border: 0;
   transition: opacity 150ms ease;
 }
+.sites legend {
+  padding: 0 14px 8px;
+}
 .site {
   position: relative;
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 6px;
-  padding: 6px 12px 6px 14px;
+  padding: 5px 12px 5px 14px;
+  color: var(--stone);
   cursor: pointer;
 }
 /* The real radio covers the row, so clicks, arrow keys and focus stay native. */
@@ -151,53 +61,29 @@ p {
 }
 .site-meta {
   flex-shrink: 0;
-  color: var(--rail-dim);
-  font-size: 11.5px;
+  color: var(--dim);
+  font-size: 11px;
   font-variant-numeric: tabular-nums;
 }
 .site[data-state="on"] .site-meta {
-  color: #fff;
+  color: var(--parchment);
 }
 .site[data-state="off"] .site-name {
-  color: var(--rail-dim);
+  color: var(--dim);
 }
 .site:has(input:checked) {
-  background: var(--signal);
-  color: var(--signal-ink);
-  font-weight: 650;
-}
-.site:has(input:checked) .site-meta,
-.site:has(input:checked) .site-name {
-  color: var(--signal-ink);
+  background: var(--raised);
+  box-shadow: inset 2px 0 0 var(--parchment);
+  color: var(--bright);
 }
 .rail .site:has(input:focus-visible) {
-  outline: 2px solid #fff;
-  outline-offset: -2px;
+  outline: 1px solid var(--red);
+  outline-offset: -1px;
 }
-
-/* The signature: a dictionary entry, misregistered like a bad photocopy. Static on purpose:
-   moving text would be the kind of hook this extension removes. */
-.definition {
-  margin: auto 14px 14px;
-  color: #ededed;
-  font: 10.5px/1.5 var(--mono);
-  text-transform: uppercase;
-  text-shadow:
-    1.5px 0 0 rgb(224 0 0 / 0.85),
-    -1px 0 0 rgb(0 190 255 / 0.25);
-  mask-image: repeating-linear-gradient(to bottom, #000 0 2px, rgb(0 0 0 / 0.6) 2px 3px);
-}
-.definition .headword {
-  font-weight: 700;
-}
-.definition i {
-  font-style: normal;
-  color: var(--rail-dim);
-}
-
 .rail-foot {
   display: grid;
-  gap: 8px;
+  gap: 10px;
+  margin-top: auto;
   padding: 0 10px;
 }
 .pause {
@@ -205,30 +91,27 @@ p {
   align-items: center;
   gap: 8px;
   width: 100%;
-  padding: 7px 10px;
-  border: 1px solid #3a3a3a;
-  border-radius: 0;
+  padding: 6px 9px;
+  border: 1px solid var(--rule-strong);
   background: transparent;
-  color: #fff;
-  font-size: 12px;
-  font-weight: 650;
+  color: var(--parchment);
   white-space: nowrap;
   transition: transform 160ms var(--ease-out);
 }
 /* Paused is the one filled control in the rail. */
 .pause[aria-pressed="true"] {
-  border-color: var(--signal);
-  background: var(--signal);
-  color: var(--signal-ink);
+  border-color: var(--red);
+  background: var(--red);
+  color: var(--bright);
 }
 .pause:active,
-.theme:active {
-  transform: scale(0.97);
+.picker-link:active {
+  transform: scale(0.98);
 }
 .icon-power {
   position: relative;
-  width: 12px;
-  height: 12px;
+  width: 11px;
+  height: 11px;
   border: 1.5px solid currentColor;
   border-radius: 50%;
 }
@@ -236,45 +119,24 @@ p {
   content: "";
   position: absolute;
   top: -4px;
-  left: 3.5px;
-  width: 2px;
-  height: 7px;
+  left: 3px;
+  width: 1.5px;
+  height: 6px;
   background: currentColor;
-  box-shadow: 0 0 0 2px var(--rail);
+  box-shadow: 0 0 0 2px var(--panel);
 }
 .pause[aria-pressed="true"] .icon-power:after {
-  box-shadow: 0 0 0 2px var(--signal);
+  box-shadow: 0 0 0 2px var(--red);
 }
 .rail-links {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 2px;
-  font-size: 11.5px;
+  padding: 0 4px;
+  font-size: 11px;
 }
 .rail-links a {
-  color: var(--rail-text);
+  color: var(--stone);
   text-decoration: underline;
-  text-decoration-color: var(--signal);
+  text-decoration-color: var(--rule-strong);
   text-underline-offset: 3px;
-}
-.theme {
-  display: grid;
-  place-items: center;
-  width: 26px;
-  height: 26px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--rail-text);
-  transition: transform 160ms var(--ease-out);
-}
-.icon-theme {
-  width: 13px;
-  height: 13px;
-  border: 1.5px solid currentColor;
-  border-radius: 50%;
-  background: linear-gradient(90deg, transparent 50%, currentColor 50%);
 }
 
 /* ---- Pane --------------------------------------------------------------------------------------- */
@@ -285,7 +147,7 @@ p {
   min-height: 0;
 }
 .site-head {
-  padding: 14px 18px 12px;
+  padding: 15px 18px 12px;
 }
 .site-title {
   display: flex;
@@ -294,25 +156,25 @@ p {
   gap: 12px;
 }
 h1 {
-  font: 400 34px/0.95 var(--display);
-  letter-spacing: 0.2px;
-  text-transform: uppercase;
+  color: var(--bright);
+  font: 26px/1.05 var(--serif);
 }
 #siteState {
-  margin-top: 4px;
-  color: var(--graphite);
-  font-size: 11.5px;
+  margin-top: 5px;
+  color: var(--stone);
+  font-size: 11px;
 }
 .site-title .uh-switch {
   margin-top: 6px;
 }
 .paused-note {
   margin-top: 10px;
-  padding: 7px 10px;
-  background: var(--signal);
-  color: var(--signal-ink);
-  font-size: 12px;
-  font-weight: 600;
+  padding: 6px 9px;
+  border: 1px solid var(--red);
+  color: var(--red);
+  font-size: 11px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
   transition:
     opacity 200ms var(--ease-out),
     transform 200ms var(--ease-out);
@@ -325,36 +187,56 @@ h1 {
   padding: 0;
   border: 0;
   background: none;
-  color: inherit;
-  font-weight: 700;
+  color: var(--bright);
+  letter-spacing: inherit;
+  text-transform: inherit;
   text-decoration: underline;
   text-underline-offset: 2px;
 }
 
-/* Text choices (presets, focus memory): the current one gets Anomaly's red underline. */
+/* Text choices (presets, focus memory): the current one is bright with a red underline. */
 .choices {
   display: flex;
   align-items: baseline;
-  gap: 12px;
-  font-size: 12px;
+  gap: 10px;
+  font-size: 11.5px;
+  white-space: nowrap;
 }
 #presets {
-  gap: 14px;
-  margin-top: 12px;
-}
-#presetLabel {
-  color: var(--graphite);
+  margin-top: 13px;
 }
 .choices button {
   padding: 2px 0;
   border: 0;
   background: none;
-  color: var(--ink);
-  font-weight: 500;
+  color: var(--stone);
 }
 .choices button[aria-pressed="true"] {
-  font-weight: 700;
-  box-shadow: inset 0 -2px 0 var(--signal);
+  color: var(--bright);
+  box-shadow: inset 0 -1px 0 var(--red);
+}
+
+/* The way into the picker: a small panel with a dot-matrix mark. */
+.picker-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin-top: 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--rule);
+  background: var(--panel);
+  color: var(--parchment);
+  text-align: left;
+  transition: transform 160ms var(--ease-out);
+}
+.picker-link .dots {
+  flex-shrink: 0;
+  width: 22px;
+  height: 16px;
+  border: 1px dotted var(--amber);
+  background: radial-gradient(var(--amber) 0.8px, transparent 1px) 0 0 / 4px 4px;
+  opacity: 0.85;
 }
 
 main {
@@ -363,24 +245,22 @@ main {
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
-  padding: 2px 0 10px;
-  border-top: 1px solid var(--ink);
+  scrollbar-color: var(--rule-strong) transparent;
+  padding: 0 0 10px;
+  border-top: 1px solid var(--rule);
   transition: opacity 150ms ease;
 }
 /* Paused choices stay editable but read as dormant. */
 .is-paused main,
 .is-paused .sites {
-  opacity: 0.5;
+  opacity: 0.45;
 }
 main section:not([hidden]) + section:not([hidden]) {
   margin-top: 6px;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--rule);
 }
-main h2 {
-  padding: 12px 18px 0;
-  font: 400 17px/1 var(--display);
-  letter-spacing: 0.3px;
-  text-transform: uppercase;
+main h2.label {
+  padding: 14px 18px 2px;
 }
 
 .row {
@@ -388,34 +268,33 @@ main h2 {
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  padding: 9px 18px;
+  padding: 8px 18px;
   cursor: pointer;
 }
-.row .uh-switch {
-  margin-top: 1px;
-}
+.row .uh-switch,
 .row .choices {
   flex-shrink: 0;
-  margin-top: 1px;
+  margin-top: 2px;
 }
 .row-label,
 .feature-copy {
   flex: 1;
   min-width: 0;
-  font-weight: 600;
+  color: var(--parchment);
 }
 .feature-copy strong {
   display: block;
   font-weight: inherit;
 }
+/* Descriptions are prose, so they are set in the serif. */
 .feature-hint,
-.feature-copy small {
+.feature-copy small,
+.shortcut-line,
+.log-empty {
   display: block;
   margin-top: 2px;
-  color: var(--graphite);
-  font-size: 11.5px;
-  font-weight: 400;
-  line-height: 1.45;
+  color: var(--stone);
+  font: 13.5px/1.3 var(--serif);
 }
 #focusToggle:disabled {
   cursor: not-allowed;
@@ -425,19 +304,43 @@ main h2 {
   align-items: baseline;
 }
 .slider-row output {
-  color: var(--graphite);
-  font-size: 11.5px;
+  color: var(--stone);
+  font-size: 11px;
   font-variant-numeric: tabular-nums;
 }
+/* A hairline track and a square red thumb, instead of the browser's bright default. */
 .slider-row input[type="range"] {
   flex-basis: 100%;
+  height: 16px;
   margin: 4px 0 0;
-  accent-color: var(--signal);
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+.slider-row input[type="range"]::-webkit-slider-runnable-track {
+  height: 1px;
+  background: var(--rule-strong);
+}
+.slider-row input[type="range"]::-moz-range-track {
+  height: 1px;
+  background: var(--rule-strong);
+}
+.slider-row input[type="range"]::-webkit-slider-thumb {
+  width: 10px;
+  height: 10px;
+  margin-top: -4.5px;
+  appearance: none;
+  background: var(--red);
+}
+.slider-row input[type="range"]::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  border: 0;
+  border-radius: 0;
+  background: var(--red);
 }
 .shortcut-line {
-  margin: 0 18px 10px;
-  color: var(--graphite);
-  font-size: 11.5px;
+  margin: 2px 18px 10px;
 }
 
 .group-head {
@@ -449,8 +352,8 @@ main h2 {
 }
 .collapse-btn {
   position: absolute;
-  top: 7px;
-  right: 54px;
+  top: 6px;
+  right: 50px;
   display: grid;
   place-items: center;
   width: 24px;
@@ -458,14 +361,14 @@ main h2 {
   padding: 0;
   border: 0;
   background: transparent;
-  color: var(--graphite);
+  color: var(--stone);
 }
 .collapse-btn:before {
   content: "";
   width: 6px;
   height: 6px;
-  border-right: 1.5px solid currentColor;
-  border-bottom: 1.5px solid currentColor;
+  border-right: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;
   transform: translateY(-2px) rotate(45deg);
   transition: transform 160ms var(--ease-out);
 }
@@ -474,7 +377,7 @@ main h2 {
 }
 .group-children {
   margin: 0 0 4px 18px;
-  border-left: 2px solid var(--line);
+  border-left: 1px solid var(--rule);
 }
 .group-children .row {
   padding-left: 12px;
@@ -487,9 +390,9 @@ main h2 {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  padding: 12px 18px 0;
+  padding: 14px 18px 0;
 }
-.log-head h2 {
+.log-head h2.label {
   padding: 0;
 }
 .log-head button,
@@ -497,12 +400,10 @@ main h2 {
   padding: 0;
   border: 0;
   background: none;
-  color: var(--ink);
-  font-size: 11.5px;
-  font-weight: 650;
+  color: var(--parchment);
+  font-size: 11px;
   text-decoration: underline;
-  text-decoration-color: var(--signal);
-  text-decoration-thickness: 2px;
+  text-decoration-color: var(--rule-strong);
   text-underline-offset: 3px;
 }
 .link-log {
@@ -517,118 +418,65 @@ main h2 {
 .link-log a {
   display: block;
   overflow: hidden;
-  color: var(--ink);
-  font-weight: 600;
+  color: var(--parchment);
   text-decoration: none;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.link-log small,
-.log-empty {
-  color: var(--graphite);
-  font-size: 11.5px;
-}
-
-/* Switch: square-shouldered like the rest of the system; red when on. */
-.uh-switch {
-  appearance: none;
-  position: relative;
-  flex-shrink: 0;
-  width: 34px;
-  height: 18px;
-  margin: 0;
-  border: 0;
-  border-radius: 2px;
-  background: var(--switch);
-  cursor: pointer;
-  transition: background-color 150ms ease;
-}
-.uh-switch:after {
-  content: "";
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 12px;
-  height: 12px;
-  border-radius: 1px;
-  background: #fff;
-  transition: transform 160ms var(--ease-out);
-}
-.uh-switch:checked,
-.uh-switch:indeterminate {
-  background: var(--signal);
-}
-.uh-switch:checked:after {
-  transform: translateX(16px);
-}
-.uh-switch:indeterminate:after {
-  transform: translateX(8px);
+.link-log small {
+  color: var(--dim);
+  font-size: 11px;
 }
 
 .foot {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 18px;
-  border-top: 1px solid var(--line);
-  font-size: 11.5px;
+  padding: 9px 18px;
+  border-top: 1px solid var(--rule);
+  font-size: 11px;
 }
 #saveStatus {
   flex: 1;
   min-width: 0;
   overflow: hidden;
-  color: var(--graphite);
+  color: var(--stone);
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 #saveStatus.error {
-  color: var(--danger);
+  color: var(--red);
   white-space: normal;
-}
-#resetAll {
-  transition: transform 160ms var(--ease-out);
-}
-#resetAll:active {
-  transform: scale(0.97);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .site:not(:has(input:checked)):hover {
-    color: #fff;
-    box-shadow: inset 3px 0 0 var(--signal);
+    color: var(--parchment);
   }
-  .pause[aria-pressed="false"]:hover {
-    border-color: var(--signal);
+  .pause[aria-pressed="false"]:hover,
+  .picker-link:hover {
+    border-color: var(--red);
   }
   .rail-links a:hover,
-  .theme:hover {
-    color: #fff;
+  #resetAll:hover,
+  .log-head button:hover,
+  .link-log a:hover {
+    color: var(--bright);
+    text-decoration: underline;
+    text-decoration-color: var(--red);
   }
-  .choices button:not([aria-pressed="true"]):hover {
-    box-shadow: inset 0 -2px 0 var(--line);
-  }
+  .choices button:not([aria-pressed="true"]):hover,
   .collapse-btn:hover {
-    color: var(--ink);
+    color: var(--bright);
   }
   .row:hover {
-    background: var(--hover);
-  }
-  .link-log a:hover {
-    text-decoration: underline;
-    text-decoration-color: var(--signal);
+    background: var(--panel);
   }
 }
 
-/* Reduced motion keeps colour and opacity feedback and drops movement. */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *:before,
-  *:after {
-    transition-property: background-color, border-color, color, opacity !important;
-  }
   .pause:active,
-  .theme:active,
-  #resetAll:active {
+  .picker-link:active {
     transform: none;
   }
 }

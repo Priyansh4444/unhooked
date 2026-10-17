@@ -177,13 +177,23 @@ await until(
 await scoped.close();
 await popup.bringToFront();
 
-// Theme and size.
-await ext.set({ unhookedPopupTheme: "system" });
-await popup.click("#btnTheme");
-await until("the theme button saves dark", () =>
-  popup.evaluate(() => document.documentElement.dataset.popupTheme === "dark"),
+// The picker opens in a tab, on the selected site.
+await popup.click("label.site:has(#site-reddit)");
+const opened = browser.waitForTarget((t) => t.url().includes("/ui/picker/index.html"));
+await popup.click("#openPicker");
+check(
+  "the sketch button opens the picker on the selected site",
+  (await opened).url().endsWith("/ui/picker/index.html#reddit"),
 );
-const size = await popup.evaluate(() => ({
+// The button closes the popup, as a real popup should; reopen it for the last checks.
+const reopened = await openPopup();
+
+// Dark only, and the size of a Chrome popup.
+check(
+  "the popup is dark",
+  await reopened.evaluate(() => getComputedStyle(document.documentElement).colorScheme === "dark"),
+);
+const size = await reopened.evaluate(() => ({
   height: document.body.getBoundingClientRect().height,
   footer: document.querySelector("footer").getBoundingClientRect().bottom,
   width: document.documentElement.scrollWidth,

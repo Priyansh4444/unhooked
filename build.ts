@@ -53,6 +53,8 @@ export async function buildExtension({ target, outdir, minify, e2e = false }: Bu
       target: "browser",
       minify,
       format,
+      // Shared UI fonts are copied once to ui/fonts/ (below), not inlined into every page.
+      external: ["/ui/fonts/*"],
     });
     if (!result.success) throw new Error(result.logs.join("\n"));
   };
@@ -75,12 +77,22 @@ export async function buildExtension({ target, outdir, minify, e2e = false }: Bu
       await writeFile(join(outdir, "sites", site, file), minify ? minifyCss(css) : css);
     }
   }
-  await bundle(["src/ui/popup/index.html"], "src/ui", join(outdir, "ui"), "esm");
+  await bundle(
+    ["src/ui/popup/index.html", "src/ui/picker/index.html"],
+    "src/ui",
+    join(outdir, "ui"),
+    "esm",
+  );
+  // Both pages share these fonts, so they ship once (with their licences) instead of being
+  // inlined into each page's stylesheet. theme.css refers to them as /ui/fonts/*.
+  await cp("src/ui/shared/fonts", join(outdir, "ui", "fonts"), { recursive: true });
   if (minify) {
     // Comments and indentation only: a newline still separates elements, so inline spacing is kept.
-    const file = join(outdir, "ui", "popup", "index.html");
-    const html = await readFile(file, "utf8");
-    await writeFile(file, html.replace(/<!--[\s\S]*?-->/g, "").replace(/\n\s+/g, "\n"));
+    for (const page of ["popup", "picker"]) {
+      const file = join(outdir, "ui", page, "index.html");
+      const html = await readFile(file, "utf8");
+      await writeFile(file, html.replace(/<!--[\s\S]*?-->/g, "").replace(/\n\s+/g, "\n"));
+    }
   }
   for (const icon of Object.values(ICONS)) {
     await cp(join("icons", icon), join(outdir, icon));

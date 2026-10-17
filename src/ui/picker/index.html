@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Unhooked picker</title>
+    <link rel="stylesheet" href="../shared/theme.css" />
+    <link rel="stylesheet" href="picker.css" />
+  </head>
+  <body>
+    <header class="top">
+      <p class="brand">unhooked <span class="crumb">/ picker</span></p>
+      <p class="label" id="saveStatus" role="status" aria-live="polite">Loading your choices</p>
+    </header>
+
+    <div class="layout">
+      <nav class="site-list" aria-labelledby="sitesLabel">
+        <p class="label" id="sitesLabel">Sites</p>
+        <ul id="sites"></ul>
+      </nav>
+
+      <main>
+        <p class="notice" id="notice" hidden>
+          <span id="noticeText"></span>
+          <button type="button" class="text-button" id="noticeAction"></button>
+        </p>
+
+        <section class="frame" aria-labelledby="siteTitle">
+          <div class="frame-head">
+            <h1 id="siteTitle">YouTube</h1>
+            <div class="views" role="tablist" aria-label="Pages" id="views"></div>
+          </div>
+          <p class="frame-path label" id="framePath" aria-hidden="true"></p>
+          <div class="canvas" id="canvas" role="group" aria-describedby="howto"></div>
+          <p class="hand-note" id="handNote" aria-hidden="true">
+            click what you don't need
+            <svg viewBox="0 0 70 110" width="70" height="110">
+              <path d="M6 8c26 6 46 26 50 58 1 10 0 22-2 34" />
+              <path d="M44 90l10 12 9-14" />
+            </svg>
+          </p>
+        </section>
+
+        <footer class="receipt">
+          <p id="howto">
+            Click a part of the page to hide it on the real site; click it again to bring it back.
+            Dim parts always stay.
+          </p>
+          <p id="receipt"></p>
+          <button type="button" class="text-button" id="bringBack">Bring everything back</button>
+        </footer>
+      </main>
+    </div>
+
+    <script type="module" src="picker.ts"></script>
+  </body>
+</html>

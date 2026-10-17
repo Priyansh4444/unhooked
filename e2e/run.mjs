@@ -13,6 +13,7 @@ const ALL = [
   "social",
   "youtube-controls",
   "popup",
+  "picker",
   "twitter",
   "twitch",
   "twitch-cards",
