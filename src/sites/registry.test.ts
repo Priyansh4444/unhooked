@@ -113,7 +113,10 @@ describe("protected routes", () => {
     ] as const) {
       const site = controlSiteById(id)!;
       const rules = site.features.find((f) => f.id === feature)!.rules;
-      expect(rules.every((rule) => rule.routes.join() === "*")).toBe(true);
+      expect(rules.some((rule) => rule.routes.join() === "*")).toBe(true);
+      // Anything beyond the sidebar-only rule must stay on Home (Reddit's whole right column).
+      for (const rule of rules.filter((r) => r.routes.join() !== "*"))
+        expect(rule.routes.join()).toBe("home");
       expect(compileSiteCss(site)).toContain(
         `html[data-uh-site="${id}"].uh-social-${id}-${feature} `,
       );
