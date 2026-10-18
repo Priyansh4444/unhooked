@@ -8,6 +8,8 @@ import { FOCUS_SITES, type FocusSite, type PersistenceMode } from "../../focus/s
 import { ext } from "../../shared/ext-api.ts";
 import {
   PRESETS,
+  customKey,
+  customRules,
   featurePatch,
   isPaused,
   matchingPreset,
@@ -22,6 +24,7 @@ import { DEFAULTS, STORAGE_KEYS, type TwitterFocusControls } from "../../shared/
 import { SITE_HOSTS, siteForUrl, type SiteId } from "../../sites/hosts.ts";
 import { CONTROL_SITES, controlSiteById, type ControlSite } from "../../sites/registry.ts";
 import { TWITCH_ACTIONS, type ChatUrlEntry } from "../../sites/twitch/protocol.ts";
+import { PREVIEW_ACTION, type PreviewRequest } from "../../sites/custom/protocol.ts";
 
 const YOUTUBE_GROUPS: Record<string, string[]> = {
   bulkVideoSidebar: ["hideRelatedSidebar", "hideLiveChat", "hidePlaylistSidebar", "hideFundraiser"],
@@ -185,7 +188,12 @@ function renderHeader(control: ControlSite | undefined, paused: boolean): void {
   }
   $("presets").hidden = !control;
   $("openPicker").hidden = !control;
-  $("pickerSite").textContent = label;
+  // The wand works on the page in this tab, so it needs this tab to be on the selected site.
+  const here = activeTab?.site === selected;
+  $<HTMLButtonElement>("openWand").disabled = !here;
+  $("openWand").title = here
+    ? "Point at anything on the page and click to hide it"
+    : `Open ${label} in this tab to pick on the page`;
   $("resetAll").hidden = !control;
   $("pausedNote").hidden = !paused;
   $("btnPower").setAttribute("aria-pressed", String(paused));
@@ -301,6 +309,34 @@ function renderLog(entries: ChatUrlEntry[]): void {
   );
 }
 
+function renderCustom(): void {
+  const rules = customRules(raw, selected);
+  $("customSection").hidden = !rules.length;
+  $("customList").replaceChildren(
+    ...rules.map((rule) => {
+      const item = document.createElement("li");
+      item.className = "row";
+      item.dataset.selector = rule.selector;
+      item.dataset.label = rule.label;
+      const copy = document.createElement("span");
+      copy.className = "feature-copy";
+      const title = document.createElement("strong");
+      title.textContent = rule.label;
+      const small = document.createElement("small");
+      small.textContent = rule.selector;
+      small.className = "selector";
+      copy.append(title, small);
+      const back = document.createElement("button");
+      back.type = "button";
+      back.className = "bring-back";
+      back.textContent = "Bring back";
+      back.setAttribute("aria-label", `Bring back ${rule.label}`);
+      item.append(copy, back);
+      return item;
+    }),
+  );
+}
+
 function render(): void {
   if (!loaded) return;
   const paused = isPaused(raw);
@@ -310,6 +346,7 @@ function render(): void {
   renderFocus();
   renderControls(control);
   renderTwitch();
+  renderCustom();
 }
 
 // ---- building --------------------------------------------------------------------------------
@@ -380,6 +417,61 @@ function buildRail(): void {
   }
 }
 
+// ---- hover: preview on the page, and the row's description in the footer --------------------
+
+let previewing = "";
+
+/** Outline on the page what a control or wand removal covers (only in this tab, on its site). */
+function preview(target: Omit<PreviewRequest, "action"> | null): void {
+  const key = target ? JSON.stringify(target) : "";
+  if (key === previewing || !activeTab || activeTab.site !== selected) return;
+  previewing = key;
+  const message: PreviewRequest = target
+    ? { action: PREVIEW_ACTION, ...target }
+    : { action: PREVIEW_ACTION, clear: true };
+  ext.tabs.sendMessage(activeTab.id, message).catch(() => {});
+}
+
+function previewTarget(row: Element): Omit<PreviewRequest, "action"> | null {
+  const selector = (row as HTMLElement).dataset.selector;
+  if (selector) return { selector, label: (row as HTMLElement).dataset.label };
+  const input = row.querySelector<HTMLInputElement>("input.uh-switch");
+  const control = controlSiteById(selected);
+  const feature =
+    input?.dataset.feature ?? (control?.features.some((f) => f.id === input?.id) ? input?.id : "");
+  if (!feature) return null;
+  const label = control?.features
+    .find((f) => f.id === feature)
+    ?.label.replace(/^(Hide|Disable) /, "");
+  return { feature, label };
+}
+
+function bindHover(): void {
+  const enter = (event: Event) => {
+    const row = (event.target as HTMLElement).closest(".row");
+    if (!row) return;
+    const hint = row.querySelector(
+      ".feature-hint, .feature-copy small:not(.selector)",
+    )?.textContent;
+    $("hint").textContent = hint ?? "";
+    document.body.classList.toggle("is-hinting", Boolean(hint));
+    preview(previewTarget(row));
+  };
+  const leave = (event: Event) => {
+    const to = (event as MouseEvent).relatedTarget as Node | null;
+    if (to && $("main").contains(to) && (to as Element).closest?.(".row")) return;
+    document.body.classList.remove("is-hinting");
+    preview(null);
+  };
+  const main = document.querySelector("main")!;
+  main.id = "main";
+  main.addEventListener("mouseover", enter);
+  main.addEventListener("focusin", enter);
+  main.addEventListener("mouseleave", leave);
+  main.addEventListener("focusout", leave);
+  addEventListener("blur", () => preview(null));
+}
+
 function bind(): void {
   $("sitePicker").addEventListener("change", (event) => {
     const target = event.target as HTMLInputElement;
@@ -397,6 +489,32 @@ function bind(): void {
     write({ [STORAGE_KEYS.PAUSED]: value }, value ? "Paused on every site" : "Resumed");
   $("btnPower").addEventListener("click", () => void setPaused(!isPaused(raw)));
   $("btnResume").addEventListener("click", () => void setPaused(false));
+  $("openWand").addEventListener("click", async () => {
+    if (!activeTab) return;
+    const file = "sites/wand/content.js";
+    try {
+      if (ext.scripting)
+        await ext.scripting.executeScript({ target: { tabId: activeTab.id }, files: [file] });
+      else
+        await (
+          ext.tabs as unknown as { executeScript: (id: number, d: object) => Promise<unknown> }
+        ).executeScript(activeTab.id, { file });
+      window.close();
+    } catch (error) {
+      status(`Could not start the wand. ${(error as Error).message}`, true);
+    }
+  });
+  $("customList").addEventListener("click", (event) => {
+    const button = (event.target as HTMLElement).closest(".bring-back");
+    const selector = button?.closest<HTMLElement>("[data-selector]")?.dataset.selector;
+    if (!selector) return;
+    void write(
+      { [customKey(selected)]: customRules(raw, selected).filter((r) => r.selector !== selector) },
+      "Brought back",
+    );
+    preview(null);
+  });
+  bindHover();
   $("openPicker").addEventListener("click", () => {
     void ext.tabs.create({ url: ext.runtime.getURL(`ui/picker/index.html#${selected}`) });
     window.close();

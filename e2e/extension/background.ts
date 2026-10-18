@@ -4,7 +4,7 @@
 import "../../src/background.ts";
 import { ext, getActionApi } from "../../src/shared/ext-api.ts";
 
-type Op = { op: "set" | "get" | "badge" | "tabId"; args: never };
+type Op = { op: "set" | "get" | "badge" | "tabId" | "inject" | "send"; args: never };
 
 async function run({ op, args }: { op: string; args: unknown }): Promise<unknown> {
   switch (op) {
@@ -16,6 +16,20 @@ async function run({ op, args }: { op: string; args: unknown }): Promise<unknown
     case "tabId":
       // id of the first tab whose URL contains `args`
       return (await ext.tabs.query({})).find((t) => t.url?.includes(args as string))?.id ?? null;
+    case "inject": {
+      // run an extension script in the first tab whose URL contains `url` (the popup's wand button)
+      const { url, file } = args as { url: string; file: string };
+      const tab = (await ext.tabs.query({})).find((t) => t.url?.includes(url));
+      if (tab?.id === undefined) return { error: "no tab" };
+      await ext.scripting.executeScript({ target: { tabId: tab.id }, files: [file] });
+      return {};
+    }
+    case "send": {
+      // message the first tab whose URL contains `url` (the popup's and picker's hover preview)
+      const { url, message } = args as { url: string; message: unknown };
+      const tab = (await ext.tabs.query({})).find((t) => t.url?.includes(url));
+      return tab?.id === undefined ? null : ext.tabs.sendMessage(tab.id, message);
+    }
     case "badge": {
       // badge text of the first tab whose URL contains `args`
       const tab = (await ext.tabs.query({})).find((t) => t.url?.includes(args as string));

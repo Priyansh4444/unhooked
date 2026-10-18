@@ -41,12 +41,22 @@ export async function launch() {
   } else {
     browser = await puppeteer.launch({
       executablePath: BINARY,
-      headless: true,
+      headless: process.env.HEADED !== "1",
       pipe: true,
       enableExtensions: [EXT],
+      // LIVE_PROFILE: a profile you have logged in to the sites with (scripts/live-login.ts).
+      ...(process.env.LIVE_PROFILE && { userDataDir: process.env.LIVE_PROFILE }),
       args: ["--disable-gpu"],
       defaultViewport: { width: 1400, height: 900 },
     });
+    // Sites that serve bot checks to a "HeadlessChrome" user agent get the normal one.
+    const agent = (await browser.userAgent()).replace("HeadlessChrome", "Chrome");
+    browser.on("targetcreated", (target) =>
+      target
+        .page()
+        .then((page) => page?.setUserAgent(agent))
+        .catch(() => {}),
+    );
   }
 
   // Helium bundles uBlock Origin, which reloads tabs opened before its filters are ready.
@@ -104,6 +114,10 @@ export async function launch() {
     badge: (urlPart) => call({ op: "badge", args: urlPart }),
     /** Id of the first tab whose URL contains `urlPart`. */
     tabId: (urlPart) => call({ op: "tabId", args: urlPart }),
+    /** Run an extension script in the first tab whose URL contains `url`. */
+    inject: (url, file) => call({ op: "inject", args: { url, file } }),
+    /** Send a message to the first tab whose URL contains `url`; resolves with its reply. */
+    send: (url, message) => call({ op: "send", args: { url, message } }),
   };
 
   // Wait until the extension is up (its first reply proves bridge + background are alive).

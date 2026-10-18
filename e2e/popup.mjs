@@ -177,6 +177,67 @@ await until(
 await scoped.close();
 await popup.bringToFront();
 
+// The wand, hover previews and wand removals, against a real (stubbed) Reddit tab.
+check(
+  "the wand needs the tab to be on the selected site",
+  await popup.$eval("#openWand", (el) => el.disabled),
+);
+const reddit = await newPage();
+await stub(reddit, [
+  [
+    "https://www.reddit.com/",
+    '<!doctype html><shreddit-feed><article id="feed">A post</article></shreddit-feed><aside class="promo">Promo</aside>',
+  ],
+]);
+await reddit.goto("https://www.reddit.com/", { waitUntil: "load" });
+await reddit.waitForFunction(() => document.documentElement.dataset.uhSite === "reddit");
+const redditTab = await ext.tabId("reddit.com");
+await ext.set({ "unhooked.custom.reddit": [{ selector: "aside.promo", label: "Promo", at: 1 }] });
+const onReddit = await openPopup(`?tab=${redditTab}`);
+check(
+  "the wand is available on the tab's site",
+  await onReddit.$eval("#openWand", (el) => !el.disabled),
+);
+await until("wand removals are listed with what they were", async () =>
+  (await onReddit.$eval("#customList", (el) => el.textContent)).includes("aside.promo"),
+);
+await onReddit.hover("label.row:has(#social-hideHomeFeed)");
+await until(
+  "hovering a control outlines it on the page",
+  async () =>
+    (await reddit.evaluate(() => document.querySelector("unhooked-overlay")?.dataset.preview)) ===
+    "1",
+);
+check(
+  "the hovered control's description shows in the footer",
+  await onReddit.$eval(
+    "#hint",
+    (el) => getComputedStyle(el).display !== "none" && el.textContent.length > 10,
+  ),
+);
+await onReddit.mouse.move(5, 5);
+await until(
+  "moving away clears the outline",
+  async () =>
+    (await reddit.evaluate(() => document.querySelector("unhooked-overlay")?.dataset.preview)) ===
+    undefined,
+);
+await onReddit.click("#customList .bring-back");
+await until(
+  "Bring back removes a wand removal",
+  async () =>
+    ((await ext.get("unhooked.custom.reddit"))["unhooked.custom.reddit"] ?? []).length === 0,
+);
+await onReddit.click("#openWand");
+await until(
+  "the wand button starts the wand on the page",
+  async () =>
+    await reddit.evaluate(() => document.querySelector("unhooked-overlay[data-wand]") !== null),
+);
+await reddit.bringToFront();
+await reddit.keyboard.press("Escape");
+await popup.bringToFront();
+
 // The picker opens in a tab, on the selected site.
 await popup.click("label.site:has(#site-reddit)");
 const opened = browser.waitForTarget((t) => t.url().includes("/ui/picker/index.html"));

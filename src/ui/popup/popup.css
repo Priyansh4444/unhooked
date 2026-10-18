@@ -104,8 +104,7 @@ body {
   background: var(--red);
   color: var(--bright);
 }
-.pause:active,
-.picker-link:active {
+.pause:active {
   transform: scale(0.98);
 }
 .icon-power {
@@ -216,27 +215,75 @@ h1 {
   box-shadow: inset 0 -1px 0 var(--red);
 }
 
-/* The way into the picker: a small panel with a dot-matrix mark. */
-.picker-link {
+/* Two ways to remove things by pointing: on the real page, or on a sketch of it. */
+.tools {
+  display: grid;
+  gap: 4px;
+  margin-top: 12px;
+}
+.tool {
   display: flex;
   align-items: center;
-  gap: 10px;
-  width: 100%;
-  margin-top: 12px;
-  padding: 8px 10px;
+  gap: 7px;
+  min-width: 0;
+  padding: 7px 8px;
   border: 1px solid var(--rule);
   background: var(--panel);
   color: var(--parchment);
+  font-size: 11.5px;
   text-align: left;
+  white-space: nowrap;
   transition: transform 160ms var(--ease-out);
 }
-.picker-link .dots {
+.tool span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tool:disabled {
+  color: var(--dim);
+  cursor: not-allowed;
+}
+.tool:not(:disabled):active {
+  transform: scale(0.98);
+}
+.tool .dots {
   flex-shrink: 0;
-  width: 22px;
-  height: 16px;
+  width: 16px;
+  height: 12px;
   border: 1px dotted var(--amber);
-  background: radial-gradient(var(--amber) 0.8px, transparent 1px) 0 0 / 4px 4px;
-  opacity: 0.85;
+  background: radial-gradient(var(--amber) 0.7px, transparent 1px) 0 0 / 4px 4px;
+  opacity: 0.8;
+}
+/* A wand: a stick with a red spark at its tip. */
+.wand-mark {
+  position: relative;
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+}
+.wand-mark:before {
+  content: "";
+  position: absolute;
+  left: 1px;
+  bottom: 1px;
+  width: 15px;
+  height: 1.5px;
+  background: currentColor;
+  transform: rotate(-45deg);
+  transform-origin: left center;
+}
+.wand-mark:after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 5px;
+  height: 5px;
+  background: var(--red);
+  transform: rotate(45deg);
+}
+.tool:disabled .wand-mark:after {
+  background: var(--dim);
 }
 
 main {
@@ -295,6 +342,19 @@ main h2.label {
   margin-top: 2px;
   color: var(--stone);
   font: 13.5px/1.3 var(--serif);
+}
+/* Row descriptions stay for screen readers; sighted users get them in the footer on hover. */
+.feature-hint,
+.feature-copy small:not(.selector) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.row {
+  align-items: center;
 }
 #focusToggle:disabled {
   cursor: not-allowed;
@@ -432,7 +492,8 @@ main h2.label {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 9px 18px;
+  min-height: 50px;
+  padding: 8px 18px;
   border-top: 1px solid var(--rule);
   font-size: 11px;
 }
@@ -444,6 +505,23 @@ main h2.label {
   white-space: nowrap;
   text-overflow: ellipsis;
 }
+.hint {
+  display: none;
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: var(--stone);
+  font: 13px/1.25 var(--serif);
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.is-hinting .hint {
+  display: -webkit-box;
+}
+.is-hinting #saveStatus {
+  display: none;
+}
 #saveStatus.error {
   color: var(--red);
   white-space: normal;
@@ -454,7 +532,7 @@ main h2.label {
     color: var(--parchment);
   }
   .pause[aria-pressed="false"]:hover,
-  .picker-link:hover {
+  .tool:not(:disabled):hover {
     border-color: var(--red);
   }
   .rail-links a:hover,
@@ -476,7 +554,39 @@ main h2.label {
 
 @media (prefers-reduced-motion: reduce) {
   .pause:active,
-  .picker-link:active {
+  .tool:active {
     transform: none;
+  }
+}
+
+/* Wand removals: what was picked, the rule it became, and a way back. */
+.custom-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.custom-list .selector {
+  display: block;
+  overflow: hidden;
+  color: var(--dim);
+  font-size: 10.5px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.bring-back {
+  flex-shrink: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--parchment);
+  font-size: 11px;
+  text-decoration: underline;
+  text-decoration-color: var(--rule-strong);
+  text-underline-offset: 3px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .bring-back:hover {
+    color: var(--bright);
+    text-decoration-color: var(--red);
   }
 }

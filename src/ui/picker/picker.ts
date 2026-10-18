@@ -13,6 +13,8 @@ import {
 } from "../../shared/preferences.ts";
 import { STORAGE_KEYS } from "../../shared/settings.ts";
 import { CONTROL_SITES, controlSiteById, type ControlSite } from "../../sites/registry.ts";
+import { siteForUrl } from "../../sites/hosts.ts";
+import { PREVIEW_ACTION, type PreviewRequest } from "../../sites/custom/protocol.ts";
 import { SKETCH_WIDTH, SKETCHES, type Part } from "./sketches.ts";
 
 const HINT_KEY = "unhooked.picker.hinted";
@@ -201,7 +203,36 @@ function selectFromHash(): void {
   render();
 }
 
+/** Outline the hovered part on every open tab of this site, so the sketch points at the page. */
+let previewing = "";
+async function previewOnTabs(feature: string | null, label = ""): Promise<void> {
+  const key = feature ? `${site.id}/${feature}` : "";
+  if (key === previewing) return;
+  previewing = key;
+  const message: PreviewRequest = feature
+    ? { action: PREVIEW_ACTION, feature, label }
+    : { action: PREVIEW_ACTION, clear: true };
+  const tabs = await ext.tabs.query({}).catch(() => []);
+  for (const tab of tabs)
+    if (typeof tab.id === "number" && siteForUrl(tab.url) === site.id)
+      ext.tabs.sendMessage(tab.id, message).catch(() => {});
+}
+
 function bind(): void {
+  const hover = (event: Event) => {
+    const part = (event.target as HTMLElement).closest<HTMLButtonElement>("[data-feature]");
+    if (part)
+      void previewOnTabs(
+        part.dataset.feature!,
+        part.querySelector(".part-label")?.textContent ?? "",
+      );
+    else void previewOnTabs(null);
+  };
+  $("canvas").addEventListener("mouseover", hover);
+  $("canvas").addEventListener("focusin", hover);
+  $("canvas").addEventListener("mouseleave", () => void previewOnTabs(null));
+  $("canvas").addEventListener("focusout", () => void previewOnTabs(null));
+  addEventListener("blur", () => void previewOnTabs(null));
   window.addEventListener("hashchange", selectFromHash);
   $("views").addEventListener("click", (event) => {
     const tab = (event.target as HTMLElement).closest<HTMLButtonElement>("[data-view]");

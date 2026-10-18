@@ -93,3 +93,27 @@ export function mergeChanges(
   }
   return raw;
 }
+
+// ---- wand removals ----------------------------------------------------------------------------
+
+/** Something the wand removed: a selector found by clicking the page, and what it was called. */
+export interface CustomRule {
+  selector: string;
+  label: string;
+  at: number;
+}
+
+export const customKey = (siteId: string): string => `unhooked.custom.${siteId}`;
+
+/** The site's wand removals, ignoring anything malformed in storage. */
+export function customRules(raw: RawStorage, siteId: string): CustomRule[] {
+  const list = raw[customKey(siteId)];
+  if (!Array.isArray(list)) return [];
+  return list.filter(
+    (rule): rule is CustomRule =>
+      !!rule &&
+      typeof rule.selector === "string" &&
+      rule.selector.length > 0 &&
+      rule.selector.length < 600,
+  );
+}

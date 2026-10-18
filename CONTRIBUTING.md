@@ -20,6 +20,8 @@ src/
     hosts.ts               every site's hosts: manifests, registries and the popup read this
     registry.ts            hide controls: per-site features, route classifiers, generated CSS
     social/content.ts      hide controls for X, Reddit, Instagram, TikTok, Facebook, LinkedIn, Threads
+    custom/content.ts      on every site: applies wand removals, draws hover previews
+    wand/content.ts        the magic wand, injected by the popup on demand
     youtube/               content.ts (controls in every frame + focus in the top frame),
                            options.ts + controls.css (hide controls), focus.ts + focus.css
     x/ excalidraw/         focus modes: content.ts + style.css
@@ -60,6 +62,17 @@ Each folder under `sites/` with a `content.ts` is bundled to `dist/sites/<name>/
 ### Add a hide-control site
 
 1. `sites/hosts.ts`: add its hosts. 2. `sites/registry.ts`: add a route classifier and its features (conservative selectors; feed rules on `home`, sidebar-only rules on `*`). 3. Add the site to `SOCIAL_SITES` in `build/manifest.ts`. 4. Draw it in `ui/picker/sketches.ts`, from measurements (below); a unit test fails until every feature appears in a sketch. 5. Add a fixture to `e2e/social-fixtures.mjs`.
+
+### Test the real sites
+
+Stubbed pages prove the extension's logic; only the real sites prove the selectors. `e2e/live.mjs` visits every page of every site in a real Chrome, counts what each control matches, turns it on and checks those elements are gone, with before/after screenshots and `e2e/shots/live/report.json`. Pages behind a login need a signed-in profile, which you create once:
+
+```sh
+CHROME_PATH=/path/to/chromium bun scripts/live-login.ts      # log in to the sites, close the window
+CHROME_PATH=/path/to/chromium bun e2e/live.mjs [youtube x …]  # LIVE_PROFILE overrides the profile
+```
+
+"STILL VISIBLE" fails the run (hiding is broken). "no match" is a warning: the part may just not be on that page, or the site changed its markup; the screenshot tells which. The profile lives in `~/.cache/unhooked-live-profile`; your passwords never pass through the scripts.
 
 ### Keep sketches and selectors true to the sites
 

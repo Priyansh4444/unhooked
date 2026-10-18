@@ -14,6 +14,7 @@ const ALL = [
   "youtube-controls",
   "popup",
   "picker",
+  "wand",
   "twitter",
   "twitch",
   "twitch-cards",

@@ -113,7 +113,7 @@ h1 {
 
 /* ---- The sketch ----------------------------------------------------------------------------------- */
 .canvas {
-  --dot: rgb(214 162 78 / 0.42);
+  --dot: rgb(214 162 78 / 0.3);
   position: relative;
   width: 100%;
 }
@@ -133,7 +133,7 @@ h1 {
   min-width: 0;
   margin: 0;
   padding: 0;
-  border: 1px dotted rgb(214 162 78 / 0.7);
+  border: 1px dotted rgb(214 162 78 / 0.45);
   background: var(--panel);
   text-align: left;
   transition:
@@ -146,7 +146,7 @@ h1 {
   inset: 3px;
   background:
     var(--cut),
-    radial-gradient(circle, var(--dot-color) 0.8px, transparent 1.2px) 0 0 / 6px 6px;
+    radial-gradient(circle, var(--dot-color) 0.8px, transparent 1.2px) 0 0 / 8px 8px;
   transition:
     opacity 220ms var(--ease-out),
     transform 220ms var(--ease-out);
@@ -200,7 +200,7 @@ h1 {
 
 /* What Unhooked never hides: dim, and not a control. */
 .part.kept {
-  --dot-color: rgb(138 133 124 / 0.28);
+  --dot-color: rgb(138 133 124 / 0.14);
   border-color: var(--rule);
   border-style: solid;
 }

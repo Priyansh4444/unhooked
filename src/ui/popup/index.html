@@ -48,10 +48,16 @@
           <button type="button" data-preset="focused" title="Turn every control on">Focus</button>
           <button type="button" data-preset="clear" title="Turn every control off">Show all</button>
         </div>
-        <button type="button" class="picker-link" id="openPicker">
-          <span class="dots" aria-hidden="true"></span>
-          <span>Click away parts on a sketch of <span id="pickerSite">this site</span></span>
-        </button>
+        <div class="tools">
+          <button type="button" class="tool" id="openWand">
+            <span class="wand-mark" aria-hidden="true"></span>
+            <span>Pick on the page</span>
+          </button>
+          <button type="button" class="tool" id="openPicker">
+            <span class="dots" aria-hidden="true"></span>
+            <span>Pick on a sketch</span>
+          </button>
+        </div>
       </header>
       <main>
         <section id="focusSection" aria-labelledby="focusHeading" hidden>
@@ -293,9 +299,14 @@
           </div>
           <ol class="link-log" id="twitchLogList" aria-labelledby="logHeading"></ol>
         </section>
+        <section id="customSection" aria-labelledby="customHeading" hidden>
+          <h2 id="customHeading" class="label">Removed with the wand</h2>
+          <ul class="custom-list" id="customList"></ul>
+        </section>
       </main>
       <footer class="foot">
         <p id="saveStatus" role="status" aria-live="polite">Loading your choices…</p>
+        <p id="hint" class="hint" aria-hidden="true"></p>
         <button type="button" id="resetAll">Reset site</button>
       </footer>
     </div>

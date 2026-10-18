@@ -21,6 +21,10 @@ export const BUNDLES = {
   social: [],
   excalidraw: ["style.css"],
   twitch: ["style.css"],
+  // Wand removals and hover previews, on every supported site.
+  custom: [],
+  // Injected by the popup on demand, never listed in content_scripts.
+  wand: [],
 } as const;
 
 export const ICONS = {
@@ -102,6 +106,7 @@ export function createManifest(target: Target, extraContentScripts: object[] = [
       contentScript("x", patterns("x"), "document_end"),
       contentScript("excalidraw", patterns("excalidraw"), "document_start"),
       contentScript("twitch", patterns("twitch"), "document_idle"),
+      contentScript("custom", patterns(...(Object.keys(SITE_HOSTS) as SiteId[])), "document_start"),
       ...extraContentScripts,
     ],
   };

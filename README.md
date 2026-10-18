@@ -27,7 +27,9 @@ Click the toolbar icon. The popup opens on the site of your current tab; the lis
 - **Balanced** hides each site's feeds and recommendations, leaving stories and Reels controls off. On YouTube it hides Home, related videos, Shorts and end-screen suggestions, and turns autoplay off.
 - **Focus** turns every control on; **Show all** turns them all off. The underlined preset is the one matching your current choices.
 - The switch beside the site's name turns its controls off without forgetting them. **Reset site** turns every control off and the site back on.
-- **Click away parts on a sketch** opens the picker: a dot-matrix sketch of the site's pages (YouTube's Home, Watch and Search, X's Home and Explore, and so on). Click a part to hide it on the real site, and click it again to bring it back. Dim parts, such as navigation and the video player, always stay. The picker and the switches change the same settings, so either one shows what the other did.
+- **Pick on the page** is a magic wand for anything the controls don't cover. Point at the page: a red box shows exactly what a click would remove, with how many elements like it are on the page. Click to hide it; it stays hidden on that site from then on. **↑**/**↓** widen to the surrounding part or narrow back, **S** switches between this one and every element like it, **Z** undoes, **Esc** finishes. Wand removals are listed in the popup with a **Bring back** button.
+- **Pick on a sketch** opens the picker: a dot-matrix sketch of the site's pages (YouTube's Home, Watch and Search, X's Home and Explore, and so on). Click a part to hide it on the real site, and click it again to bring it back. Dim parts, such as navigation and the video player, always stay. The picker and the switches change the same settings, so either one shows what the other did.
+- **Hovering a control shows it on the page.** In the popup or the picker, hovering a control (or a wand removal) outlines what it covers in the open site tab, and the popup's footer explains what the control does.
 
 **Focus modes** hide everything but the content you came for, in the current tab:
 
@@ -65,7 +67,7 @@ Settings, focus state and the Twitch link log live in your browser's local exten
 - **Hide controls and focus modes** never touch the network.
 - **Twitch link pills** look up links that appear in chat, while pills are on: oEmbed endpoints on youtube.com, reddit.com, vimeo.com, open.spotify.com and publish.x.com, the GitHub API, and pages on github.com, imgur.com and lakebed.app. Thumbnails load from i.ytimg.com, and playing a YouTube preview loads youtube-nocookie.com's player. Nothing is sent to us. Turn pills off to stop these lookups.
 
-Permissions: `storage` for settings; `tabs` for the per-tab badge, per-tab focus state and opening the popup on your current site; `scripting` to start focus mode in tabs that were open before the extension was installed or updated. Host access covers exactly the supported sites and the Twitch lookup hosts above, never all sites.
+Permissions: `storage` for settings; `tabs` for the per-tab badge, per-tab focus state and opening the popup on your current site; `scripting` to start the wand when you press **Pick on the page**, and to start focus mode in tabs that were open before the extension was installed or updated. Wand removals are CSS selectors stored with your other settings. Host access covers exactly the supported sites and the Twitch lookup hosts above, never all sites.
 
 Settings are independent keys (`unhooked.site.x.hideHomeFeed`, for example), so changing one site never overwrites another. Saved options from the original YouTube extension (`unhookedOptions`) are still read; anything you change here takes precedence.
 
@@ -79,6 +81,7 @@ bun run check         # typecheck, lint, format
 bun test              # unit tests
 bun run e2e chrome    # end-to-end suites (CHROME_PATH=…; see CONTRIBUTING.md)
 bun run e2e firefox   # the same suites in Firefox (FIREFOX_PATH=…)
+bun scripts/live-login.ts && bun e2e/live.mjs   # every control against the real, signed-in sites
 ```
 
 End-to-end tests load the real extension into a browser. Suites against stubbed pages (`smoke`, `social`, `youtube-controls`, `popup`, `picker`, `twitter`, `twitch`) need no network; `youtube*`, `excalidraw` and `twitch-cards` use the live sites, deliberately, because markup changes there are what break the extension. **Stubbed pages are not signed-in coverage:** Instagram, Facebook, LinkedIn, Threads and signed-in X layouts need checking by hand before claiming complete live support. If a layout changes and something stays visible, pause the site and report the URL and the element's selector.
