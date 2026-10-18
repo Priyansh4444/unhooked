@@ -243,19 +243,26 @@ export const CONTROL_SITES: readonly ControlSite[] = [
       ["shreddit-feed", ".sitetable.linklisting", '[data-testid="post-container"]'],
       true,
     ),
-    feature(
-      "hideRecommendations",
-      "Hide recommendation panels",
-      "Hide recent and recommended communities in sidebars.",
-      ANYWHERE,
-      [
-        '[data-testid="right-sidebar"]',
-        "reddit-recent-pages",
-        "community-recommendations",
-        ".side .spacer:has(.premium-banner-outer)",
+    {
+      id: "hideRecommendations",
+      label: "Hide recommendation panels",
+      description: "Hide recent posts and recommended communities in sidebars.",
+      balanced: true,
+      rules: [
+        {
+          routes: ANYWHERE,
+          selectors: [
+            '[data-testid="right-sidebar"]',
+            "reddit-recent-pages",
+            "community-recommendations",
+            ".side .spacer:has(.premium-banner-outer)",
+          ],
+        },
+        // The 2025 layout puts all of Home's sidebar in one container. On a subreddit or a
+        // thread the same column holds the community's About and rules, so only Home loses it.
+        { routes: HOME, selectors: ["#right-sidebar-container"] },
       ],
-      true,
-    ),
+    },
   ]),
   site("instagram", "Instagram", [
     feature(
@@ -334,7 +341,12 @@ export const CONTROL_SITES: readonly ControlSite[] = [
       "Hide Live feed",
       "Hide the Live directory on the Live route.",
       ["live"],
-      ['[data-e2e="live-container"]', "#main-content-live"],
+      [
+        '[data-e2e="live-container"]',
+        "#main-content-live",
+        // 2025 layout: the content column is the one holding the category tabs.
+        '#tiktok-live-main-container-id div:has(> div > div > [data-e2e="discover-nav-category-tab"])',
+      ],
       false,
     ),
   ]),

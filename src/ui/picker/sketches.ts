@@ -1,10 +1,15 @@
 /**
- * Schematic pages for the picker: what each site roughly looks like, and which part of it each
- * hide control removes. Parts sit on a 12-column grid; later parts draw on top of earlier ones,
- * so controls inside the player (end screens, autoplay) can overlay it.
+ * Schematic pages for the picker: where each part of a site really sits, and which hide control
+ * removes it. Boxes are in pixels of a 1440px-wide desktop window. Later parts draw on top of
+ * earlier ones, so controls inside the player (end screens, autoplay) can overlay it.
  *
  * Parts without a `feature` are what Unhooked never hides (navigation, the player, results):
  * they are drawn dim so the sketch still reads as the real page.
+ *
+ * `basis` says where a layout comes from. "measured" views were taken from the live site with
+ * getBoundingClientRect (October 2026, logged out where the page renders that way). "structure"
+ * views are behind a login: they follow the columns the hide rules target and the widths those
+ * sites use, but could not be measured without an account.
  */
 import type { ControlSiteId } from "../../sites/registry.ts";
 
@@ -13,8 +18,8 @@ export type Texture = "bar" | "grid" | "list" | "media" | "text" | "chip" | "tal
 
 export interface Part {
   label: string;
-  /** [first row, first column, rows spanned, columns spanned] on a 12-column grid. */
-  at: readonly [number, number, number, number];
+  /** [x, y, width, height] in pixels of a 1440px-wide window. */
+  box: readonly [number, number, number, number];
   feature?: string;
   texture?: Texture;
 }
@@ -24,108 +29,186 @@ export interface View {
   label: string;
   /** Shown in the panel's border, like a file name. */
   path: string;
-  rows: number;
+  height: number;
+  basis: "measured" | "structure";
   parts: readonly Part[];
 }
 
-const header = (label = "Header"): Part => ({ label, at: [1, 1, 1, 12], texture: "bar" });
+export const SKETCH_WIDTH = 1440;
 
 export const SKETCHES: Record<ControlSiteId, readonly View[]> = {
   youtube: [
     {
+      // Masthead, 240px guide and chip bar measured; logged out the feed is empty, so the
+      // signed-in feed follows ytd-rich-grid (four columns at this width, a Shorts shelf as the
+      // second row, mixes as cards).
       id: "home",
       label: "Home",
       path: "youtube.com",
-      rows: 14,
+      height: 960,
+      basis: "structure",
       parts: [
-        header(),
+        { label: "Header", box: [0, 0, 1440, 56], texture: "bar" },
         {
           label: "Notifications",
-          at: [1, 10, 1, 3],
+          box: [1320, 8, 44, 40],
           feature: "hideNotificationBell",
           texture: "chip",
         },
-        { label: "Home, You", at: [2, 1, 4, 2], texture: "list" },
-        { label: "Explore", at: [6, 1, 2, 2], feature: "hideTrendingNav", texture: "list" },
+        { label: "Home, Shorts", box: [12, 64, 216, 80], texture: "list" },
         {
           label: "Subscriptions",
-          at: [8, 1, 2, 2],
+          box: [12, 148, 216, 40],
           feature: "hideSubscriptionsNav",
           texture: "list",
         },
+        { label: "You, history", box: [12, 204, 216, 196], texture: "list" },
+        { label: "Your channels", box: [12, 416, 216, 168], texture: "list" },
+        { label: "Trending", box: [12, 600, 216, 40], feature: "hideTrendingNav", texture: "list" },
+        { label: "Explore", box: [12, 644, 216, 100], texture: "list" },
         {
           label: "More from YouTube",
-          at: [10, 1, 5, 2],
+          box: [12, 760, 216, 176],
           feature: "hideMoreFromYoutube",
           texture: "list",
         },
-        { label: "Shorts", at: [2, 3, 4, 10], feature: "hideShorts", texture: "tall" },
-        { label: "Home feed", at: [6, 3, 9, 7], feature: "hideHomeFeed", texture: "grid" },
-        { label: "Mixes", at: [6, 10, 9, 3], feature: "hideMixes", texture: "grid" },
+        { label: "Topic chips", box: [264, 56, 1152, 56], texture: "bar" },
+        {
+          label: "Home feed",
+          box: [264, 124, 1152, 836],
+          feature: "hideHomeFeed",
+          texture: "grid",
+        },
+        { label: "Mix", box: [856, 124, 280, 300], feature: "hideMixes", texture: "media" },
+        { label: "Shorts", box: [264, 448, 1152, 440], feature: "hideShorts", texture: "tall" },
       ],
     },
     {
+      // Measured on a 16:9 video in a playlist and on a livestream.
       id: "watch",
       label: "Watch",
       path: "youtube.com/watch",
-      rows: 18,
+      height: 1260,
+      basis: "measured",
       parts: [
-        header(),
-        { label: "Player", at: [2, 1, 8, 8], texture: "media" },
-        { label: "End screen", at: [5, 2, 3, 6], feature: "hideEndScreenFeed", texture: "grid" },
-        { label: "End cards", at: [2, 6, 2, 3], feature: "hideEndScreenCards", texture: "chip" },
-        { label: "Autoplay", at: [9, 1, 1, 2], feature: "disableAutoplay", texture: "chip" },
-        { label: "Branding", at: [9, 7, 1, 2], feature: "disableAnnotations", texture: "chip" },
-        { label: "Title", at: [10, 1, 1, 8], texture: "text" },
-        { label: "Channel", at: [11, 1, 1, 4], feature: "hideChannelRow", texture: "chip" },
-        { label: "Buttons", at: [11, 5, 1, 4], feature: "hideVideoActionsBar", texture: "chip" },
-        { label: "Description", at: [12, 1, 2, 8], feature: "hideDescription", texture: "text" },
+        { label: "Header", box: [0, 0, 1440, 56], texture: "bar" },
+        { label: "Player", box: [16, 68, 996, 560], texture: "media" },
+        {
+          label: "End cards",
+          box: [700, 92, 288, 150],
+          feature: "hideEndScreenCards",
+          texture: "chip",
+        },
+        {
+          label: "End screen",
+          box: [120, 250, 788, 250],
+          feature: "hideEndScreenFeed",
+          texture: "grid",
+        },
+        {
+          label: "Branding",
+          box: [944, 512, 56, 56],
+          feature: "disableAnnotations",
+          texture: "chip",
+        },
+        {
+          label: "Autoplay",
+          box: [716, 580, 110, 40],
+          feature: "disableAutoplay",
+          texture: "chip",
+        },
+        { label: "Title", box: [16, 640, 996, 28], texture: "text" },
+        { label: "Channel", box: [16, 676, 274, 42], feature: "hideChannelRow", texture: "chip" },
+        {
+          label: "Like, share, save",
+          box: [322, 676, 690, 42],
+          feature: "hideVideoActionsBar",
+          texture: "chip",
+        },
+        {
+          label: "Description",
+          box: [16, 730, 996, 104],
+          feature: "hideDescription",
+          texture: "text",
+        },
         {
           label: "Merch, tickets",
-          at: [14, 1, 1, 4],
+          box: [16, 846, 490, 96],
           feature: "hideMerchTicketsOffers",
           texture: "chip",
         },
-        { label: "Fundraiser", at: [14, 5, 1, 4], feature: "hideFundraiser", texture: "chip" },
-        { label: "Avatars", at: [15, 1, 4, 2], feature: "hideCommentAvatars", texture: "list" },
-        { label: "Comments", at: [15, 3, 4, 6], feature: "hideComments", texture: "list" },
-        { label: "Live chat", at: [2, 9, 4, 4], feature: "hideLiveChat", texture: "list" },
-        { label: "Playlist", at: [6, 9, 3, 4], feature: "hidePlaylistSidebar", texture: "list" },
-        { label: "Recommended", at: [9, 9, 10, 4], feature: "hideRelatedSidebar", texture: "list" },
+        {
+          label: "Fundraiser",
+          box: [522, 846, 490, 96],
+          feature: "hideFundraiser",
+          texture: "chip",
+        },
+        { label: "Comments", box: [16, 958, 996, 290], feature: "hideComments", texture: "list" },
+        {
+          label: "Avatars",
+          box: [16, 1010, 48, 230],
+          feature: "hideCommentAvatars",
+          texture: "list",
+        },
+        { label: "Live chat", box: [1028, 68, 396, 330], feature: "hideLiveChat", texture: "list" },
+        {
+          label: "Playlist",
+          box: [1028, 410, 396, 300],
+          feature: "hidePlaylistSidebar",
+          texture: "list",
+        },
+        {
+          label: "Recommended",
+          box: [1028, 722, 396, 526],
+          feature: "hideRelatedSidebar",
+          texture: "list",
+        },
       ],
     },
     {
       id: "search",
       label: "Search",
       path: "youtube.com/results",
-      rows: 12,
+      height: 1000,
+      basis: "measured",
       parts: [
-        header("Search"),
-        { label: "Guide", at: [2, 1, 11, 2], texture: "list" },
-        { label: "Results", at: [2, 3, 3, 10], texture: "list" },
+        { label: "Header", box: [0, 0, 1440, 56], texture: "bar" },
+        { label: "Guide", box: [0, 56, 240, 944], texture: "list" },
+        { label: "Filters", box: [264, 56, 1152, 56], texture: "bar" },
+        { label: "Results", box: [264, 124, 1152, 420], texture: "list" },
         {
           label: "Shelves and offers",
-          at: [5, 3, 3, 10],
+          box: [264, 556, 1152, 220],
           feature: "hideInaptSearchResults",
           texture: "grid",
         },
-        { label: "More results", at: [8, 3, 5, 10], texture: "list" },
+        { label: "More results", box: [264, 788, 1152, 212], texture: "list" },
       ],
     },
   ],
   x: [
     {
+      // Column geometry measured logged out (600px timeline, 350px sidebar); the signed-in
+      // header, composer and sidebar boxes follow X's primaryColumn/sidebarColumn markup.
       id: "home",
       label: "Home",
       path: "x.com/home",
-      rows: 14,
+      height: 900,
+      basis: "structure",
       parts: [
-        { label: "Navigation", at: [1, 1, 14, 3], texture: "list" },
-        { label: "Home timeline", at: [1, 4, 14, 6], feature: "hideHomeFeed", texture: "list" },
-        { label: "Search", at: [1, 10, 1, 3], texture: "bar" },
+        { label: "Navigation", box: [88, 0, 270, 900], texture: "list" },
+        { label: "For you, Following", box: [358, 0, 600, 53], texture: "bar" },
+        { label: "Post composer", box: [358, 53, 600, 110], texture: "text" },
         {
-          label: "Trends, who to follow",
-          at: [2, 10, 8, 3],
+          label: "Home timeline",
+          box: [358, 163, 600, 737],
+          feature: "hideHomeFeed",
+          texture: "list",
+        },
+        { label: "Search", box: [1004, 4, 350, 44], texture: "bar" },
+        {
+          label: "Premium, trends, who to follow",
+          box: [1004, 64, 350, 760],
           feature: "hideRecommendations",
           texture: "list",
         },
@@ -135,14 +218,16 @@ export const SKETCHES: Record<ControlSiteId, readonly View[]> = {
       id: "explore",
       label: "Explore",
       path: "x.com/explore",
-      rows: 14,
+      height: 900,
+      basis: "structure",
       parts: [
-        { label: "Navigation", at: [1, 1, 14, 3], texture: "list" },
-        { label: "Search", at: [1, 4, 1, 6], texture: "bar" },
-        { label: "Explore", at: [2, 4, 13, 6], feature: "hideExplore", texture: "grid" },
+        { label: "Navigation", box: [88, 0, 270, 900], texture: "list" },
+        { label: "Search", box: [358, 0, 600, 53], texture: "bar" },
+        { label: "For You, Trending, News", box: [358, 53, 600, 53], texture: "bar" },
+        { label: "Explore", box: [358, 106, 600, 794], feature: "hideExplore", texture: "grid" },
         {
-          label: "Trends, who to follow",
-          at: [1, 10, 9, 3],
+          label: "Who to follow",
+          box: [1004, 12, 350, 520],
           feature: "hideRecommendations",
           texture: "list",
         },
@@ -151,17 +236,25 @@ export const SKETCHES: Record<ControlSiteId, readonly View[]> = {
   ],
   reddit: [
     {
+      // Measured on reddit.com/r/popular.
       id: "home",
       label: "Home",
       path: "reddit.com",
-      rows: 14,
+      height: 1000,
+      basis: "measured",
       parts: [
-        header(),
-        { label: "Communities", at: [2, 1, 13, 2], texture: "list" },
-        { label: "Home & Popular", at: [2, 3, 13, 7], feature: "hideHomeFeed", texture: "list" },
+        { label: "Header", box: [0, 0, 1440, 57], texture: "bar" },
+        { label: "Navigation", box: [0, 57, 315, 943], texture: "list" },
+        { label: "Sort", box: [342, 64, 732, 41], texture: "bar" },
         {
-          label: "Recommended",
-          at: [2, 10, 8, 3],
+          label: "Home & Popular",
+          box: [342, 105, 732, 895],
+          feature: "hideHomeFeed",
+          texture: "list",
+        },
+        {
+          label: "Recent posts",
+          box: [1098, 72, 316, 728],
           feature: "hideRecommendations",
           texture: "list",
         },
@@ -170,102 +263,132 @@ export const SKETCHES: Record<ControlSiteId, readonly View[]> = {
   ],
   instagram: [
     {
+      // Instagram needs a login. The 245px navigation, 630px feed with the stories tray above
+      // it, and the right-hand suggestions follow its desktop layout.
       id: "home",
       label: "Home",
       path: "instagram.com",
-      rows: 14,
+      height: 900,
+      basis: "structure",
       parts: [
-        { label: "Navigation", at: [1, 1, 14, 2], texture: "list" },
-        { label: "Stories", at: [1, 4, 2, 6], feature: "hideStories", texture: "chip" },
-        { label: "Home feed", at: [3, 4, 12, 6], feature: "hideHomeFeed", texture: "media" },
-        { label: "Suggested", at: [1, 10, 8, 3], feature: "hideSuggestions", texture: "list" },
+        { label: "Navigation", box: [0, 0, 245, 900], texture: "list" },
+        { label: "Stories", box: [460, 24, 630, 110], feature: "hideStories", texture: "chip" },
+        {
+          label: "Home feed",
+          box: [460, 150, 630, 750],
+          feature: "hideHomeFeed",
+          texture: "media",
+        },
+        { label: "Your account", box: [1150, 36, 290, 56], texture: "text" },
+        {
+          label: "Suggested for you",
+          box: [1150, 108, 290, 330],
+          feature: "hideSuggestions",
+          texture: "list",
+        },
       ],
     },
     {
       id: "explore",
       label: "Explore",
       path: "instagram.com/explore",
-      rows: 14,
+      height: 900,
+      basis: "structure",
       parts: [
-        { label: "Navigation", at: [1, 1, 14, 2], texture: "list" },
-        { label: "Explore grid", at: [1, 3, 14, 10], feature: "hideExplore", texture: "grid" },
+        { label: "Navigation", box: [0, 0, 245, 900], texture: "list" },
+        {
+          label: "Explore grid",
+          box: [355, 24, 975, 876],
+          feature: "hideExplore",
+          texture: "grid",
+        },
       ],
     },
     {
       id: "reels",
       label: "Reels",
       path: "instagram.com/reels",
-      rows: 14,
+      height: 900,
+      basis: "structure",
       parts: [
-        { label: "Navigation", at: [1, 1, 14, 2], texture: "list" },
-        { label: "Reels", at: [1, 5, 14, 4], feature: "hideReels", texture: "tall" },
+        { label: "Navigation", box: [0, 0, 245, 900], texture: "list" },
+        { label: "Reels", box: [580, 24, 560, 852], feature: "hideReels", texture: "tall" },
       ],
     },
   ],
   tiktok: [
     {
+      // Measured logged out: 240px navigation, a 545px video with its action column.
       id: "home",
       label: "For You",
       path: "tiktok.com/foryou",
-      rows: 14,
+      height: 1000,
+      basis: "measured",
       parts: [
-        { label: "Navigation", at: [1, 1, 6, 3], texture: "list" },
+        { label: "Navigation", box: [0, 0, 240, 540], texture: "list" },
         {
-          label: "Suggested accounts",
-          at: [7, 1, 8, 3],
+          label: "Following accounts",
+          box: [0, 556, 240, 420],
           feature: "hideSuggestions",
           texture: "list",
         },
-        { label: "For You", at: [1, 5, 14, 5], feature: "hideHomeFeed", texture: "tall" },
+        { label: "For You", box: [452, 16, 612, 968], feature: "hideHomeFeed", texture: "tall" },
+        { label: "Coins, app, log in", box: [1030, 24, 386, 48], texture: "bar" },
       ],
     },
     {
       id: "explore",
       label: "Explore",
       path: "tiktok.com/explore",
-      rows: 14,
+      height: 1000,
+      basis: "measured",
       parts: [
-        { label: "Navigation", at: [1, 1, 6, 3], texture: "list" },
+        { label: "Navigation", box: [0, 0, 240, 540], texture: "list" },
         {
-          label: "Suggested accounts",
-          at: [7, 1, 8, 3],
+          label: "Following accounts",
+          box: [0, 556, 240, 420],
           feature: "hideSuggestions",
           texture: "list",
         },
-        { label: "Explore", at: [1, 4, 14, 9], feature: "hideExplore", texture: "grid" },
+        { label: "Categories", box: [272, 0, 1136, 86], texture: "bar" },
+        { label: "Explore", box: [272, 86, 1136, 914], feature: "hideExplore", texture: "grid" },
       ],
     },
     {
       id: "live",
       label: "Live",
       path: "tiktok.com/live",
-      rows: 14,
+      height: 1000,
+      basis: "measured",
       parts: [
-        { label: "Navigation", at: [1, 1, 6, 3], texture: "list" },
-        {
-          label: "Suggested accounts",
-          at: [7, 1, 8, 3],
-          feature: "hideSuggestions",
-          texture: "list",
-        },
-        { label: "Live", at: [1, 4, 14, 9], feature: "hideLive", texture: "media" },
+        { label: "LIVE navigation", box: [0, 0, 240, 500], texture: "list" },
+        { label: "Live", box: [264, 16, 1152, 984], feature: "hideLive", texture: "media" },
       ],
     },
   ],
   facebook: [
     {
+      // Facebook needs a login. Header, 360px shortcuts, a 680px feed with stories at its top,
+      // and the right-hand column follow its desktop layout.
       id: "home",
       label: "Home",
       path: "facebook.com",
-      rows: 14,
+      height: 900,
+      basis: "structure",
       parts: [
-        header(),
-        { label: "Shortcuts", at: [2, 1, 13, 3], texture: "list" },
-        { label: "Stories", at: [2, 4, 3, 6], feature: "hideStories", texture: "tall" },
-        { label: "Home feed", at: [5, 4, 10, 6], feature: "hideHomeFeed", texture: "media" },
+        { label: "Header", box: [0, 0, 1440, 56], texture: "bar" },
+        { label: "Shortcuts", box: [0, 56, 360, 844], texture: "list" },
+        { label: "Stories", box: [380, 72, 680, 240], feature: "hideStories", texture: "tall" },
+        { label: "What's on your mind", box: [380, 328, 680, 110], texture: "text" },
+        {
+          label: "Home feed",
+          box: [380, 454, 680, 446],
+          feature: "hideHomeFeed",
+          texture: "media",
+        },
         {
           label: "Sponsored, contacts",
-          at: [2, 10, 13, 3],
+          box: [1080, 56, 360, 844],
           feature: "hideSuggestions",
           texture: "list",
         },
@@ -275,46 +398,55 @@ export const SKETCHES: Record<ControlSiteId, readonly View[]> = {
       id: "reels",
       label: "Reels",
       path: "facebook.com/reel",
-      rows: 14,
+      height: 900,
+      basis: "structure",
       parts: [
-        header(),
-        { label: "Reels", at: [2, 5, 13, 4], feature: "hideReels", texture: "tall" },
+        { label: "Header", box: [0, 0, 1440, 56], texture: "bar" },
+        { label: "Reels", box: [520, 72, 400, 812], feature: "hideReels", texture: "tall" },
       ],
     },
   ],
   linkedin: [
     {
+      // LinkedIn needs a login. Its scaffold: a 52px header and a 1128px three-column layout
+      // (profile card, feed, the .scaffold-layout__aside the news control hides).
       id: "home",
       label: "Home",
       path: "linkedin.com/feed",
-      rows: 14,
+      height: 900,
+      basis: "structure",
       parts: [
-        header(),
-        { label: "Your profile", at: [2, 1, 5, 3], texture: "text" },
-        { label: "Home feed", at: [2, 4, 13, 6], feature: "hideHomeFeed", texture: "list" },
-        { label: "News", at: [2, 10, 7, 3], feature: "hideNews", texture: "list" },
+        { label: "Header", box: [0, 0, 1440, 52], texture: "bar" },
+        { label: "Your profile", box: [156, 76, 225, 290], texture: "text" },
+        { label: "Start a post", box: [405, 76, 555, 110], texture: "text" },
+        { label: "Home feed", box: [405, 198, 555, 702], feature: "hideHomeFeed", texture: "list" },
+        { label: "News, puzzles", box: [984, 76, 300, 420], feature: "hideNews", texture: "list" },
       ],
     },
   ],
   threads: [
     {
+      // Navigation and feed measured logged out; suggested accounts appear as a carousel
+      // inside the feed when signed in.
       id: "home",
       label: "Home",
       path: "threads.com",
-      rows: 14,
+      height: 1000,
+      basis: "measured",
       parts: [
-        { label: "Navigation", at: [1, 1, 14, 1], texture: "list" },
+        { label: "Navigation", box: [0, 0, 230, 1000], texture: "list" },
+        { label: "Home", box: [259, 16, 638, 44], texture: "bar" },
         {
           label: "For You & Following",
-          at: [1, 4, 14, 6],
+          box: [259, 72, 638, 928],
           feature: "hideHomeFeed",
           texture: "list",
         },
         {
           label: "Suggested accounts",
-          at: [3, 10, 5, 3],
+          box: [275, 520, 606, 180],
           feature: "hideSuggestions",
-          texture: "list",
+          texture: "tall",
         },
       ],
     },

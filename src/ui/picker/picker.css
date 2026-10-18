@@ -114,15 +114,22 @@ h1 {
 /* ---- The sketch ----------------------------------------------------------------------------------- */
 .canvas {
   --dot: rgb(214 162 78 / 0.42);
-  display: grid;
-  grid-template-columns: repeat(12, minmax(0, 1fr));
-  gap: 6px;
+  position: relative;
+  width: 100%;
 }
+.basis {
+  margin-top: 12px;
+  color: var(--dim);
+  letter-spacing: 0.4px;
+}
+/* Absolutely placed from the measured boxes; the 2px inset keeps neighbours apart. */
 .part {
   --dot-color: var(--dot);
+  position: absolute;
+  box-sizing: border-box;
+  outline-offset: -1px;
   /* Gaps cut into the dot field by each texture, drawn in the panel colour. */
   --cut: none;
-  position: relative;
   min-width: 0;
   margin: 0;
   padding: 0;
@@ -186,6 +193,9 @@ h1 {
 .part.small .part-label {
   top: 50%;
   transform: translateY(-50%);
+}
+.part.tiny .part-label {
+  display: none;
 }
 
 /* What Unhooked never hides: dim, and not a control. */

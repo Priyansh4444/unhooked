@@ -17,6 +17,8 @@ const part = (feature) => `.canvas [data-feature="${feature}"]`;
 const pressed = (page, feature) =>
   page.$eval(part(feature), (el) => el.getAttribute("aria-pressed"));
 const stored = async (key) => (await ext.get(key))[key];
+// The Shorts shelf sits inside the home feed, as on the real page, and covers its centre.
+const FEED_CORNER = { offset: { x: 60, y: 40 } };
 async function until(name, probe) {
   const end = Date.now() + 5000;
   let ok = false;
@@ -51,7 +53,7 @@ check(
   ),
 );
 
-await picker.click(part("hideHomeFeed"));
+await picker.click(part("hideHomeFeed"), FEED_CORNER);
 await until(
   "clicking a part hides it",
   async () => (await stored("unhooked.site.youtube.hideHomeFeed")) === true,
@@ -65,7 +67,7 @@ check(
   "the note goes away after the first click",
   !(await picker.$eval("#handNote", (el) => el.classList.contains("is-shown"))),
 );
-await picker.click(part("hideHomeFeed"));
+await picker.click(part("hideHomeFeed"), FEED_CORNER);
 await until(
   "clicking it again brings it back",
   async () => (await stored("unhooked.site.youtube.hideHomeFeed")) === false,
@@ -146,7 +148,7 @@ await picker.goto(`${base}#youtube`, { waitUntil: "load" });
 // The picker remembers each site's last page (Watch, above); go back to Home.
 await picker.click('.views [data-view="home"]');
 await picker.waitForSelector(part("hideHomeFeed"));
-await picker.click(part("hideHomeFeed"));
+await picker.click(part("hideHomeFeed"), FEED_CORNER);
 await until(
   "a click in the sketch hides the feed on the real page",
   async () => !(await feedVisible()),

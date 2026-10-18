@@ -89,6 +89,9 @@ for (const f of fixtures) {
   for (const route of [f.profile, f.detail, f.search, f.messages, "/unrecognized/route"]) {
     await pushState(page, route);
     await visible(page, "#feed", true, `${f.id}: ${route} stays visible`);
+    if (route === f.detail)
+      for (const kept of f.detailKeeps ?? [])
+        await visible(page, `#${kept}`, true, `${f.id}: #${kept} stays on a thread`);
   }
   await pushState(page, new URL(f.url).pathname);
   await visible(page, "#feed", false, `${f.id}: SPA return to home hides again`);

@@ -13,7 +13,7 @@ import {
 } from "../../shared/preferences.ts";
 import { STORAGE_KEYS } from "../../shared/settings.ts";
 import { CONTROL_SITES, controlSiteById, type ControlSite } from "../../sites/registry.ts";
-import { SKETCHES, type Part } from "./sketches.ts";
+import { SKETCH_WIDTH, SKETCHES, type Part } from "./sketches.ts";
 
 const HINT_KEY = "unhooked.picker.hinted";
 const $ = <T extends HTMLElement = HTMLElement>(id: string): T => document.getElementById(id) as T;
@@ -102,13 +102,22 @@ function renderViews(): void {
   $("framePath").textContent = view.path;
 }
 
-function partElement(part: Part): HTMLElement {
-  const [row, col, rows, cols] = part.at;
+function partElement(part: Part, height: number): HTMLElement {
+  const [x, y, w, h] = part.box;
   const el = document.createElement(part.feature ? "button" : "div");
   el.className = "part";
   el.dataset.texture = part.texture ?? "bar";
-  el.style.gridArea = `${row} / ${col} / span ${rows} / span ${cols}`;
-  if (rows <= 1 || cols <= 2) el.classList.add("small");
+  const pct = (value: number, of: number) => `${((value / of) * 100).toFixed(3)}%`;
+  Object.assign(el.style, {
+    left: pct(x, SKETCH_WIDTH),
+    top: pct(y, height),
+    width: pct(w, SKETCH_WIDTH),
+    height: pct(h, height),
+  });
+  // Too small for a label (a bell, a watermark): the name moves to the tooltip.
+  if (w < 120 || h < 36) el.classList.add("small");
+  if (w < 80) el.classList.add("tiny");
+  el.title = part.label;
   const label = document.createElement("span");
   label.className = "part-label";
   label.textContent = part.label;
@@ -124,7 +133,7 @@ function partElement(part: Part): HTMLElement {
     el.append(gone);
   } else {
     el.classList.add("kept");
-    el.title = "Unhooked always keeps this";
+    el.title = `${part.label}: Unhooked always keeps this`;
   }
   return el;
 }
@@ -134,8 +143,12 @@ function renderCanvas(): void {
   const canvas = $("canvas");
   const key = `${site.id}/${view.id}`;
   if (canvas.dataset.view !== key) {
-    canvas.style.gridTemplateRows = `repeat(${view.rows}, 26px)`;
-    canvas.replaceChildren(...view.parts.map(partElement));
+    canvas.style.aspectRatio = `${SKETCH_WIDTH} / ${view.height}`;
+    canvas.replaceChildren(...view.parts.map((part) => partElement(part, view.height)));
+    $("basis").textContent =
+      view.basis === "measured"
+        ? `Layout measured from ${view.path}`
+        : `${site.label} needs a login to measure, so this follows the structure its controls target`;
     canvas.dataset.view = key;
     canvas.setAttribute("aria-label", `${site.label}, ${view.label} page`);
   }

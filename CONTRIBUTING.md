@@ -59,7 +59,18 @@ Each folder under `sites/` with a `content.ts` is bundled to `dist/sites/<name>/
 
 ### Add a hide-control site
 
-1. `sites/hosts.ts`: add its hosts. 2. `sites/registry.ts`: add a route classifier and its features (conservative selectors; feed rules on `home`, sidebar-only rules on `*`). 3. Add the site to `SOCIAL_SITES` in `build/manifest.ts`. 4. Draw it in `ui/picker/sketches.ts`; a unit test fails until every feature appears in a sketch. 5. Add a fixture to `e2e/social-fixtures.mjs`.
+1. `sites/hosts.ts`: add its hosts. 2. `sites/registry.ts`: add a route classifier and its features (conservative selectors; feed rules on `home`, sidebar-only rules on `*`). 3. Add the site to `SOCIAL_SITES` in `build/manifest.ts`. 4. Draw it in `ui/picker/sketches.ts`, from measurements (below); a unit test fails until every feature appears in a sketch. 5. Add a fixture to `e2e/social-fixtures.mjs`.
+
+### Keep sketches and selectors true to the sites
+
+Sites change their markup. `scripts/measure-layout.ts` loads a page and prints where each selector sits (in pixels of a 1440px window) and how many elements it matches:
+
+```sh
+CHROME_PATH=/path/to/chromium bun scripts/measure-layout.ts https://www.reddit.com/r/popular/ \
+  'feed=shreddit-feed' 'sidebar=#right-sidebar-container'
+```
+
+Use it to place parts in `ui/picker/sketches.ts` (boxes are `[x, y, width, height]` in those pixels) and to catch hide selectors that match nothing. Mark a view `basis: "measured"` only when it was measured; pages behind a login are `"structure"`, and the picker says so.
 
 ## How focus modes work
 

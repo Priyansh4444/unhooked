@@ -19,9 +19,12 @@ export const fixtures = [
     detail: "/r/programming/comments/123/topic/",
     search: "/search/?q=focus",
     messages: "/message/inbox/",
-    html: `<shreddit-feed><shreddit-post><article id="feed">A front-page post</article></shreddit-post></shreddit-feed><div data-testid="right-sidebar" id="suggestions">Recommended communities</div>`,
+    // The 2025 layout (measured on reddit.com): one right-hand container that holds recent
+    // posts on Home and a community's About box on subreddits and threads.
+    html: `<shreddit-feed><shreddit-post><article id="feed">A front-page post</article></shreddit-post></shreddit-feed><div id="right-sidebar-container"><reddit-recent-pages id="suggestions">Recent posts</reddit-recent-pages><div id="about">About this community</div></div>`,
     sidebarAnywhere: "hideRecommendations",
-    features: { hideRecommendations: ["suggestions"] },
+    features: { hideRecommendations: ["suggestions", "right-sidebar-container"] },
+    detailKeeps: ["about"],
   },
   {
     id: "instagram",
@@ -131,7 +134,9 @@ export const discoveryFixtures = [
     origin: "https://www.tiktok.com",
     path: "/live",
     feature: "hideLive",
-    html: '<div id="main-content-live"><article data-e2e="live-container" id="discovery">Live directory</article></div>',
+    // The 2025 layout (measured on tiktok.com/live): no stable ids beyond the main container
+    // and the category tabs' data-e2e hook.
+    html: '<main id="tiktok-live-main-container-id"><div id="live-nav">Discover LIVE</div><div><div class="relative"><div><a data-e2e="discover-nav-category-tab">For You</a></div></div><article id="discovery">Live stream</article></div></main>',
   },
   {
     id: "facebook",

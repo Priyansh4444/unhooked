@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { CONTROL_SITES } from "../../sites/registry.ts";
-import { SKETCHES } from "./sketches.ts";
+import { SKETCH_WIDTH, SKETCHES } from "./sketches.ts";
 
 describe("picker sketches", () => {
   it("draw every hide control of every site at least once", () => {
@@ -20,17 +20,22 @@ describe("picker sketches", () => {
     }
   });
 
-  it("keep every part inside its 12-column grid", () => {
+  it("keep every part inside its window", () => {
     for (const views of Object.values(SKETCHES))
       for (const view of views)
-        for (const { label, at } of view.parts) {
-          const [row, col, rows, cols] = at;
-          expect(
-            row >= 1 && rows >= 1 && row + rows - 1 <= view.rows,
-            `${view.path} ${label}`,
-          ).toBe(true);
-          expect(col >= 1 && cols >= 1 && col + cols - 1 <= 12, `${view.path} ${label}`).toBe(true);
+        for (const { label, box } of view.parts) {
+          const [x, y, w, h] = box;
+          const where = `${view.path} ${label}`;
+          expect(x >= 0 && w > 0 && x + w <= SKETCH_WIDTH, where).toBe(true);
+          expect(y >= 0 && h > 0 && y + h <= view.height, where).toBe(true);
         }
+  });
+
+  it("give every control part a target big enough to click", () => {
+    for (const views of Object.values(SKETCHES))
+      for (const view of views)
+        for (const { label, box, feature } of view.parts)
+          if (feature) expect(box[2] >= 40 && box[3] >= 40, `${view.path} ${label}`).toBe(true);
   });
 
   it("use unique view ids per site", () => {
