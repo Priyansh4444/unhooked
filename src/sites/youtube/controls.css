@@ -89,7 +89,18 @@ html:not(.uh-extension-disabled).uh-hide-notification-bell
 html:not(.uh-extension-disabled).uh-hide-shorts ytd-reel-shelf-renderer,
 html:not(.uh-extension-disabled).uh-hide-shorts ytd-rich-item-renderer:has(a[href^="/shorts/"]),
 html:not(.uh-extension-disabled).uh-hide-shorts
-  ytd-compact-video-renderer:has(a[href^="/shorts/"]) {
+  ytd-compact-video-renderer:has(a[href^="/shorts/"]),
+/* 2025 view models (measured on youtube.com/results and /watch): Shorts shelves in search and
+   the related column, single Shorts cards, the home Shorts shelf, and the guide's Shorts link. */
+html:not(.uh-extension-disabled).uh-hide-shorts
+  grid-shelf-view-model:has(ytm-shorts-lockup-view-model, ytm-shorts-lockup-view-model-v2),
+html:not(.uh-extension-disabled).uh-hide-shorts ytm-shorts-lockup-view-model,
+html:not(.uh-extension-disabled).uh-hide-shorts ytm-shorts-lockup-view-model-v2,
+html:not(.uh-extension-disabled).uh-hide-shorts ytd-rich-shelf-renderer[is-shorts],
+html:not(.uh-extension-disabled).uh-hide-shorts yt-lockup-view-model:has(a[href^="/shorts/"]),
+html:not(.uh-extension-disabled).uh-hide-shorts ytd-guide-entry-renderer:has(a[title="Shorts"]),
+html:not(.uh-extension-disabled).uh-hide-shorts
+  ytd-mini-guide-entry-renderer:has(a[title="Shorts"]) {
   display: none !important;
 }
 
@@ -152,7 +163,10 @@ html:not(.uh-extension-disabled).uh-hide-more-from-youtube
 html:not(.uh-extension-disabled).uh-hide-mixes ytd-radio-renderer,
 html:not(.uh-extension-disabled).uh-hide-mixes ytd-compact-radio-renderer,
 html:not(.uh-extension-disabled).uh-hide-mixes ytd-watch-metadata a[href*="start_radio=1"],
-html:not(.uh-extension-disabled).uh-hide-mixes ytd-rich-grid-media a[href*="start_radio=1"] {
+html:not(.uh-extension-disabled).uh-hide-mixes ytd-rich-grid-media a[href*="start_radio=1"],
+html:not(.uh-extension-disabled).uh-hide-mixes yt-lockup-view-model:has(a[href*="start_radio=1"]),
+html:not(.uh-extension-disabled).uh-hide-mixes
+  ytd-rich-item-renderer:has(a[href*="start_radio=1"]) {
   display: none !important;
 }
 
