@@ -10,7 +10,10 @@ import { siteForHost } from "../hosts.ts";
 import { controlSiteById, featureClass } from "../registry.ts";
 import { OPTION_CLASSES, type YouTubeOptionKey } from "../youtube/options.ts";
 import { selectorsForOption } from "../youtube/selectors.ts";
-import { PREVIEW_ACTION, type PreviewRequest } from "./protocol.ts";
+import { PREVIEW_ACTION, WAND_ACTION, type PreviewRequest } from "./protocol.ts";
+import { isEditableTarget } from "../../shared/keys.ts";
+import { STORAGE_KEYS } from "../../shared/settings.ts";
+import { matchesShortcut, wandShortcut } from "../../shared/shortcut.ts";
 
 const siteId = siteForHost(location.hostname);
 
@@ -53,17 +56,23 @@ if (siteId && window.top === window) {
   let current: PreviewRequest | null = null;
   let frame = 0;
 
-  const selectorsFor = (request: PreviewRequest): string[] => {
-    if (request.selector) return [request.selector];
-    if (!request.feature) return [];
+  const featureSelectors = (id: string): string[] => {
     const html = document.documentElement;
-    if (siteId === "youtube") return selectorsForOption(request.feature as YouTubeOptionKey, html);
+    if (siteId === "youtube") return selectorsForOption(id as YouTubeOptionKey, html);
     const route = html.dataset.uhRoute ?? "other";
-    const feature = controlSiteById(siteId)?.features.find((f) => f.id === request.feature);
+    const feature = controlSiteById(siteId)?.features.find((f) => f.id === id);
     return (feature?.rules ?? [])
       .filter((rule) => rule.routes.includes("*") || rule.routes.includes(route as never))
       .flatMap((rule) => rule.selectors);
   };
+
+  const selectorsFor = (request: PreviewRequest): string[] => [
+    ...(request.selector ? [request.selector] : []),
+    ...(request.selectors ?? []),
+    ...[...(request.features ?? []), ...(request.feature ? [request.feature] : [])].flatMap(
+      featureSelectors,
+    ),
+  ];
 
   const isHidden = (request: PreviewRequest): boolean => {
     const html = document.documentElement;
@@ -78,13 +87,17 @@ if (siteId && window.top === window) {
   const draw = (): number => {
     frame = 0;
     if (!current) return 0;
-    const elements = selectorsFor(current).flatMap((selector) => {
-      try {
-        return [...document.querySelectorAll(selector)];
-      } catch {
-        return [];
-      }
-    });
+    const elements = [
+      ...new Set(
+        selectorsFor(current).flatMap((selector) => {
+          try {
+            return [...document.querySelectorAll(selector)];
+          } catch {
+            return [];
+          }
+        }),
+      ),
+    ];
     const rects = elements
       .map((el) => el.getBoundingClientRect())
       .filter((r) => r.width > 0 && r.height > 0)
@@ -114,6 +127,19 @@ if (siteId && window.top === window) {
   };
   addEventListener("scroll", redraw, { passive: true, capture: true });
   addEventListener("resize", redraw);
+
+  // ---- the wand shortcut ------------------------------------------------------------------
+  addEventListener(
+    "keydown",
+    (event: KeyboardEvent) => {
+      if (!matchesShortcut(event, wandShortcut(raw[STORAGE_KEYS.WAND_SHORTCUT]))) return;
+      if (isEditableTarget(event.target)) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      ext.runtime.sendMessage({ action: WAND_ACTION }).catch(() => {});
+    },
+    true,
+  );
 
   ext.runtime.onMessage.addListener((message: PreviewRequest, _sender, sendResponse) => {
     if (message?.action !== PREVIEW_ACTION) return false;

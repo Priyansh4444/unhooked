@@ -1,5 +1,6 @@
 import { initFocus } from "./focus/background.ts";
 import { ext } from "./shared/ext-api.ts";
+import { WAND_ACTION } from "./sites/custom/protocol.ts";
 import { DEFAULTS, STORAGE_KEYS } from "./shared/settings.ts";
 import { initTwitchBackground } from "./sites/twitch/background/index.ts";
 
@@ -18,6 +19,20 @@ ext.runtime.onInstalled.addListener(async ({ reason }) => {
   if (reason === "install") {
     await ext.storage.local.set({ ...defaultSettings(), [STORAGE_KEYS.TWITCH_URL_LOG]: [] });
   }
+});
+
+// The wand shortcut, pressed on a supported page: start (or stop) the wand in that tab.
+ext.runtime.onMessage.addListener((message: { action?: string }, sender) => {
+  const tabId = sender.tab?.id;
+  if (message?.action !== WAND_ACTION || typeof tabId !== "number") return false;
+  const file = "sites/wand/content.js";
+  const run = ext.scripting
+    ? ext.scripting.executeScript({ target: { tabId }, files: [file] })
+    : (
+        ext.tabs as unknown as { executeScript: (id: number, d: object) => Promise<unknown> }
+      ).executeScript(tabId, { file });
+  run.catch(() => {});
+  return false;
 });
 
 initFocus();

@@ -138,6 +138,8 @@ function start(siteId: string): Wand {
   };
 
   const onKey = (event: KeyboardEvent) => {
+    // Chords belong to the page or to the wand shortcut (which toggles the wand off).
+    if (event.ctrlKey || event.altKey || event.metaKey) return;
     let handled = true;
     if (event.key === "Escape") stop();
     else if (event.key === "ArrowUp" && target?.parentElement && pickable(target.parentElement)) {

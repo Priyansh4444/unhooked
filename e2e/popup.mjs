@@ -168,6 +168,14 @@ await ext.set({ "unhooked.paused": false });
 await until("resuming brings focus back", () =>
   canvas.evaluate(() => document.documentElement.classList.contains("uh-focus-excalidraw")),
 );
+await scoped.hover("label.row:has(#focusToggle)");
+await until(
+  "hovering Focus this tab outlines what focus hides",
+  async () =>
+    (await canvas.evaluate(() => document.querySelector("unhooked-overlay")?.dataset.preview)) ===
+    "1",
+);
+await scoped.mouse.move(5, 5);
 await scoped.click('[data-memory="global"]');
 await until(
   "All tabs saves global focus memory",
@@ -222,6 +230,46 @@ await until(
     (await reddit.evaluate(() => document.querySelector("unhooked-overlay")?.dataset.preview)) ===
     undefined,
 );
+await ext.set({ "unhooked.site.reddit.hideHomeFeed": true });
+await onReddit.hover("#siteEnabled");
+await until(
+  "hovering the site switch outlines everything it hides",
+  async () =>
+    (await reddit.evaluate(() => document.querySelector("unhooked-overlay")?.dataset.preview)) !==
+    undefined,
+);
+await onReddit.mouse.move(5, 5);
+await ext.set({ "unhooked.site.reddit.hideHomeFeed": false });
+
+// The wand shortcut recorder.
+check(
+  "the wand button shows its shortcut",
+  /W$/.test(await onReddit.$eval("#wandShortcut", (el) => el.textContent.trim())),
+);
+await onReddit.click("#wandShortcut");
+await until(
+  "clicking the shortcut starts recording",
+  async () => (await onReddit.$eval("#wandShortcut", (el) => el.textContent)) === "Press keys",
+);
+await onReddit.keyboard.down("Control");
+await onReddit.keyboard.down("Alt");
+await onReddit.keyboard.press("KeyK");
+await onReddit.keyboard.up("Alt");
+await onReddit.keyboard.up("Control");
+await until(
+  "pressing keys saves them as the shortcut",
+  async () => (await ext.get("unhooked.wandShortcut"))["unhooked.wandShortcut"] === "Ctrl+Alt+KeyK",
+);
+await until("the new shortcut shows on the button", async () =>
+  /K$/.test(await onReddit.$eval("#wandShortcut", (el) => el.textContent.trim())),
+);
+await onReddit.click("#wandShortcut");
+await onReddit.keyboard.press("Backspace");
+await until(
+  "Backspace removes the shortcut",
+  async () => (await ext.get("unhooked.wandShortcut"))["unhooked.wandShortcut"] === "",
+);
+await ext.set({ "unhooked.wandShortcut": "Alt+Shift+KeyW" });
 await onReddit.click("#customList .bring-back");
 await until(
   "Bring back removes a wand removal",

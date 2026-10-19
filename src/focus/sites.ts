@@ -40,3 +40,30 @@ export const siteMatchesUrl = (site: FocusSite, url: string): boolean => hostBel
 
 export const findFocusSiteByUrl = (url: string | undefined): FocusSite | null =>
   (url && FOCUS_SITE_IDS.find((site) => siteMatchesUrl(site, url))) || null;
+
+/**
+ * What each focus mode takes off the page, for the popup's hover preview. Mirrors the site's
+ * focus stylesheet (sites/<site>/style.css or youtube/focus.css).
+ */
+export const FOCUS_TARGETS: Readonly<Record<FocusSite, readonly string[]>> = {
+  youtube: ["ytd-watch-flexy #secondary", "#masthead-container"],
+  x: [
+    '[data-testid="primaryColumn"] ~ [data-testid="sidebarColumn"]',
+    '[data-testid="searchColumn"]',
+    '[data-testid="chat-drawer-root"]',
+    '[data-testid="GrokDrawer"]',
+    "header",
+  ],
+  excalidraw: [".layer-ui__wrapper"],
+};
+
+/** What each of X's focus options hides (sites/x/style.css). */
+export const X_FOCUS_TARGETS: Readonly<Record<string, readonly string[]>> = {
+  hideSidebarColumn: [
+    '[data-testid="primaryColumn"] ~ [data-testid="sidebarColumn"]',
+    '[data-testid="searchColumn"]',
+  ],
+  hideChatDrawer: ['[data-testid="chat-drawer-root"]'],
+  hideGrokDrawer: ['[data-testid="GrokDrawer"]'],
+  centerTimeline: ["header"],
+};

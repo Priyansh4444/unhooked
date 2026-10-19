@@ -20,6 +20,8 @@ export const STORAGE_KEYS = Object.freeze({
   PAUSED: "unhooked.paused",
   /** Saved YouTube options from the upstream Unhook-style extension (read-only fallback). */
   LEGACY_YOUTUBE_OPTIONS: "unhookedOptions",
+  /** Keyboard shortcut that starts the wand on a supported site (shared/shortcut.ts format). */
+  WAND_SHORTCUT: "unhooked.wandShortcut",
   YOUTUBE_PERSISTENCE_MODE: "youtube_persistence_mode",
   TWITTER_PERSISTENCE_MODE: "twitter_persistence_mode",
   EXCALIDRAW_PERSISTENCE_MODE: "excalidraw_persistence_mode",

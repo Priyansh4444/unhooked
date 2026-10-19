@@ -4,7 +4,14 @@
  * writes one key (or one preset's keys) and re-renders from storage events.
  */
 import { FOCUS_ACTION, type FocusReply, type FocusRequest } from "../../focus/protocol.ts";
-import { FOCUS_SITES, type FocusSite, type PersistenceMode } from "../../focus/sites.ts";
+import {
+  FOCUS_SITES,
+  FOCUS_TARGETS,
+  X_FOCUS_TARGETS,
+  type FocusSite,
+  type PersistenceMode,
+} from "../../focus/sites.ts";
+import { formatShortcut, shortcutFromEvent, wandShortcut } from "../../shared/shortcut.ts";
 import { ext } from "../../shared/ext-api.ts";
 import {
   PRESETS,
@@ -188,6 +195,7 @@ function renderHeader(control: ControlSite | undefined, paused: boolean): void {
   }
   $("presets").hidden = !control;
   $("openPicker").hidden = !control;
+  renderShortcut();
   // The wand works on the page in this tab, so it needs this tab to be on the selected site.
   const here = activeTab?.site === selected;
   $<HTMLButtonElement>("openWand").disabled = !here;
@@ -306,6 +314,66 @@ function renderLog(entries: ChatUrlEntry[]): void {
       item.append(link, meta);
       return item;
     }),
+  );
+}
+
+// ---- the wand shortcut: shown beside the wand, click to record a new one ------------------------
+
+const MAC = /Mac|iPhone|iPad/.test(navigator.platform);
+let recording = false;
+
+function renderShortcut(): void {
+  const chip = $<HTMLButtonElement>("wandShortcut");
+  const shortcut = wandShortcut(raw[STORAGE_KEYS.WAND_SHORTCUT]);
+  chip.classList.toggle("is-recording", recording);
+  chip.textContent = recording ? "Press keys" : formatShortcut(shortcut, MAC) || "Set key";
+  chip.setAttribute(
+    "aria-label",
+    recording
+      ? "Recording the wand shortcut: press the keys, Backspace to remove it, Esc to cancel"
+      : shortcut
+        ? `Wand shortcut ${formatShortcut(shortcut)}. Change it`
+        : "Set a wand shortcut",
+  );
+  chip.title = "Press this on a supported site to start the wand. Click to change it.";
+}
+
+function stopRecording(): void {
+  recording = false;
+  renderShortcut();
+}
+
+function bindShortcut(): void {
+  const chip = $<HTMLButtonElement>("wandShortcut");
+  chip.addEventListener("click", () => {
+    recording = !recording;
+    renderShortcut();
+  });
+  chip.addEventListener("blur", stopRecording);
+  addEventListener(
+    "keydown",
+    (event: KeyboardEvent) => {
+      if (!recording) return;
+      event.preventDefault();
+      event.stopPropagation();
+      if (event.key === "Escape") return stopRecording();
+      if (event.key === "Backspace" || event.key === "Delete") {
+        recording = false;
+        return void write({ [STORAGE_KEYS.WAND_SHORTCUT]: "" }, "Wand shortcut removed");
+      }
+      const shortcut = shortcutFromEvent(event);
+      if (!shortcut) {
+        if (!/^(Control|Alt|Shift|Meta)$/.test(event.key))
+          status("Hold Ctrl, Alt or ⌘ with the key, so it can't fire while you type", true);
+        return;
+      }
+      recording = false;
+      void write(
+        { [STORAGE_KEYS.WAND_SHORTCUT]: shortcut },
+        `Wand shortcut: ${formatShortcut(shortcut, MAC)}`,
+      );
+    },
+    true,
   );
 }
 
@@ -436,6 +504,17 @@ function previewTarget(row: Element): Omit<PreviewRequest, "action"> | null {
   const selector = (row as HTMLElement).dataset.selector;
   if (selector) return { selector, label: (row as HTMLElement).dataset.label };
   const input = row.querySelector<HTMLInputElement>("input.uh-switch");
+  const title = row
+    .querySelector(".row-label, .feature-copy strong")
+    ?.firstChild?.textContent?.trim();
+  // Group switches (YouTube's "Hide video sidebar") cover every control in the group.
+  if (input && YOUTUBE_GROUPS[input.id])
+    return { features: YOUTUBE_GROUPS[input.id], label: title };
+  // Focus mode and its X options hide parts of the page too.
+  if (input?.id === "focusToggle" && isFocusSite(selected))
+    return { selectors: [...FOCUS_TARGETS[selected]], label: "Focus mode hides" };
+  if (input?.dataset.xControl)
+    return { selectors: [...(X_FOCUS_TARGETS[input.dataset.xControl] ?? [])], label: title };
   const control = controlSiteById(selected);
   const feature =
     input?.dataset.feature ?? (control?.features.some((f) => f.id === input?.id) ? input?.id : "");
@@ -463,6 +542,17 @@ function bindHover(): void {
     document.body.classList.remove("is-hinting");
     preview(null);
   };
+  // The site switch previews everything it currently hides on the page.
+  const siteSwitch = $("siteEnabled");
+  siteSwitch.addEventListener("mouseenter", () => {
+    const control = controlSiteById(selected);
+    if (!control) return;
+    const on = Object.entries(resolveSettings(raw, control).features)
+      .filter(([, value]) => value)
+      .map(([id]) => id);
+    if (on.length) preview({ features: on, label: `Everything ${control.label} controls hide` });
+  });
+  siteSwitch.addEventListener("mouseleave", () => preview(null));
   const main = document.querySelector("main")!;
   main.id = "main";
   main.addEventListener("mouseover", enter);
@@ -515,6 +605,7 @@ function bind(): void {
     preview(null);
   });
   bindHover();
+  bindShortcut();
   $("openPicker").addEventListener("click", () => {
     void ext.tabs.create({ url: ext.runtime.getURL(`ui/picker/index.html#${selected}`) });
     window.close();

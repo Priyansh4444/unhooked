@@ -10,7 +10,8 @@ const PAGE = fixturePage(`
   <shreddit-feed><article id="feed">A front-page post</article></shreddit-feed>
   <aside class="promo-card"><h3 id="promo-heading">Try Premium</h3><p>Ad copy</p></aside>
   <aside class="promo-card"><h3>Another promo</h3><p>More ad copy</p></aside>
-  <a id="away" href="https://www.reddit.com/elsewhere">A link the wand must not follow</a>`);
+  <a id="away" href="https://www.reddit.com/elsewhere">A link the wand must not follow</a>
+  <input id="box" aria-label="A text box">`);
 const open = async () => {
   const page = await newPage();
   await stub(page, [["https://www.reddit.com/", PAGE]]);
@@ -159,6 +160,35 @@ await ext.set({ "unhooked.paused": false });
 await until("resuming hides them again", async () =>
   (await visible(again, "aside.promo-card")).every((v) => v === false),
 );
+
+// The wand shortcut: set by the user in the popup, pressed on the page.
+const wandOn = async () => (await wandState(again)) !== null;
+await again.bringToFront();
+await again.mouse.click(5, 5);
+await press(again, "Alt+Shift+KeyW");
+await until("the default shortcut starts the wand", wandOn);
+await press(again, "Alt+Shift+KeyW");
+await until("pressing it again puts the wand away", async () => !(await wandOn()));
+await ext.set({ "unhooked.wandShortcut": "Ctrl+Alt+KeyK" });
+await sleep(300);
+await press(again, "Alt+Shift+KeyW");
+await sleep(500);
+check("a changed shortcut replaces the default", !(await wandOn()));
+await press(again, "Control+Alt+KeyK");
+await until("the user's shortcut starts the wand", wandOn);
+await press(again, "Escape");
+await until("Esc still puts it away", async () => !(await wandOn()));
+await again.focus("#box");
+await press(again, "Control+Alt+KeyK");
+await sleep(500);
+check("typing in a text box never starts the wand", !(await wandOn()));
+await again.mouse.click(5, 5);
+await ext.set({ "unhooked.wandShortcut": "" });
+await sleep(300);
+await press(again, "Control+Alt+KeyK");
+await sleep(500);
+check("a removed shortcut does nothing", !(await wandOn()));
+await ext.set({ "unhooked.wandShortcut": "Alt+Shift+KeyW" });
 
 await close();
 finish();
