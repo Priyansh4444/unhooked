@@ -1,0 +1,55 @@
+/*
+ * Unhooked: YouTube focus mode.
+ *
+ * Injected on every YouTube page by the manifest, but inert unless ALL of these hold:
+ *   html.uh-focus-youtube        focus mode is on (toggled by content-youtube.ts)
+ *   ytd-app[is-watch-page]      we are on a watch page (YouTube maintains this attribute itself)
+ *   [theater]                   the player is in theater mode
+ * Because YouTube drives the last two, SPA navigation and leaving theater mode un-focus the
+ * page by themselves; no script has to remember to clean up.
+ */
+
+/* Header: hidden, but still reachable by hovering the top edge or focusing into it. */
+html.uh-focus-youtube
+  ytd-app[is-watch-page]:has(:is(ytd-watch-flexy, ytd-watch-grid)[theater])
+  #masthead-container {
+  opacity: 0 !important;
+}
+html.uh-focus-youtube
+  ytd-app[is-watch-page]:has(:is(ytd-watch-flexy, ytd-watch-grid)[theater])
+  #masthead-container:is(:hover, :focus-within) {
+  opacity: 1 !important;
+}
+
+/* Recommendations column. */
+html.uh-focus-youtube
+  ytd-app[is-watch-page]
+  :is(ytd-watch-flexy, ytd-watch-grid)[theater]
+  #secondary {
+  display: none !important;
+}
+
+/* Player fills the viewport; the rest of the page (title, comments) scrolls in below it.
+   Every rule here needs [theater]: out of theater the page must keep its normal offset below the
+   header, or it slides underneath it. */
+html.uh-focus-youtube
+  ytd-app[is-watch-page]:has(:is(ytd-watch-flexy, ytd-watch-grid)[theater])
+  ytd-page-manager,
+html.uh-focus-youtube ytd-app[is-watch-page] :is(ytd-watch-flexy, ytd-watch-grid)[theater] {
+  margin-top: 0 !important;
+}
+html.uh-focus-youtube
+  ytd-app[is-watch-page]
+  :is(ytd-watch-flexy, ytd-watch-grid)[theater]
+  :is(#full-bleed-container, #player-full-bleed-container, #player.ytd-watch-flexy) {
+  height: 100vh !important;
+  max-height: 100vh !important;
+  min-height: 0 !important;
+}
+html.uh-focus-youtube
+  ytd-app[is-watch-page]
+  :is(ytd-watch-flexy, ytd-watch-grid)[theater]
+  #movie_player {
+  height: 100vh !important;
+  width: 100% !important;
+}

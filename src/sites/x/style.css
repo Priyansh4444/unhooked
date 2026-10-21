@@ -1,0 +1,168 @@
+/* Unhooked Twitter Styles
+ * All layout changes scoped under .uh-focus-x on <html>
+ */
+
+/* ============================================================================
+ * Base Transitions (always applied for smooth enable/disable)
+ * ============================================================================ */
+
+[data-testid="primaryColumn"],
+[data-testid="sidebarColumn"],
+[data-testid="chat-drawer-root"],
+[data-testid="GrokDrawer"],
+header,
+article {
+  transition:
+    opacity 200ms ease,
+    transform 200ms ease,
+    width 200ms ease,
+    max-width 200ms ease;
+}
+
+/* ============================================================================
+ * Active State: Hide Right Sidebar Only (not left nav)
+ * ============================================================================ */
+
+html.uh-focus-x.uh-focus-x-hide-sidebar
+  [data-testid="primaryColumn"]
+  ~ [data-testid="sidebarColumn"] {
+  display: none !important;
+}
+
+html.uh-focus-x.uh-focus-x-hide-sidebar [data-testid="searchColumn"] {
+  display: none !important;
+}
+
+html.uh-focus-x.uh-focus-x-hide-sidebar [data-testid="sidebarColumn"]:not(:first-of-type) {
+  display: none !important;
+}
+
+html.uh-focus-x.uh-focus-x-hide-chat [data-testid="chat-drawer-root"] {
+  display: none !important;
+}
+
+html.uh-focus-x.uh-focus-x-hide-grok [data-testid="GrokDrawer"] {
+  display: none !important;
+}
+
+/* Header hides with center timeline (tied together) */
+html.uh-focus-x.uh-focus-x-hide-header header {
+  display: none !important;
+}
+
+/* ============================================================================
+ * Active State: Center Primary Column
+ * ============================================================================ */
+
+html.uh-focus-x.uh-focus-x-center-timeline div:has([data-testid="primaryColumn"]) {
+  position: relative !important;
+  width: 95vw !important;
+  display: flex !important;
+  justify-content: center !important;
+}
+
+html.uh-focus-x.uh-focus-x-center-timeline [data-testid="primaryColumn"] {
+  width: var(--twitter-width, 80%) !important;
+  max-width: var(--twitter-width, 80%) !important;
+  position: absolute !important;
+
+  .r-1ye8kvj {
+    max-width: none !important;
+    width: 100% !important;
+  }
+}
+
+html.uh-focus-x:not(.uh-focus-x-center-timeline) [data-testid="primaryColumn"] {
+  width: var(--twitter-width, 80%) !important;
+  max-width: var(--twitter-width, 80%) !important;
+  margin-left: 0 !important;
+  margin-right: auto !important;
+}
+
+html.uh-focus-x.uh-focus-x-center-timeline article {
+  width: 100% !important;
+}
+
+/* ============================================================================
+ * Font size + tweet scale (custom font only)
+ * ============================================================================ */
+
+html.uh-focus-x.uh-focus-x-custom-font [data-testid="primaryColumn"] [data-testid="tweetText"],
+html.uh-focus-x.uh-focus-x-custom-font [data-testid="primaryColumn"] [data-testid="tweetText"] span,
+html.uh-focus-x.uh-focus-x-custom-font [data-testid="primaryColumn"] article div[lang] {
+  font-size: var(--twitter-font-size, 15px) !important;
+}
+
+html.uh-focus-x.uh-focus-x-custom-font
+  [data-testid="primaryColumn"]
+  article
+  [data-testid="User-Name"],
+html.uh-focus-x.uh-focus-x-custom-font
+  [data-testid="primaryColumn"]
+  article
+  [data-testid="User-Name"]
+  *,
+html.uh-focus-x.uh-focus-x-custom-font
+  [data-testid="primaryColumn"]
+  article
+  [data-testid="User-Name"]
+  ~ *
+  *,
+html.uh-focus-x.uh-focus-x-custom-font [data-testid="primaryColumn"] article [role="group"] span {
+  font-size: var(--twitter-font-size, 15px) !important;
+}
+
+html.uh-focus-x.uh-focus-x-custom-font [data-testid="primaryColumn"] [data-testid="icon-verified"],
+html.uh-focus-x.uh-focus-x-custom-font [data-testid="primaryColumn"] article button svg,
+html.uh-focus-x.uh-focus-x-custom-font [data-testid="primaryColumn"] article [role="group"] svg,
+html.uh-focus-x.uh-focus-x-custom-font
+  [data-testid="primaryColumn"]
+  article
+  [data-testid="tweetText"]
+  img.r-4qtqp9,
+html.uh-focus-x.uh-focus-x-custom-font
+  [data-testid="primaryColumn"]
+  article
+  [data-testid="User-Name"]
+  img.r-4qtqp9 {
+  transform: scale(var(--twitter-icon-scale, 1));
+  transform-origin: center;
+}
+
+html.uh-focus-x.uh-focus-x-custom-font
+  [data-testid="primaryColumn"]
+  article
+  [data-testid="Tweet-User-Avatar"] {
+  transform: none !important;
+}
+
+/* Toggle button in X's header (placed by content.ts) */
+#uh-focus-x-toggle {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  margin: 0 4px 0 auto;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: rgb(113, 118, 123);
+  cursor: pointer;
+  transition:
+    background-color 0.2s,
+    color 0.2s;
+}
+#uh-focus-x-toggle:hover {
+  background: rgba(29, 155, 240, 0.1);
+  color: rgb(29, 155, 240);
+}
+#uh-focus-x-toggle svg {
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+#uh-focus-x-toggle[aria-pressed="true"] svg {
+  opacity: 1;
+}

@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Unhooked</title>
+    <link rel="stylesheet" href="../shared/theme.css" />
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <nav class="rail" aria-label="Sites">
+      <div class="brand">
+        <span>unhooked</span>
+      </div>
+      <fieldset class="sites" id="sitePicker">
+        <legend class="label">Sites</legend>
+      </fieldset>
+      <div class="rail-foot">
+        <button type="button" class="pause" id="btnPower" aria-pressed="false">
+          <span class="icon-power" aria-hidden="true"></span><span id="powerLabel">Pause all</span>
+        </button>
+        <div class="rail-links">
+          <a
+            href="https://github.com/Priyansh4444/unhooked"
+            target="_blank"
+            rel="noopener noreferrer"
+            >Source</a
+          >
+        </div>
+      </div>
+    </nav>
+
+    <div class="pane">
+      <header class="site-head">
+        <div class="site-title">
+          <div>
+            <h1 id="siteName">Loading</h1>
+            <p id="siteState">Loading your choices</p>
+          </div>
+          <input id="siteEnabled" type="checkbox" class="uh-switch" aria-describedby="siteState" />
+        </div>
+        <p id="pausedNote" class="paused-note" hidden>
+          Paused on every site. <button type="button" id="btnResume">Resume</button>
+        </p>
+        <div class="choices" id="presets" role="group" aria-labelledby="presetLabel">
+          <span id="presetLabel" class="label">Preset</span>
+          <button type="button" data-preset="balanced" title="Quiet the feeds">Balanced</button>
+          <button type="button" data-preset="focused" title="Turn every control on">Focus</button>
+          <button type="button" data-preset="clear" title="Turn every control off">Show all</button>
+        </div>
+        <div class="tools">
+          <div class="tool-row">
+            <button type="button" class="tool" id="openWand">
+              <span class="wand-mark" aria-hidden="true"></span>
+              <span>Pick on page</span>
+            </button>
+            <button type="button" class="shortcut" id="wandShortcut"></button>
+          </div>
+          <button type="button" class="tool" id="openPicker">
+            <span class="dots" aria-hidden="true"></span>
+            <span>Pick on a sketch</span>
+          </button>
+        </div>
+      </header>
+      <main>
+        <section id="focusSection" aria-labelledby="focusHeading" hidden>
+          <h2 id="focusHeading" class="label">Focus mode</h2>
+          <label class="row">
+            <span class="row-label"
+              >Focus this tab<small class="feature-hint" id="focusHint"></small
+            ></span>
+            <input type="checkbox" class="uh-switch" id="focusToggle" />
+          </label>
+          <div class="row">
+            <span class="row-label" id="memoryLabel"
+              >Remember focus<small class="feature-hint" id="memoryHint"></small
+            ></span>
+            <span class="choices" role="group" aria-labelledby="memoryLabel">
+              <button type="button" data-memory="tab">This tab</button>
+              <button type="button" data-memory="global">All tabs</button>
+            </span>
+          </div>
+          <div id="xFocusSettings" hidden>
+            <div class="row slider-row">
+              <label class="row-label" for="xWidth"
+                >Timeline width<small class="feature-hint"
+                  >Used while the timeline is centered.</small
+                ></label
+              >
+              <output id="xWidthValue" for="xWidth">80%</output>
+              <input type="range" id="xWidth" min="30" max="100" step="5" />
+            </div>
+            <label class="row">
+              <span class="row-label"
+                >Custom text size<small class="feature-hint"
+                  >Resize posts while focused.</small
+                ></span
+              >
+              <input type="checkbox" class="uh-switch" id="xCustomFont" />
+            </label>
+            <div class="row slider-row" id="xFontRow">
+              <label class="row-label" for="xFont">Text size</label>
+              <output id="xFontValue" for="xFont">15px</output>
+              <input type="range" id="xFont" min="13" max="22" step="1" />
+            </div>
+            <div id="xFocusControls"></div>
+          </div>
+          <p class="shortcut-line" id="shortcutLine"></p>
+        </section>
+
+        <section id="controlsSection" aria-labelledby="controlsHeading">
+          <h2 id="controlsHeading" class="label">Hide</h2>
+          <div class="sections" id="youtubeControls">
+            <label class="row leaf">
+              <span class="row-label">Hide home feed</span>
+              <input type="checkbox" class="uh-switch" id="hideHomeFeed" />
+            </label>
+
+            <section class="group" data-group="sidebar">
+              <div class="group-head">
+                <label class="row parent">
+                  <span class="row-label">Hide video sidebar</span>
+                  <input type="checkbox" class="uh-switch" id="bulkVideoSidebar" />
+                </label>
+                <button
+                  type="button"
+                  class="collapse-btn"
+                  aria-expanded="true"
+                  aria-label="Collapse section"
+                ></button>
+              </div>
+              <div class="group-children">
+                <label class="row child">
+                  <span class="row-label">Hide recommended</span>
+                  <input type="checkbox" class="uh-switch" id="hideRelatedSidebar" />
+                </label>
+                <label class="row child">
+                  <span class="row-label">Hide live chat</span>
+                  <input type="checkbox" class="uh-switch" id="hideLiveChat" />
+                </label>
+                <label class="row child">
+                  <span class="row-label">Hide playlist</span>
+                  <input type="checkbox" class="uh-switch" id="hidePlaylistSidebar" />
+                </label>
+                <label class="row child">
+                  <span class="row-label">Hide fundraiser</span>
+                  <input type="checkbox" class="uh-switch" id="hideFundraiser" />
+                </label>
+              </div>
+            </section>
+
+            <label class="row leaf">
+              <span class="row-label">Hide end screen feed</span>
+              <input type="checkbox" class="uh-switch" id="hideEndScreenFeed" />
+            </label>
+            <label class="row leaf">
+              <span class="row-label">Hide end screen cards</span>
+              <input type="checkbox" class="uh-switch" id="hideEndScreenCards" />
+            </label>
+
+            <label class="row leaf">
+              <span class="row-label">Hide Shorts</span>
+              <input type="checkbox" class="uh-switch" id="hideShorts" />
+            </label>
+
+            <section class="group" data-group="comments">
+              <div class="group-head">
+                <label class="row parent">
+                  <span class="row-label">Hide comments</span>
+                  <input type="checkbox" class="uh-switch" id="hideComments" />
+                </label>
+                <button
+                  type="button"
+                  class="collapse-btn"
+                  aria-expanded="true"
+                  aria-label="Collapse section"
+                ></button>
+              </div>
+              <div class="group-children">
+                <label class="row child">
+                  <span class="row-label">Hide profile photos</span>
+                  <input type="checkbox" class="uh-switch" id="hideCommentAvatars" />
+                </label>
+              </div>
+            </section>
+
+            <label class="row leaf">
+              <span class="row-label">Hide mixes</span>
+              <input type="checkbox" class="uh-switch" id="hideMixes" />
+            </label>
+
+            <label class="row leaf">
+              <span class="row-label">Hide merch, tickets, offers</span>
+              <input type="checkbox" class="uh-switch" id="hideMerchTicketsOffers" />
+            </label>
+
+            <section class="group" data-group="videoInfo">
+              <div class="group-head">
+                <label class="row parent">
+                  <span class="row-label">Hide video info</span>
+                  <input type="checkbox" class="uh-switch" id="bulkVideoInfo" />
+                </label>
+                <button
+                  type="button"
+                  class="collapse-btn"
+                  aria-expanded="true"
+                  aria-label="Collapse section"
+                ></button>
+              </div>
+              <div class="group-children">
+                <label class="row child">
+                  <span class="row-label">Hide buttons bar</span>
+                  <input type="checkbox" class="uh-switch" id="hideVideoActionsBar" />
+                </label>
+                <label class="row child">
+                  <span class="row-label">Hide channel</span>
+                  <input type="checkbox" class="uh-switch" id="hideChannelRow" />
+                </label>
+                <label class="row child">
+                  <span class="row-label">Hide description</span>
+                  <input type="checkbox" class="uh-switch" id="hideDescription" />
+                </label>
+              </div>
+            </section>
+
+            <section class="group" data-group="topHeader">
+              <div class="group-head">
+                <label class="row parent">
+                  <span class="row-label">Hide top header</span>
+                  <input type="checkbox" class="uh-switch" id="bulkTopHeader" />
+                </label>
+                <button
+                  type="button"
+                  class="collapse-btn"
+                  aria-expanded="true"
+                  aria-label="Collapse section"
+                ></button>
+              </div>
+              <div class="group-children">
+                <label class="row child">
+                  <span class="row-label">Hide notifications</span>
+                  <input type="checkbox" class="uh-switch" id="hideNotificationBell" />
+                </label>
+              </div>
+            </section>
+
+            <label class="row leaf">
+              <span class="row-label">Hide inapt search results</span>
+              <input type="checkbox" class="uh-switch" id="hideInaptSearchResults" />
+            </label>
+
+            <label class="row leaf">
+              <span class="row-label">Hide explore, trending</span>
+              <input type="checkbox" class="uh-switch" id="hideTrendingNav" />
+            </label>
+
+            <label class="row leaf">
+              <span class="row-label">Hide more from YouTube</span>
+              <input type="checkbox" class="uh-switch" id="hideMoreFromYoutube" />
+            </label>
+
+            <label class="row leaf">
+              <span class="row-label">Hide subscriptions</span>
+              <input type="checkbox" class="uh-switch" id="hideSubscriptionsNav" />
+            </label>
+
+            <label class="row leaf">
+              <span class="row-label">Disable autoplay</span>
+              <input type="checkbox" class="uh-switch" id="disableAutoplay" />
+            </label>
+
+            <label class="row leaf">
+              <span class="row-label">Disable annotations</span>
+              <input type="checkbox" class="uh-switch" id="disableAnnotations" />
+            </label>
+          </div>
+          <div class="sections" id="socialControls" hidden></div>
+        </section>
+
+        <section id="twitchSection" aria-labelledby="twitchHeading" hidden>
+          <h2 id="twitchHeading" class="visually-hidden">Twitch chat</h2>
+          <label class="row">
+            <span class="row-label"
+              >Log chat links<small class="feature-hint"
+                >Keep the last 25 links posted in chat, on this device only.</small
+              ></span
+            >
+            <input type="checkbox" class="uh-switch" id="twitchLog" />
+          </label>
+          <div class="row slider-row">
+            <label class="row-label" for="twitchDelay"
+              >Preview delay<small class="feature-hint"
+                >How long to hover a pill before its card opens.</small
+              ></label
+            >
+            <output id="twitchDelayValue" for="twitchDelay">180ms</output>
+            <input type="range" id="twitchDelay" min="100" max="800" step="50" />
+          </div>
+          <div class="log-head">
+            <h2 id="logHeading" class="label">Recent links</h2>
+            <button type="button" id="twitchLogClear">Clear</button>
+          </div>
+          <ol class="link-log" id="twitchLogList" aria-labelledby="logHeading"></ol>
+        </section>
+        <section id="customSection" aria-labelledby="customHeading" hidden>
+          <h2 id="customHeading" class="label">Removed with the wand</h2>
+          <ul class="custom-list" id="customList"></ul>
+        </section>
+      </main>
+      <footer class="foot">
+        <p id="saveStatus" role="status" aria-live="polite">Loading your choices…</p>
+        <p id="hint" class="hint" aria-hidden="true"></p>
+        <button type="button" id="resetAll">Reset site</button>
+      </footer>
+    </div>
+
+    <script type="module" src="popup.ts"></script>
+  </body>
+</html>
