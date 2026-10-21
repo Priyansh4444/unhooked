@@ -120,12 +120,21 @@ export async function launch() {
     send: (url, message) => call({ op: "send", args: { url, message } }),
   };
 
-  // Wait until the extension is up (its first reply proves bridge + background are alive).
-  for (let i = 0; i < 40; i++) {
-    const reply = await Promise.race([ext.get("ping"), sleep(500).then(() => null)]);
-    if (reply) break;
-    await sleep(250);
+  // Wait until the extension is up (its first reply proves bridge + background are alive). A cold
+  // CI runner can take a while to start the service worker; give it a minute, then fail clearly.
+  // bridgeCall has no timer of its own, so an abandoned attempt can't reject later.
+  const deadline = Date.now() + 60_000;
+  let ready = false;
+  while (!ready && Date.now() < deadline) {
+    ready = Boolean(
+      await Promise.race([
+        bridgeCall({ op: "get", args: ["ping"] }).catch(() => null),
+        sleep(1000).then(() => null),
+      ]),
+    );
+    if (!ready) await sleep(250);
   }
+  if (!ready) throw new Error("the extension did not answer the test bridge within 60s");
   // Close any extension page a fresh profile opened, so tests start from the harness page.
   for (const page of await browser.pages()) {
     if (/^(chrome|moz)-extension:/.test(page.url())) await page.close();
