@@ -17,40 +17,43 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: "24"
-          cache: npm
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
 
       - name: Install dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
 
-      - name: Check formatting
-        run: npm run format:check
+      - name: Typecheck, lint and format
+        run: bun run check
 
-      - name: Run tests
-        run: npm test
+      - name: Unit tests
+        run: bun test
 
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
+      - name: Package every browser
+        run: bun run package
 
-      - name: Package extension
-        run: npm run package
+      - name: Install browsers
+        run: |
+          # Ubuntu 24.04 blocks the unprivileged user namespaces Chromium's sandbox needs.
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          # Chromium (not branded Chrome) still loads unpacked extensions from the command line.
+          echo "CHROME_PATH=$(bunx @puppeteer/browsers install chromium@latest --path "$RUNNER_TEMP/browsers" | tail -1 | cut -d' ' -f2-)" >> "$GITHUB_ENV"
+          echo "FIREFOX_PATH=$(bunx @puppeteer/browsers install firefox@stable --path "$RUNNER_TEMP/browsers" | tail -1 | cut -d' ' -f2-)" >> "$GITHUB_ENV"
 
-      - name: Test packaged extension in Chromium
+      # Suites against stubbed pages only; the live-site suites run locally (see CONTRIBUTING.md).
+      - name: End-to-end (Chromium, minified)
         env:
-          UNHOOKED_EXTENSION_PATH: dist/unhooked
-        run: npm run test:browser
+          MINIFY: "1"
+        run: bun e2e/run.mjs chrome smoke social youtube-controls popup picker wand skip twitter twitch
 
-      - name: Upload extension and browser evidence
+      - name: End-to-end (Firefox, minified)
+        env:
+          MINIFY: "1"
+        run: bun e2e/run.mjs firefox smoke social youtube-controls wand skip twitter twitch
+
+      - name: Upload packages
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: unhooked
-          path: |
-            dist/
-            test-results/
-
-      - name: Coverage report (informational)
-        run: npm run test:coverage
+          path: dist/*.zip

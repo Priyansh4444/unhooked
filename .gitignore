@@ -1,4 +1,7 @@
 node_modules/
 coverage/
 dist/
+dist-*/
+e2e/shots/
 test-results/
+*.tsbuildinfo
