@@ -46,3 +46,13 @@ export const LOOKUP_HOSTS = [
   "lakebed.app",
   "*.lakebed.app",
 ] as const;
+
+/**
+ * Where a page's wand removals are kept: the site's id on a supported site, otherwise
+ * `web:<hostname>` for any other site the user has let the wand work on.
+ */
+export const wandSiteFor = (host: string): string =>
+  siteForHost(host) ?? `web:${host.toLowerCase()}`;
+
+/** Match pattern for every page on one host, as granted for the wand. */
+export const originPattern = (host: string): string => `*://${host.toLowerCase()}/*`;

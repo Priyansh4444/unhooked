@@ -1,5 +1,6 @@
 import { initFocus } from "./focus/background.ts";
 import { ext } from "./shared/ext-api.ts";
+import { initWandPages } from "./sites/custom/pages.ts";
 import { WAND_ACTION } from "./sites/custom/protocol.ts";
 import { DEFAULTS, STORAGE_KEYS } from "./shared/settings.ts";
 import { initTwitchBackground } from "./sites/twitch/background/index.ts";
@@ -21,7 +22,7 @@ ext.runtime.onInstalled.addListener(async ({ reason }) => {
   }
 });
 
-// The wand shortcut, pressed on a supported page: start (or stop) the wand in that tab.
+// The wand shortcut, pressed on a supported page (or one the wand was allowed on): start (or stop) the wand in that tab.
 ext.runtime.onMessage.addListener((message: { action?: string }, sender) => {
   const tabId = sender.tab?.id;
   if (message?.action !== WAND_ACTION || typeof tabId !== "number") return false;
@@ -36,4 +37,5 @@ ext.runtime.onMessage.addListener((message: { action?: string }, sender) => {
 });
 
 initFocus();
+initWandPages();
 initTwitchBackground();

@@ -22,13 +22,21 @@ import {
   matchingPreset,
   mergeChanges,
   presetPatch,
+  redirectToPatch,
+  renameRule,
   resolveSettings,
   type Preset,
   type RawStorage,
   type SiteSettings,
 } from "../../shared/preferences.ts";
 import { DEFAULTS, STORAGE_KEYS, type TwitterFocusControls } from "../../shared/settings.ts";
-import { SITE_HOSTS, siteForUrl, type SiteId } from "../../sites/hosts.ts";
+import {
+  SITE_HOSTS,
+  originPattern,
+  siteForUrl,
+  wandSiteFor,
+  type SiteId,
+} from "../../sites/hosts.ts";
 import { CONTROL_SITES, controlSiteById, type ControlSite } from "../../sites/registry.ts";
 import { TWITCH_ACTIONS, type ChatUrlEntry } from "../../sites/twitch/protocol.ts";
 import { PREVIEW_ACTION, type PreviewRequest } from "../../sites/custom/protocol.ts";
@@ -38,7 +46,9 @@ const YOUTUBE_GROUPS: Record<string, string[]> = {
   bulkVideoInfo: ["hideVideoActionsBar", "hideChannelRow", "hideDescription"],
   bulkTopHeader: ["hideNotificationBell"],
 };
-const RAIL: { id: SiteId; label: string }[] = [
+/** "page": the current tab's site when Unhooked has no controls for it; the wand still works. */
+type Selection = SiteId | "page";
+const RAIL: { id: Selection; label: string }[] = [
   ...CONTROL_SITES.map(({ id, label }) => ({ id, label })),
   { id: "twitch", label: "Twitch" },
   { id: "excalidraw", label: "Excalidraw" },
@@ -68,14 +78,22 @@ const $ = <T extends HTMLElement = HTMLElement>(id: string): T => document.getEl
 let raw: RawStorage = {};
 let pending: RawStorage = {};
 let loaded = false;
-let selected: SiteId = "youtube";
-let activeTab: { id: number; site: SiteId | undefined } | null = null;
+let selected: Selection = "youtube";
+let activeTab: { id: number; site: SiteId | undefined; host: string | null } | null = null;
 /** Whether focus mode is on in the current tab (for its site, whichever site is selected). */
 let focusOn = false;
 let shortcuts: Record<string, string> = {};
 
-const isFocusSite = (id: SiteId): id is FocusSite => id in FOCUS_SITES;
+const isFocusSite = (id: Selection): id is FocusSite => id in FOCUS_SITES;
 const shortHost = (id: SiteId) => SITE_HOSTS[id][0].replace(/^www\./, "");
+const railLabel = (id: Selection) => RAIL.find((s) => s.id === id)!.label;
+/** Whether the selected site is the one open in this tab (so the page can be acted on). */
+const isHere = () =>
+  !!activeTab &&
+  (selected === "page" ? !activeTab.site && !!activeTab.host : activeTab.site === selected);
+/** Where the selected site's wand removals are stored. */
+const wandKey = () =>
+  selected === "page" ? wandSiteFor(activeTab?.host ?? "") : (selected as string);
 const countOn = (state: SiteSettings) => Object.values(state.features).filter(Boolean).length;
 
 function status(message: string, error = false): void {
@@ -159,28 +177,31 @@ function renderRail(paused: boolean): void {
       meta = "on";
       state = "on";
       spoken = "focus on";
+    } else if (id === "page") {
+      const removed = customRules(raw, wandKey()).length;
+      meta = removed ? String(removed) : "";
+      state = removed ? "on" : "idle";
+      spoken = removed ? `${removed} removed with the wand` : "";
     }
     input.checked = id === selected;
     $(`meta-${id}`).textContent = meta;
     item.dataset.state = state;
-    input.setAttribute(
-      "aria-label",
-      [RAIL.find((s) => s.id === id)!.label, spoken].filter(Boolean).join(", "),
-    );
+    input.setAttribute("aria-label", [railLabel(id), spoken].filter(Boolean).join(", "));
   }
   document.body.classList.toggle("is-paused", paused);
 }
 
 function renderHeader(control: ControlSite | undefined, paused: boolean): void {
-  const label = RAIL.find((s) => s.id === selected)!.label;
+  const label = railLabel(selected);
   $("siteName").textContent = label;
   const enabled = $<HTMLInputElement>("siteEnabled");
-  enabled.hidden = selected === "excalidraw";
+  enabled.hidden = selected === "excalidraw" || selected === "page";
   if (control) {
     const state = resolveSettings(raw, control);
     enabled.checked = state.enabled;
     enabled.setAttribute("aria-label", `Hide controls on ${label}`);
-    $("siteState").textContent = `${state.enabled ? "Active on" : "Off on"} ${shortHost(selected)}`;
+    $("siteState").textContent =
+      `${state.enabled ? "Active on" : "Off on"} ${shortHost(control.id)}`;
     const match = matchingPreset(selected, state);
     for (const preset of PRESETS) {
       $(`preset-${preset}`).setAttribute("aria-pressed", String(preset === match));
@@ -190,6 +211,10 @@ function renderHeader(control: ControlSite | undefined, paused: boolean): void {
     enabled.checked = pills;
     enabled.setAttribute("aria-label", "Link pills in Twitch chat");
     $("siteState").textContent = pills ? "Chat links become pills" : "Chat links stay plain";
+  } else if (selected === "page") {
+    $("siteState").textContent = customRules(raw, wandKey()).length
+      ? "Your removals stay hidden here"
+      : "No controls here, but the wand works";
   } else {
     $("siteState").textContent = "Focus mode for the canvas";
   }
@@ -197,12 +222,13 @@ function renderHeader(control: ControlSite | undefined, paused: boolean): void {
   $("openPicker").hidden = !control;
   renderShortcut();
   // The wand works on the page in this tab, so it needs this tab to be on the selected site.
-  const here = activeTab?.site === selected;
+  const here = isHere();
   $<HTMLButtonElement>("openWand").disabled = !here;
   $("openWand").title = here
     ? "Point at anything on the page and click to hide it"
     : `Open ${label} in this tab to pick on the page`;
-  $("resetAll").hidden = !control;
+  $("resetAll").hidden = !control && selected !== "page";
+  $("resetAll").textContent = selected === "page" ? "Forget site" : "Reset site";
   $("pausedNote").hidden = !paused;
   $("btnPower").setAttribute("aria-pressed", String(paused));
   $("powerLabel").textContent = paused ? "Resume" : "Pause all";
@@ -219,7 +245,7 @@ function renderFocus(): void {
   toggle.checked = here && focusOn;
   $("focusHint").textContent = here
     ? FOCUS_COPY[site].does
-    : `Open ${RAIL.find((s) => s.id === site)!.label} in this tab to use it.`;
+    : `Open ${railLabel(site)} in this tab to use it.`;
   const mode = memoryMode(site);
   for (const button of section.querySelectorAll<HTMLButtonElement>("[data-memory]")) {
     button.setAttribute("aria-pressed", String(button.dataset.memory === mode));
@@ -378,9 +404,12 @@ function bindShortcut(): void {
 }
 
 function renderCustom(): void {
-  const rules = customRules(raw, selected);
+  const rules = customRules(raw, wandKey());
   $("customSection").hidden = !rules.length;
-  $("customList").replaceChildren(
+  const list = $("customList");
+  // Don't rebuild under someone typing a name.
+  if (list.contains(document.activeElement) && document.activeElement?.matches("input")) return;
+  list.replaceChildren(
     ...rules.map((rule) => {
       const item = document.createElement("li");
       item.className = "row";
@@ -388,8 +417,16 @@ function renderCustom(): void {
       item.dataset.label = rule.label;
       const copy = document.createElement("span");
       copy.className = "feature-copy";
-      const title = document.createElement("strong");
-      title.textContent = rule.label;
+      // The name is editable in place: click it, type, Enter.
+      const title = document.createElement("input");
+      title.type = "text";
+      title.className = "rule-name";
+      title.value = rule.label;
+      title.placeholder = rule.original ?? rule.label;
+      title.maxLength = 80;
+      title.spellcheck = false;
+      title.setAttribute("aria-label", `Name for ${rule.label}`);
+      title.title = "Rename";
       const small = document.createElement("small");
       small.textContent = rule.selector;
       small.className = "selector";
@@ -414,7 +451,45 @@ function render(): void {
   renderFocus();
   renderControls(control);
   renderTwitch();
+  renderSkip(control);
   renderCustom();
+}
+
+// ---- skip the feeds: leave a site's feed pages for one the user picked ------------------------
+
+let editingPath = false;
+
+function renderSkip(control: ControlSite | undefined): void {
+  $("skipSection").hidden = !control;
+  if (!control) return;
+  const state = resolveSettings(raw, control);
+  $<HTMLInputElement>("skipToggle").checked = state.redirect;
+  $("skipHint").textContent = control.redirect.skips;
+  const choices = $("skipChoices");
+  if (choices.dataset.site !== control.id) {
+    choices.replaceChildren(
+      ...[...control.redirect.choices, { label: "Other", path: "" }].map(({ label, path }) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = label;
+        button.dataset.path = path;
+        return button;
+      }),
+    );
+    choices.dataset.site = control.id;
+    editingPath = false;
+  }
+  const known = control.redirect.choices.some((c) => c.path === state.redirectTo);
+  for (const button of choices.querySelectorAll<HTMLButtonElement>("button")) {
+    const pressed = button.dataset.path
+      ? button.dataset.path === state.redirectTo
+      : !known || editingPath;
+    button.setAttribute("aria-pressed", String(pressed && !(editingPath && button.dataset.path)));
+  }
+  const form = $("skipPathForm");
+  form.hidden = known && !editingPath;
+  const input = $<HTMLInputElement>("skipPath");
+  if (document.activeElement !== input) input.value = known ? "" : state.redirectTo;
 }
 
 // ---- building --------------------------------------------------------------------------------
@@ -446,25 +521,28 @@ function xControls(): TwitterFocusControls {
   };
 }
 
+function buildRailItem(id: Selection, label: string): HTMLElement {
+  const item = document.createElement("label");
+  item.className = "site";
+  const input = document.createElement("input");
+  input.type = "radio";
+  input.name = "site";
+  input.value = id;
+  input.id = `site-${id}`;
+  const name = document.createElement("span");
+  name.className = "site-name";
+  name.textContent = label;
+  const meta = document.createElement("span");
+  meta.className = "site-meta";
+  meta.id = `meta-${id}`;
+  meta.setAttribute("aria-hidden", "true");
+  item.append(input, name, meta);
+  $("sitePicker").append(item);
+  return item;
+}
+
 function buildRail(): void {
-  for (const { id, label } of RAIL) {
-    const item = document.createElement("label");
-    item.className = "site";
-    const input = document.createElement("input");
-    input.type = "radio";
-    input.name = "site";
-    input.value = id;
-    input.id = `site-${id}`;
-    const name = document.createElement("span");
-    name.className = "site-name";
-    name.textContent = label;
-    const meta = document.createElement("span");
-    meta.className = "site-meta";
-    meta.id = `meta-${id}`;
-    meta.setAttribute("aria-hidden", "true");
-    item.append(input, name, meta);
-    $("sitePicker").append(item);
-  }
+  for (const { id, label } of RAIL) buildRailItem(id, label);
   for (const button of document.querySelectorAll<HTMLButtonElement>("[data-preset]")) {
     button.id = `preset-${button.dataset.preset}`;
   }
@@ -492,7 +570,7 @@ let previewing = "";
 /** Outline on the page what a control or wand removal covers (only in this tab, on its site). */
 function preview(target: Omit<PreviewRequest, "action"> | null): void {
   const key = target ? JSON.stringify(target) : "";
-  if (key === previewing || !activeTab || activeTab.site !== selected) return;
+  if (key === previewing || !activeTab || !isHere()) return;
   previewing = key;
   const message: PreviewRequest = target
     ? { action: PREVIEW_ACTION, ...target }
@@ -566,7 +644,7 @@ function bind(): void {
   $("sitePicker").addEventListener("change", (event) => {
     const target = event.target as HTMLInputElement;
     if (target.name !== "site") return;
-    selected = target.value as SiteId;
+    selected = target.value as Selection;
     render();
     void refreshSelected();
   });
@@ -581,28 +659,100 @@ function bind(): void {
   $("btnResume").addEventListener("click", () => void setPaused(false));
   $("openWand").addEventListener("click", async () => {
     if (!activeTab) return;
-    const file = "sites/wand/content.js";
+    const files = ["sites/wand/content.js"];
+    if (selected === "page" && activeTab.host) {
+      // On a site Unhooked doesn't cover, removals only stay removed if it may run there. Asked
+      // first thing in the click: browsers only show the prompt for a user's gesture.
+      const granted = await ext.permissions
+        .request({ origins: [originPattern(activeTab.host)] })
+        .catch(() => false);
+      if (!granted) return status("Allow Unhooked on this site to keep what you remove", true);
+      // The background registers the removals script for later visits; this visit gets it now.
+      files.unshift("sites/custom/content.js");
+    }
     try {
-      if (ext.scripting)
-        await ext.scripting.executeScript({ target: { tabId: activeTab.id }, files: [file] });
-      else
-        await (
-          ext.tabs as unknown as { executeScript: (id: number, d: object) => Promise<unknown> }
-        ).executeScript(activeTab.id, { file });
+      for (const file of files) {
+        if (ext.scripting)
+          await ext.scripting.executeScript({ target: { tabId: activeTab.id }, files: [file] });
+        else
+          await (
+            ext.tabs as unknown as { executeScript: (id: number, d: object) => Promise<unknown> }
+          ).executeScript(activeTab.id, { file });
+      }
       window.close();
     } catch (error) {
       status(`Could not start the wand. ${(error as Error).message}`, true);
     }
   });
+  const ruleOf = (el: Element) => el.closest<HTMLElement>("[data-selector]")?.dataset.selector;
   $("customList").addEventListener("click", (event) => {
     const button = (event.target as HTMLElement).closest(".bring-back");
-    const selector = button?.closest<HTMLElement>("[data-selector]")?.dataset.selector;
+    const selector = button && ruleOf(button);
     if (!selector) return;
     void write(
-      { [customKey(selected)]: customRules(raw, selected).filter((r) => r.selector !== selector) },
+      {
+        [customKey(wandKey())]: customRules(raw, wandKey()).filter((r) => r.selector !== selector),
+      },
       "Brought back",
     );
     preview(null);
+  });
+  // Renaming a removal: saved on Enter or when the field loses focus; Esc puts it back.
+  $("customList").addEventListener("change", (event) => {
+    const input = event.target as HTMLInputElement;
+    const selector = input.matches(".rule-name") && ruleOf(input);
+    if (!selector) return;
+    void write(
+      { [customKey(wandKey())]: renameRule(customRules(raw, wandKey()), selector, input.value) },
+      "Renamed",
+    );
+  });
+  $("customList").addEventListener("keydown", (event: KeyboardEvent) => {
+    const input = event.target as HTMLInputElement;
+    if (!input.matches(".rule-name")) return;
+    if (event.key === "Enter") input.blur();
+    if (event.key === "Escape") {
+      event.preventDefault();
+      input.value = input.closest<HTMLElement>("[data-label]")?.dataset.label ?? input.value;
+      input.blur();
+    }
+  });
+
+  // Skip the feeds
+  $("skipToggle").addEventListener("change", (event) => {
+    const on = (event.target as HTMLInputElement).checked;
+    void write(
+      featurePatch(selected, "redirect", on),
+      on ? `${railLabel(selected)} feeds are skipped` : "Feeds are no longer skipped",
+    );
+  });
+  $("skipChoices").addEventListener("click", (event) => {
+    const button = (event.target as HTMLElement).closest<HTMLButtonElement>("button");
+    if (!button) return;
+    if (!button.dataset.path) {
+      editingPath = true;
+      render();
+      $("skipPath").focus();
+      return;
+    }
+    editingPath = false;
+    void write(redirectToPatch(selected, button.dataset.path), `Feeds go to ${button.textContent}`);
+  });
+  $("skipPathForm").addEventListener("submit", (event) => {
+    event.preventDefault();
+    let path = $<HTMLInputElement>("skipPath").value.trim();
+    // A pasted address on the same site is fine; keep its path.
+    try {
+      const url = new URL(path);
+      if (siteForUrl(url.href) === selected) path = url.pathname + url.search;
+    } catch {}
+    try {
+      const patch = redirectToPatch(selected, path);
+      editingPath = false;
+      void write(patch, `Feeds go to ${path}`);
+    } catch {
+      status("Use a path on this site, starting with /", true);
+    }
   });
   bindHover();
   bindShortcut();
@@ -629,17 +779,25 @@ function bind(): void {
   });
   for (const button of document.querySelectorAll<HTMLButtonElement>("[data-preset]")) {
     button.addEventListener("click", () => {
-      const label = RAIL.find((s) => s.id === selected)!.label;
+      const label = railLabel(selected);
       void write(
         presetPatch(selected, button.dataset.preset as Preset),
         `${button.textContent} applied to ${label}`,
       );
     });
   }
-  $("resetAll").addEventListener("click", () => {
+  $("resetAll").addEventListener("click", async () => {
+    if (selected === "page") {
+      // Forget a site the wand was used on: its removals, and Unhooked's access to it.
+      const host = activeTab?.host;
+      await write({ [customKey(wandKey())]: [] }, `${railLabel("page")} forgotten`);
+      await ext.storage.local.remove(customKey(wandKey())).catch(() => {});
+      if (host) await ext.permissions.remove({ origins: [originPattern(host)] }).catch(() => {});
+      return;
+    }
     void write(
       { ...presetPatch(selected, "clear"), ...featurePatch(selected, "enabled", true) },
-      `${RAIL.find((s) => s.id === selected)!.label} reset`,
+      `${railLabel(selected)} reset`,
     );
   });
   for (const button of document.querySelectorAll<HTMLButtonElement>(".collapse-btn")) {
@@ -732,8 +890,19 @@ async function init(): Promise<void> {
     tab = id ? await ext.tabs.get(id).catch(() => undefined) : undefined;
   }
   if (tab && typeof tab.id === "number") {
-    activeTab = { id: tab.id, site: siteForUrl(tab.url) };
+    let host: string | null = null;
+    try {
+      const url = new URL(tab.url ?? "");
+      if (/^https?:$/.test(url.protocol)) host = url.hostname;
+    } catch {}
+    activeTab = { id: tab.id, site: siteForUrl(tab.url), host };
     if (activeTab.site && RAIL.some((s) => s.id === activeTab!.site)) selected = activeTab.site;
+    else if (!activeTab.site && host) {
+      // Any other website: the wand still works there, so it gets a place in the rail.
+      RAIL.push({ id: "page", label: host.replace(/^www\./, "") });
+      buildRailItem("page", railLabel("page")).classList.add("site-page");
+      selected = "page";
+    }
   }
   shortcuts = Object.fromEntries(
     (commands as chrome.commands.Command[])

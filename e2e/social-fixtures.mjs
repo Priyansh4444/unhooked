@@ -8,9 +8,11 @@ export const fixtures = [
     detail: "/someone/status/123",
     search: "/search?q=focus",
     messages: "/messages",
-    html: `<div data-testid="primaryColumn"><section role="region" aria-label="Timeline: Your Home Timeline"><div data-testid="cellInnerDiv"><article id="feed">A recommended post</article></div></section></div><div data-testid="sidebarColumn"><aside id="suggestions">Who to follow</aside><div data-testid="trend" id="trends">Trending</div></div>`,
+    html: `<div data-testid="primaryColumn"><section role="region" aria-label="Timeline: Your Home Timeline"><div data-testid="cellInnerDiv"><article id="feed">A recommended post</article></div></section></div><div data-testid="sidebarColumn"><div><div><div><div><div><div id="sidebar-search"><form role="search">Search</form></div><div><div data-testid="news_sidebar" id="news">Today's News</div></div><div><section><div data-testid="trend" id="trends">Trending</div></section></div><div id="scores">Live sports scores</div><div><aside id="suggestions">Who to follow</aside></div></div></div></div></div></div></div>`,
     sidebarAnywhere: "hideRecommendations",
-    features: { hideRecommendations: ["suggestions", "trends"] },
+    // The sidebar's nesting is X's (sidebarColumn > 5 divs > modules); the search box stays.
+    features: { hideRecommendations: ["suggestions", "trends", "news", "scores"] },
+    keeps: { hideRecommendations: ["sidebar-search"] },
   },
   {
     id: "reddit",
@@ -33,8 +35,15 @@ export const fixtures = [
     detail: "/p/ABC123/",
     search: "/accounts/edit/",
     messages: "/direct/inbox/",
-    html: `<main><div role="feed"><article id="feed">A home post</article></div><aside id="suggestions">Suggested accounts</aside><div role="menu" aria-label="Stories" id="stories">Stories</div></main>`,
-    features: { hideSuggestions: ["suggestions"], hideStories: ["stories"] },
+    // The signed-in desktop layout (measured 2026): an icon column outside <main> with the app's
+    // own links, the stories tray and posts in one column, suggestions in the other.
+    html: `<div id="ig-nav"><a href="/"><img alt="Home"></a><a href="/explore/" id="explore-link">Explore</a><a href="/reels/" id="reels-link">Reels</a><a href="/direct/inbox/">Messages</a><a href="/someone/"><img alt="someone's profile picture"></a></div><main role="main"><div><div><div><div data-pagelet="story_tray" id="stories">Stories</div></div><div><article id="feed">A home post</article></div></div><div id="suggestions">Suggested for you <a href="/explore/people/">See all</a></div></div></main>`,
+    features: {
+      hideSuggestions: ["suggestions"],
+      hideStories: ["stories"],
+      hideNavLinks: ["explore-link", "reels-link"],
+      hideNavigation: ["ig-nav"],
+    },
   },
   {
     id: "tiktok",
@@ -92,7 +101,7 @@ export const discoveryFixtures = [
     origin: "https://www.instagram.com",
     path: "/explore/",
     feature: "hideExplore",
-    html: '<main><div><article id="discovery">Explore photos</article></div></main>',
+    html: '<main><div><div id="navigation"><input aria-label="Search input"></div><div><a href="/p/1/" id="discovery">Explore photos</a></div></div></main>',
   },
   {
     id: "x",

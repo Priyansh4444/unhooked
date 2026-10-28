@@ -83,6 +83,8 @@ export function createManifest(target: Target, extraContentScripts: object[] = [
       ? ["storage", "tabs", ...hostPatterns]
       : ["scripting", "storage", "tabs", ...(firefox ? ["activeTab"] : [])],
     ...(!mv2 && { host_permissions: hostPatterns }),
+    // Any other site, one at a time and only when asked: the wand on a page Unhooked doesn't cover.
+    ...(mv2 ? { optional_permissions: ["*://*/*"] } : { optional_host_permissions: ["*://*/*"] }),
     background: mv2
       ? { scripts: ["background.js"], persistent: false }
       : firefox

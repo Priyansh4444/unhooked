@@ -190,5 +190,48 @@ await sleep(500);
 check("a removed shortcut does nothing", !(await wandOn()));
 await ext.set({ "unhooked.wandShortcut": "Alt+Shift+KeyW" });
 
+// ---- a site Unhooked has no controls for ------------------------------------------------------
+// The test build is already allowed on example.org, as if the user had said yes to the wand there.
+console.log("== any other site");
+const OTHER = "web:example.org";
+const otherRules = async () =>
+  (await ext.get(`unhooked.custom.${OTHER}`))[`unhooked.custom.${OTHER}`] ?? [];
+await ext.set({
+  [`unhooked.custom.${OTHER}`]: [{ selector: ".cookie-wall", label: "Cookie wall", at: 1 }],
+});
+const elsewhere = await newPage();
+await stub(elsewhere, [
+  [
+    "https://example.org/",
+    `<!doctype html><title>Example</title><div class="cookie-wall" style="height:80px">Accept cookies</div><div id="sticky" style="height:60px">Sticky banner</div><p id="article">The article</p>`,
+  ],
+]);
+await elsewhere.goto("https://example.org/news", { waitUntil: "load" });
+await until(
+  "a removal made on another site stays removed on the next visit",
+  async () => (await visible(elsewhere, ".cookie-wall"))[0] === false,
+);
+check("the rest of that page is left alone", (await visible(elsewhere, "#article"))[0] === true);
+await ext.inject("example.org", "sites/wand/content.js");
+await until("the wand starts there too", async () => (await wandState(elsewhere)) !== null);
+const sticky = await center(elsewhere, "#sticky");
+await elsewhere.mouse.move(sticky.x, sticky.y);
+await until(
+  "and outlines what is under the pointer",
+  async () => (await wandState(elsewhere))?.selector?.includes("sticky"),
+  async () => JSON.stringify(await wandState(elsewhere)),
+);
+await elsewhere.mouse.click(sticky.x, sticky.y);
+await until(
+  "a click saves the removal under that site",
+  async () => (await otherRules()).some((rule) => rule.selector.includes("sticky")),
+  async () => JSON.stringify(await otherRules()),
+);
+await until("and hides it", async () => (await visible(elsewhere, "#sticky"))[0] === false);
+await press(elsewhere, "Escape");
+await ext.set({ "unhooked.paused": true });
+await until("pause brings it back", async () => (await visible(elsewhere, "#sticky"))[0] === true);
+await ext.set({ "unhooked.paused": false, [`unhooked.custom.${OTHER}`]: [] });
+
 await close();
 finish();

@@ -33,6 +33,8 @@ export interface PageHooks {
   stop?(): void;
 }
 
+const NAVIGATION_EVENTS = ["currententrychange", "navigatesuccess"] as const;
+
 const browserEnv = (): PageEnv => ({
   document,
   window,
@@ -106,8 +108,9 @@ export function runPageController(hooks: PageHooks, env: PageEnv = browserEnv())
     for (const name of documentEvents) doc.addEventListener(name, render);
     win.addEventListener("popstate", navigated);
     win.addEventListener("hashchange", navigated);
-    win.navigation?.addEventListener("navigatesuccess", navigated);
-    // Isolated worlds cannot see the page's history.pushState, so poll the URL cheaply.
+    // The Navigation API reports the page's history.pushState the moment the URL changes, so
+    // route-scoped rules switch before the new route paints. Elsewhere, poll the URL cheaply.
+    for (const name of NAVIGATION_EVENTS) win.navigation?.addEventListener(name, navigated);
     routeTimer = win.setInterval(navigated, 250);
   };
 
@@ -123,7 +126,7 @@ export function runPageController(hooks: PageHooks, env: PageEnv = browserEnv())
     for (const name of documentEvents) doc.removeEventListener(name, render);
     win.removeEventListener("popstate", navigated);
     win.removeEventListener("hashchange", navigated);
-    win.navigation?.removeEventListener("navigatesuccess", navigated);
+    for (const name of NAVIGATION_EVENTS) win.navigation?.removeEventListener(name, navigated);
   };
 
   win.addEventListener("pagehide", stop);

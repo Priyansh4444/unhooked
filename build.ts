@@ -101,10 +101,11 @@ export async function buildExtension({ target, outdir, minify, e2e = false }: Bu
   const bridge = e2e
     ? [{ matches: ["http://127.0.0.1/*"], js: ["bridge.js"], run_at: "document_start" }]
     : [];
-  await writeFile(
-    join(outdir, "manifest.json"),
-    JSON.stringify(createManifest(target, bridge), null, 2),
-  );
+  const manifest = createManifest(target, bridge);
+  // Tests can't click the browser's permission prompt, so the test build arrives already allowed
+  // on one ordinary site, as if the user had said yes to the wand there.
+  if (e2e) manifest.host_permissions?.push("*://example.org/*");
+  await writeFile(join(outdir, "manifest.json"), JSON.stringify(manifest, null, 2));
 
   // Firefox add-on review wants the real source next to the (minified) bundle
   if (target === "firefox" && process.env.FIREFOX_FOR_REVIEW === "1") {

@@ -110,6 +110,8 @@ for (const f of fixtures) {
     await ext.set({ ...presetPatch(f.id, "clear"), ...featurePatch(f.id, feature, true) });
     for (const target of targets)
       await visible(page, `#${target}`, false, `${f.id}: ${feature} hides #${target}`);
+    for (const kept of f.keeps?.[feature] ?? [])
+      await visible(page, `#${kept}`, true, `${f.id}: ${feature} keeps #${kept}`);
     await visible(page, "#feed", true, `${f.id}: ${feature} leaves the feed alone`);
     await ext.set(featurePatch(f.id, feature, false));
     for (const target of targets)

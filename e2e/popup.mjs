@@ -286,7 +286,104 @@ await reddit.bringToFront();
 await reddit.keyboard.press("Escape");
 await popup.bringToFront();
 
+// Renaming a wand removal: click its name, type, Enter. (The wand button closed the popup.)
+await ext.set({ "unhooked.custom.reddit": [{ selector: "aside.promo", label: "Promo", at: 1 }] });
+const again = await openPopup(`?tab=${redditTab}`);
+await again.bringToFront();
+const nameField = "#customList .rule-name";
+await again.waitForSelector(nameField);
+const rename = async (name) => {
+  await again.focus(nameField);
+  await again.$eval(nameField, (input) => input.select());
+  if (name) await again.keyboard.type(name);
+  else await again.keyboard.press("Backspace");
+  await again.keyboard.press("Enter");
+};
+await rename("Premium promo");
+const savedRule = async () =>
+  (await ext.get("unhooked.custom.reddit"))["unhooked.custom.reddit"]?.[0];
+await until("a removal can be renamed, and keeps what the wand called it", async () => {
+  const rule = await savedRule();
+  return rule?.label === "Premium promo" && rule.original === "Promo";
+});
+await rename("");
+await until(
+  "clearing the name puts the wand's name back",
+  async () => (await savedRule())?.label === "Promo",
+);
+
+// Skip the feeds: the stronger option, with a page of the site's own to go to instead.
+const skip = (key) =>
+  ext.get(`unhooked.site.reddit.${key}`).then((r) => r[`unhooked.site.reddit.${key}`]);
+check(
+  "Skip the feeds is offered on the site",
+  await again.$eval("#skipSection", (el) => !el.hidden),
+);
+await again.click("label.row:has(#skipToggle)");
+await until("turning it on is saved", async () => (await skip("redirect")) === true);
+await again.click('#skipChoices [data-path="/message/inbox/"]');
+await until(
+  "choosing where to go is saved",
+  async () => (await skip("redirectTo")) === "/message/inbox/",
+);
+await again.click('#skipChoices [data-path=""]');
+await until("Other opens a path field", async () =>
+  again.$eval("#skipPathForm", (el) => !el.hidden),
+);
+await again.type("#skipPath", "//elsewhere.example");
+await again.keyboard.press("Enter");
+await until("a path off the site is refused", async () =>
+  (await text(again, "#saveStatus")).includes("starting with /"),
+);
+await again.$eval("#skipPath", (el) => (el.value = ""));
+await again.type("#skipPath", "https://www.reddit.com/r/rust/");
+await again.keyboard.press("Enter");
+await until(
+  "a pasted address on the site becomes its path",
+  async () => (await skip("redirectTo")) === "/r/rust/",
+);
+await ext.set({ "unhooked.site.reddit.redirect": false, "unhooked.site.reddit.redirectTo": null });
+
+// Any other website gets its own place in the rail, for the wand.
+const otherSite = await newPage();
+await stub(otherSite, [
+  ["https://example.org/", '<!doctype html><div class="banner">Banner</div><p>Text</p>'],
+]);
+await otherSite.goto("https://example.org/", { waitUntil: "load" });
+await ext.set({
+  "unhooked.custom.web:example.org": [{ selector: ".banner", label: "Banner", at: 1 }],
+});
+const onOther = await openPopup(`?tab=${await ext.tabId("example.org")}`);
+await onOther.bringToFront();
+check("another website appears in the rail", (await onOther.$$("#sitePicker .site")).length === 11);
+check(
+  "and opens selected, named by its host",
+  (await text(onOther, "#siteName")) === "example.org",
+);
+check(
+  "with the wand, and without controls it doesn't have",
+  await onOther.evaluate(
+    () =>
+      !document.querySelector("#openWand").disabled &&
+      document.querySelector("#presets").hidden &&
+      document.querySelector("#controlsSection").hidden &&
+      document.querySelector("#siteEnabled").hidden,
+  ),
+);
+await until("its removals are listed", async () =>
+  (await onOther.$eval("#customList", (el) => el.textContent)).includes(".banner"),
+);
+await onOther.click("#resetAll");
+await until(
+  "Forget site removes them",
+  async () =>
+    (await ext.get("unhooked.custom.web:example.org"))["unhooked.custom.web:example.org"] ===
+    undefined,
+);
+await otherSite.close();
+
 // The picker opens in a tab, on the selected site.
+await popup.bringToFront();
 await popup.click("label.site:has(#site-reddit)");
 const opened = browser.waitForTarget((t) => t.url().includes("/ui/picker/index.html"));
 await popup.click("#openPicker");

@@ -171,8 +171,11 @@ export async function stub(page, routes) {
   await page.setRequestInterception(true);
   page.on("request", (request) => {
     const hit = routes.find(([prefix]) => request.url().startsWith(prefix));
-    if (hit) void request.respond({ status: 200, contentType: "text/html", body: hit[1] });
-    else void request.continue();
+    // A page that navigates away (a redirect under test) can cancel the request mid-reply.
+    const done = hit
+      ? request.respond({ status: 200, contentType: "text/html", body: hit[1] })
+      : request.continue();
+    done?.catch?.(() => {});
   });
 }
 

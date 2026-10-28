@@ -263,26 +263,31 @@ export const SKETCHES: Record<ControlSiteId, readonly View[]> = {
   ],
   instagram: [
     {
-      // Instagram needs a login. The 245px navigation, 630px feed with the stories tray above
-      // it, and the right-hand suggestions follow its desktop layout.
+      // Measured signed in (2026, 1440px): a 72px icon column, the 630px feed with the stories
+      // tray above it, and the suggestions column on the right.
       id: "home",
       label: "Home",
       path: "instagram.com",
-      height: 900,
-      basis: "structure",
+      height: 1000,
+      basis: "measured",
       parts: [
-        { label: "Navigation", box: [0, 0, 245, 900], texture: "list" },
-        { label: "Stories", box: [460, 24, 630, 110], feature: "hideStories", texture: "chip" },
+        { label: "Navigation", box: [0, 0, 72, 1000], feature: "hideNavigation", texture: "list" },
+        {
+          label: "Reels & Explore links",
+          box: [4, 324, 64, 176],
+          feature: "hideNavLinks",
+          texture: "chip",
+        },
+        { label: "Stories", box: [214, 16, 630, 124], feature: "hideStories", texture: "chip" },
         {
           label: "Home feed",
-          box: [460, 150, 630, 750],
+          box: [294, 164, 470, 836],
           feature: "hideHomeFeed",
           texture: "media",
         },
-        { label: "Your account", box: [1150, 36, 290, 56], texture: "text" },
         {
-          label: "Suggested for you",
-          box: [1150, 108, 290, 330],
+          label: "Suggestions",
+          box: [908, 36, 319, 500],
           feature: "hideSuggestions",
           texture: "list",
         },
@@ -292,13 +297,14 @@ export const SKETCHES: Record<ControlSiteId, readonly View[]> = {
       id: "explore",
       label: "Explore",
       path: "instagram.com/explore",
-      height: 900,
-      basis: "structure",
+      height: 1000,
+      basis: "measured",
       parts: [
-        { label: "Navigation", box: [0, 0, 245, 900], texture: "list" },
+        { label: "Navigation", box: [0, 0, 72, 1000], feature: "hideNavigation", texture: "list" },
+        { label: "Search", box: [422, 24, 597, 40], texture: "text" },
         {
           label: "Explore grid",
-          box: [355, 24, 975, 876],
+          box: [187, 88, 1066, 912],
           feature: "hideExplore",
           texture: "grid",
         },
@@ -308,11 +314,11 @@ export const SKETCHES: Record<ControlSiteId, readonly View[]> = {
       id: "reels",
       label: "Reels",
       path: "instagram.com/reels",
-      height: 900,
+      height: 1000,
       basis: "structure",
       parts: [
-        { label: "Navigation", box: [0, 0, 245, 900], texture: "list" },
-        { label: "Reels", box: [580, 24, 560, 852], feature: "hideReels", texture: "tall" },
+        { label: "Navigation", box: [0, 0, 72, 1000], feature: "hideNavigation", texture: "list" },
+        { label: "Reels", box: [500, 24, 560, 952], feature: "hideReels", texture: "tall" },
       ],
     },
   ],

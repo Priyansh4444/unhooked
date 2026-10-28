@@ -3,10 +3,13 @@ import { CONTROL_SITES, controlSiteById } from "../sites/registry.ts";
 import {
   featurePatch,
   isPaused,
+  isSitePath,
   matchingPreset,
   mergeChanges,
   preferenceKey,
   presetPatch,
+  redirectToPatch,
+  renameRule,
   PRESETS,
   resolveSettings,
   youTubeOptions,
@@ -39,6 +42,8 @@ describe("independent scalar preferences", () => {
       paused: false,
       enabled: true,
       features: { hideHomeFeed: false, hideExplore: false, hideRecommendations: false },
+      redirect: false,
+      redirectTo: "/notifications",
     });
     expect(() => featurePatch("x", "hideHomeFeed", 1 as unknown as boolean)).toThrow();
     expect(() => featurePatch("unknown", "hideHomeFeed", true)).toThrow();
@@ -128,5 +133,24 @@ describe("independent scalar preferences", () => {
     };
     mergeChanges(raw, { "unhooked.site.youtube.hideComments": {} });
     expect(youTubeOptions(raw).hideComments).toBe(true);
+  });
+
+  it("accepts only same-site paths for skipping feeds", () => {
+    expect(isSitePath("/feed/subscriptions")).toBe(true);
+    expect(isSitePath("/playlist?list=WL")).toBe(true);
+    for (const bad of ["//evil.example", "/\\evil.example", "https://x.com/", "feed", "/a b"])
+      expect(isSitePath(bad), bad).toBe(false);
+    expect(() => redirectToPatch("x", "//evil.example")).toThrow();
+    expect(redirectToPatch("x", "/i/bookmarks")).toEqual({
+      "unhooked.site.x.redirectTo": "/i/bookmarks",
+    });
+  });
+
+  it("renames a wand removal and falls back to its first name when cleared", () => {
+    const rules = [{ selector: "#a", label: "div #a", at: 1 }];
+    const named = renameRule(rules, "#a", "  Promo banner ");
+    expect(named[0]).toEqual({ selector: "#a", label: "Promo banner", at: 1, original: "div #a" });
+    expect(renameRule(named, "#a", "")[0]!.label).toBe("div #a");
+    expect(renameRule(rules, "#b", "x")).toEqual(rules);
   });
 });

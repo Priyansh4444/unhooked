@@ -14,7 +14,7 @@ import { ext } from "../../shared/ext-api.ts";
 import { escapeHtml, Overlay } from "../../shared/overlay.ts";
 import { customKey, customRules, type CustomRule } from "../../shared/preferences.ts";
 import { describe, meaningfulTarget, selectorsFor } from "../../shared/selector.ts";
-import { siteForHost } from "../hosts.ts";
+import { wandSiteFor } from "../hosts.ts";
 
 interface Wand {
   stop(): void;
@@ -192,6 +192,5 @@ function start(siteId: string): Wand {
   return { stop };
 }
 
-const siteId = siteForHost(location.hostname);
 if (registry.__unhookedWand) registry.__unhookedWand.stop();
-else if (siteId) registry.__unhookedWand = start(siteId);
+else registry.__unhookedWand = start(wandSiteFor(location.hostname));

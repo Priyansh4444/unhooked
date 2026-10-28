@@ -277,6 +277,37 @@
           <div class="sections" id="socialControls" hidden></div>
         </section>
 
+        <section id="skipSection" aria-labelledby="skipHeading" hidden>
+          <h2 id="skipHeading" class="label">Stronger</h2>
+          <label class="row">
+            <span class="row-label"
+              >Skip the feeds<small class="feature-hint" id="skipHint"></small
+            ></span>
+            <input type="checkbox" class="uh-switch" id="skipToggle" />
+          </label>
+          <div class="row skip-to" id="skipTo">
+            <span class="row-label" id="skipToLabel">Go to</span>
+            <span
+              class="choices"
+              role="group"
+              aria-labelledby="skipToLabel"
+              id="skipChoices"
+            ></span>
+          </div>
+          <form class="row skip-path" id="skipPathForm" hidden>
+            <label class="visually-hidden" for="skipPath">Path on this site</label>
+            <input
+              type="text"
+              id="skipPath"
+              class="path-input"
+              spellcheck="false"
+              autocomplete="off"
+              placeholder="/a/page/you/use"
+            />
+            <button type="submit" class="text-button">Use</button>
+          </form>
+        </section>
+
         <section id="twitchSection" aria-labelledby="twitchHeading" hidden>
           <h2 id="twitchHeading" class="visually-hidden">Twitch chat</h2>
           <label class="row">

@@ -14,11 +14,17 @@ export interface SiteSettings {
   paused: boolean;
   enabled: boolean;
   features: Record<string, boolean>;
+  /** Skip the feeds: leave the site's feed pages for `redirectTo`. */
+  redirect: boolean;
+  redirectTo: string;
 }
+
+/** Keys that are about the whole site rather than one control. */
+const SITE_KEYS = ["enabled", "redirect", "redirectTo"];
 
 export function preferenceKey(siteId: string, featureId: string): string {
   const site = controlSiteById(siteId);
-  if (!site || (featureId !== "enabled" && !site.features.some((f) => f.id === featureId)))
+  if (!site || (!SITE_KEYS.includes(featureId) && !site.features.some((f) => f.id === featureId)))
     throw new Error(`Unknown preference ${siteId}.${featureId}`);
   return `unhooked.site.${siteId}.${featureId}`;
 }
@@ -36,12 +42,22 @@ export function resolveSettings(raw: RawStorage, site: ControlSite): SiteSetting
       site.id === "youtube" ? legacy[f.id as keyof YouTubeOptions] : false,
     );
   }
+  const redirectTo = raw[preferenceKey(site.id, "redirectTo")];
   return {
     paused: isPaused(raw),
     enabled: bool(raw[preferenceKey(site.id, "enabled")], true),
     features,
+    redirect: bool(raw[preferenceKey(site.id, "redirect")], false),
+    redirectTo:
+      typeof redirectTo === "string" && isSitePath(redirectTo)
+        ? redirectTo
+        : site.redirect.choices[0]!.path,
   };
 }
+
+/** A path on the same site ("/feed/subscriptions"), never another origin ("//evil.example"). */
+export const isSitePath = (path: string): boolean =>
+  /^\/(?![/\\])/.test(path) && path.length < 300 && !/\s/.test(path);
 
 export const isPaused = (raw: RawStorage): boolean =>
   bool(
@@ -60,6 +76,11 @@ export function youTubeOptions(raw: RawStorage): YouTubeOptions {
 export function featurePatch(siteId: string, featureId: string, value: boolean): RawStorage {
   if (typeof value !== "boolean") throw new TypeError("Preference must be boolean");
   return { [preferenceKey(siteId, featureId)]: value };
+}
+
+export function redirectToPatch(siteId: string, path: string): RawStorage {
+  if (!isSitePath(path)) throw new TypeError("Redirect target must be a path on the same site");
+  return { [preferenceKey(siteId, "redirectTo")]: path };
 }
 
 export function presetPatch(siteId: string, preset: Preset): RawStorage {
@@ -101,11 +122,13 @@ export interface CustomRule {
   selector: string;
   label: string;
   at: number;
+  /** What the wand called it, kept once the user renames it. */
+  original?: string;
 }
 
 export const customKey = (siteId: string): string => `unhooked.custom.${siteId}`;
 
-/** The site's wand removals, ignoring anything malformed in storage. */
+/** The site's wand removals, ignoring anything malformed in storage. `siteId` may be `web:<host>`. */
 export function customRules(raw: RawStorage, siteId: string): CustomRule[] {
   const list = raw[customKey(siteId)];
   if (!Array.isArray(list)) return [];
@@ -115,5 +138,18 @@ export function customRules(raw: RawStorage, siteId: string): CustomRule[] {
       typeof rule.selector === "string" &&
       rule.selector.length > 0 &&
       rule.selector.length < 600,
+  );
+}
+
+/** The removals with one renamed; an empty name goes back to what the wand called it. */
+export function renameRule(rules: CustomRule[], selector: string, label: string): CustomRule[] {
+  return rules.map((rule) =>
+    rule.selector === selector
+      ? {
+          ...rule,
+          label: label.trim().slice(0, 80) || rule.original || rule.label,
+          original: rule.original ?? rule.label,
+        }
+      : rule,
   );
 }

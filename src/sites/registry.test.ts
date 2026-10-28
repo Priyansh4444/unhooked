@@ -84,7 +84,9 @@ describe("protected routes", () => {
       expect(feed.rules.every((rule) => rule.routes.every((route) => route === "home"))).toBe(true);
       const css = compileSiteCss(site);
       expect(css).toContain(`html[data-uh-site="${id}"][data-uh-route="home"]`);
-      expect(css).not.toContain('[data-uh-route="other"]');
+      // Unknown routes only ever lose sidebar parts, never primary content.
+      for (const line of css.split("\n").filter((l) => l.includes('[data-uh-route="other"]')))
+        expect(line).toContain('[data-testid="sidebarColumn"]');
       expect(css).not.toContain('[data-uh-route="messages"]');
     },
   );
@@ -114,9 +116,16 @@ describe("protected routes", () => {
       const site = controlSiteById(id)!;
       const rules = site.features.find((f) => f.id === feature)!.rules;
       expect(rules.some((rule) => rule.routes.join() === "*")).toBe(true);
-      // Anything beyond the sidebar-only rule must stay on Home (Reddit's whole right column).
-      for (const rule of rules.filter((r) => r.routes.join() !== "*"))
-        expect(rule.routes.join()).toBe("home");
+      // Anything beyond the sidebar-only rule must stay on Home (Reddit's whole right column),
+      // or stay inside the sidebar and off search and threads (X's sidebar modules).
+      for (const rule of rules.filter((r) => r.routes.join() !== "*")) {
+        if (rule.routes.join() === "home") continue;
+        expect(rule.selectors.every((s) => s.startsWith('[data-testid="sidebarColumn"] '))).toBe(
+          true,
+        );
+        expect(rule.routes).not.toContain("search");
+        expect(rule.routes).not.toContain("detail");
+      }
       expect(compileSiteCss(site)).toContain(
         `html[data-uh-site="${id}"].uh-social-${id}-${feature} `,
       );

@@ -16,6 +16,14 @@ if (site && site.id !== "youtube") {
     if (html.getAttribute(name) !== value) html.setAttribute(name, value);
   };
 
+  // CSS hides a video but doesn't stop it, and a hidden Reel keeps talking. Videos that play
+  // while hidden, or are playing when their part of the page is hidden, are paused.
+  const pauseHidden = (video: Element) => {
+    if (video instanceof HTMLVideoElement && !video.paused && !video.checkVisibility())
+      video.pause();
+  };
+  addEventListener("play", (event) => pauseHidden(event.target as Element), true);
+
   runPageController({
     render(raw, html) {
       if (!style) {
@@ -33,6 +41,7 @@ if (site && site.id !== "youtube") {
           !state.paused && state.enabled && Boolean(state.features[feature.id]),
         );
       }
+      for (const video of document.querySelectorAll("video")) pauseHidden(video);
     },
   });
 }

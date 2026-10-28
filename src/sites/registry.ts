@@ -37,11 +37,27 @@ export type ControlSiteId =
   | "linkedin"
   | "threads";
 
+/** A page "Skip the feeds" can send you to instead of a feed. `{user}` is the signed-in account. */
+export interface RedirectChoice {
+  label: string;
+  path: string;
+}
+
+/** The stronger option: leave the site's feeds before they load, for a page you choose. */
+export interface Redirect {
+  /** Routes that are skipped, and the popup's sentence saying so. */
+  routes: readonly Route[];
+  skips: string;
+  /** Where to go; the first is the default. Users can also type their own path. */
+  choices: readonly RedirectChoice[];
+}
+
 export interface ControlSite {
   id: ControlSiteId;
   label: string;
   hosts: readonly string[];
   features: Feature[];
+  redirect: Redirect;
   classify(url: URL): Route;
 }
 
@@ -110,7 +126,14 @@ const ANYWHERE = ["*"] as const;
 
 const path = (url: URL): string => url.pathname.replace(/\/+$/, "") || "/";
 
-const CLASSIFIERS: Record<Exclude<ControlSiteId, "youtube">, (p: string) => Route | undefined> = {
+const CLASSIFIERS: Record<ControlSiteId, (p: string) => Route | undefined> = {
+  youtube(p) {
+    if (p === "/") return "home";
+    if (/^\/shorts(\/|$)/.test(p)) return "shorts";
+    if (/^\/(feed\/(trending|explore)|gaming)$/.test(p)) return "discovery";
+    if (p === "/watch") return "detail";
+    if (p === "/results") return "search";
+  },
   x(p) {
     if (p === "/home" || p === "/") return "home";
     if (/^\/explore(\/|$)/.test(p)) return "discovery";
@@ -176,12 +199,82 @@ const CLASSIFIERS: Record<Exclude<ControlSiteId, "youtube">, (p: string) => Rout
   },
 };
 
+const REDIRECTS: Record<ControlSiteId, Redirect> = {
+  youtube: {
+    routes: ["home", "discovery"],
+    skips: "Home and Explore send you to the page below; Shorts open in the normal player.",
+    choices: [
+      { label: "Subscriptions", path: "/feed/subscriptions" },
+      { label: "Watch later", path: "/playlist?list=WL" },
+      { label: "History", path: "/feed/history" },
+    ],
+  },
+  x: {
+    routes: ["home", "discovery"],
+    skips: "Home and Explore send you to the page below.",
+    choices: [
+      { label: "Notifications", path: "/notifications" },
+      { label: "Bookmarks", path: "/i/bookmarks" },
+      { label: "Messages", path: "/messages" },
+    ],
+  },
+  reddit: {
+    routes: ["home"],
+    skips: "Home, Popular and All send you to the page below.",
+    choices: [
+      { label: "Saved", path: "/user/me/saved/" },
+      { label: "Inbox", path: "/message/inbox/" },
+    ],
+  },
+  instagram: {
+    routes: ["home", "discovery", "shorts"],
+    skips: "Home, Explore and Reels send you to the page below.",
+    choices: [
+      { label: "Messages", path: "/direct/inbox/" },
+      { label: "Saved", path: "/{user}/saved/" },
+      { label: "Your profile", path: "/{user}/" },
+    ],
+  },
+  tiktok: {
+    routes: ["home", "discovery", "live"],
+    skips: "For You, Following, Explore and Live send you to the page below.",
+    choices: [{ label: "Messages", path: "/messages" }],
+  },
+  facebook: {
+    routes: ["home", "shorts", "discovery"],
+    skips: "Home, Reels and Watch send you to the page below.",
+    choices: [
+      { label: "Notifications", path: "/notifications" },
+      { label: "Saved", path: "/saved/" },
+      { label: "Messages", path: "/messages/" },
+    ],
+  },
+  linkedin: {
+    routes: ["home"],
+    skips: "The home feed sends you to the page below.",
+    choices: [
+      { label: "Notifications", path: "/notifications/" },
+      { label: "Messaging", path: "/messaging/" },
+      { label: "Jobs", path: "/jobs/" },
+    ],
+  },
+  threads: {
+    routes: ["home"],
+    skips: "For You and Following send you to the page below.",
+    choices: [
+      { label: "Activity", path: "/activity" },
+      { label: "Saved", path: "/saved" },
+    ],
+  },
+};
+
 const site = (id: ControlSiteId, label: string, features: Feature[]): ControlSite => ({
   id,
   label,
   hosts: SITE_HOSTS[id],
   features,
-  classify: (url) => (id === "youtube" ? "other" : (CLASSIFIERS[id](path(url)) ?? "other")),
+  redirect: REDIRECTS[id],
+  classify: (url) => CLASSIFIERS[id](path(url)) ?? "other",
 });
 
 export const CONTROL_SITES: readonly ControlSite[] = [
@@ -221,18 +314,34 @@ export const CONTROL_SITES: readonly ControlSite[] = [
       ],
       true,
     ),
-    feature(
-      "hideRecommendations",
-      "Hide sidebar distractions",
-      "Hide trends and suggested accounts in the sidebar.",
-      ANYWHERE,
-      [
-        '[data-testid="sidebarColumn"] [aria-label^="Timeline:"]',
-        '[data-testid="sidebarColumn"] [data-testid="trend"]',
-        '[data-testid="sidebarColumn"] aside',
+    {
+      id: "hideRecommendations",
+      label: "Hide sidebar distractions",
+      description: "Hide news, trends, live events and suggested accounts in the sidebar.",
+      balanced: true,
+      rules: [
+        {
+          routes: ANYWHERE,
+          selectors: [
+            '[data-testid="sidebarColumn"] [aria-label^="Timeline:"]',
+            '[data-testid="sidebarColumn"] section:has([data-testid="trend"])',
+            '[data-testid="sidebarColumn"] div:has(> [data-testid^="news_sidebar"])',
+            // Live on X: a broadcast card tracked like an ad.
+            '[data-testid="sidebarColumn"] div:has(> [data-testid="placementTracking"])',
+            '[data-testid="sidebarColumn"] aside',
+          ],
+        },
+        // X keeps adding sidebar modules (Today's News, live sports scores, Live on X), so keep
+        // only the first block, the search box, as Control Panel for Twitter does. Search keeps
+        // its filters and a post its "Relevant people", so those routes only lose the above.
+        {
+          routes: ["home", "discovery", "profile", "other"],
+          selectors: [
+            '[data-testid="sidebarColumn"] > div > div > div > div > div > div:not(:first-child)',
+          ],
+        },
       ],
-      true,
-    ),
+    },
   ]),
   site("reddit", "Reddit", [
     feature(
@@ -264,29 +373,32 @@ export const CONTROL_SITES: readonly ControlSite[] = [
       ],
     },
   ]),
+  // Measured on the signed-in desktop site (2026): no test ids, so rules anchor on the few
+  // stable things there are: <main>, <article>, data-pagelet and the app's own link targets.
   site("instagram", "Instagram", [
     feature(
       "hideHomeFeed",
       "Hide home feed",
-      "Hide posts on Home. Profiles, individual posts, and messages stay accessible.",
+      "Hide posts on Home. Profiles, individual posts, saved posts and messages stay accessible.",
       HOME,
-      ['main [role="feed"]', "main article"],
+      // With no posts showing, Instagram keeps spinning for more.
+      ["main article", 'main [role="progressbar"]'],
       true,
     ),
     feature(
       "hideExplore",
       "Hide Explore grid",
-      "Hide the discovery grid on Explore.",
+      "Hide the discovery grid on Explore; its search box stays.",
       DISCOVERY,
-      ['main [role="main"]', "main > div"],
+      ['main > div > div:has(a[href^="/p/"], a[href^="/reel/"])'],
       true,
     ),
     feature(
       "hideSuggestions",
-      "Hide suggested accounts",
-      "Hide the suggested-account panel on Home.",
+      "Hide suggestions sidebar",
+      "Hide the column beside the Home feed: suggested accounts and its links.",
       HOME,
-      ['[data-testid="suggested-users"]', "main aside"],
+      ['main > div > div:has(a[href="/explore/people/"])'],
       true,
     ),
     feature(
@@ -294,15 +406,32 @@ export const CONTROL_SITES: readonly ControlSite[] = [
       "Hide stories tray",
       "Hide the stories tray on Home.",
       HOME,
-      ['[data-testid="story-tray"]', '[role="menu"][aria-label="Stories"]'],
+      ['div:has(> [data-pagelet="story_tray"])', '[data-pagelet="story_tray"]'],
       false,
     ),
     feature(
       "hideReels",
       "Hide Reels feed",
-      "Hide the Reels viewer on Reels routes.",
+      "Hide the Reels viewer on Reels routes, and stop its videos.",
       ["shorts"],
       ["main"],
+      false,
+    ),
+    feature(
+      "hideNavLinks",
+      "Hide Reels & Explore links",
+      "Take the doors to the endless feeds out of the navigation.",
+      ANYWHERE,
+      ['a[href="/reels/"]:not(main a)', 'a[href="/explore/"]:not(main a)'],
+      true,
+    ),
+    feature(
+      "hideNavigation",
+      "Hide navigation",
+      "Hide the whole navigation column. Pair it with Skip the feeds to land on your saved posts.",
+      ANYWHERE,
+      // The column that holds the app's own links, and not the page's content.
+      ['div:has(a[href="/reels/"]):has(a[href^="/direct/inbox"]):not(:has(main))'],
       false,
     ),
   ]),

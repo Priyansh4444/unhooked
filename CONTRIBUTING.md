@@ -74,6 +74,18 @@ CHROME_PATH=/path/to/chromium bun e2e/live.mjs [youtube x …]  # LIVE_PROFILE o
 
 "STILL VISIBLE" fails the run (hiding is broken). "no match" is a warning: the part may just not be on that page, or the site changed its markup; the screenshot tells which. The profile lives in `~/.cache/unhooked-live-profile`; your passwords never pass through the scripts.
 
+**In the browser you already use.** Signed-in markup is easiest to read in your own browser. With a Chromium browser (Helium, Chrome 144+), open `chrome://inspect/#remote-debugging`, turn remote debugging on, then:
+
+```sh
+bun scripts/attach.ts serve &                          # connects once; allow it in the browser
+bun scripts/attach.ts open https://www.instagram.com/ 1440   # its own window, behind yours
+bun scripts/attach.ts outline instagram.com main 10    # roles, test ids, labels and boxes
+bun scripts/attach.ts measure instagram.com 'stories=[data-pagelet="story_tray"]'
+bun scripts/attach.ts quit                             # closes its windows, disconnects
+```
+
+`serve` holds one connection so the browser asks only once. Your own tabs are only read; `open`, `goto` and `shot` work on the windows it opened. Prefer what a site keeps stable — `<main>`, `<article>`, `data-testid`, `data-pagelet`, `aria-*` and the app's own link targets (`a[href="/reels/"]`) — over generated class names, and write down where and when a rule was measured.
+
 ### Keep sketches and selectors true to the sites
 
 Sites change their markup. `scripts/measure-layout.ts` loads a page and prints where each selector sits (in pixels of a 1440px window) and how many elements it matches:
@@ -122,7 +134,7 @@ bun e2e/run.mjs chrome social popup        # only some suites
 MINIFY=1 bun e2e/run.mjs chrome            # the minified bundle, as shipped
 ```
 
-Suites `smoke`, `social`, `youtube-controls`, `popup`, `picker`, `twitter` and `twitch` run against stubbed pages and need no network (`popup` and `picker` are Chrome only: Firefox won't let automation open extension pages). `twitch-cards`, `excalidraw` and the `youtube*` suites use the live sites deliberately, so they need network and can fail when a site changes.
+Suites `smoke`, `social`, `youtube-controls`, `popup`, `picker`, `wand`, `skip`, `twitter` and `twitch` run against stubbed pages and need no network (`popup` and `picker` are Chrome only: Firefox won't let automation open extension pages). `twitch-cards`, `excalidraw` and the `youtube*` suites use the live sites deliberately, so they need network and can fail when a site changes.
 
 ## Releasing
 
