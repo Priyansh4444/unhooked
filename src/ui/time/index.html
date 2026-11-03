@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Your time · Unhooked</title>
+    <link rel="icon" href="../../../icons/icon-32.png" />
+    <link rel="stylesheet" href="../shared/theme.css" />
+    <link rel="stylesheet" href="time.css" />
+  </head>
+  <body>
+    <header class="top">
+      <p class="brand">
+        <img src="../../../icons/icon-48.png" width="20" height="20" alt="" />unhooked
+        <span class="crumb">/ your time</span>
+      </p>
+      <p class="label" id="status" role="status" aria-live="polite"></p>
+    </header>
+
+    <main>
+      <div class="filters">
+        <div class="ranges" id="ranges" role="group" aria-label="Period">
+          <span class="ranges-mark" id="rangesMark" aria-hidden="true"></span>
+        </div>
+        <div class="site-filter" id="siteFilter" hidden>
+          <button type="button" class="chip" id="clearSite"></button>
+          <button type="button" class="text-button" id="forgetSite">
+            Forget and stop counting
+          </button>
+        </div>
+        <button type="button" class="action share" id="openShare">
+          <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+            <path
+              d="M8 10V2.5M4.75 5.5 8 2.25l3.25 3.25M3 9.5v3.25c0 .4.35.75.75.75h8.5c.4 0 .75-.35.75-.75V9.5"
+            />
+          </svg>
+          Share
+        </button>
+      </div>
+
+      <section class="headline" aria-labelledby="hero">
+        <div>
+          <p class="hero" id="hero">0s</p>
+          <p class="hero-note" id="heroNote"></p>
+          <p class="hero-compare" id="heroCompare"></p>
+        </div>
+        <ul class="insights" id="insights"></ul>
+      </section>
+
+      <p class="notice" id="notice" hidden></p>
+
+      <dl class="tiles">
+        <div>
+          <dt>Daily average</dt>
+          <dd id="tileAverage">0s</dd>
+          <p class="tile-note" id="tileDays"></p>
+        </div>
+        <div>
+          <dt>On feeds</dt>
+          <dd id="tileFeeds">0%</dd>
+          <div class="meter" aria-hidden="true"><span id="feedMeter"></span></div>
+        </div>
+        <div>
+          <dt>Sites</dt>
+          <dd id="tileSites">0</dd>
+          <p class="tile-note" id="tileTop"></p>
+        </div>
+        <div>
+          <dt>Busiest hour</dt>
+          <dd id="tilePeak">None yet</dd>
+          <p class="tile-note">across this period</p>
+        </div>
+      </dl>
+
+      <section class="chart" aria-labelledby="timelineHeading">
+        <h2 class="label" id="timelineHeading">Time online</h2>
+        <div id="timeline" class="timeline"></div>
+      </section>
+
+      <section class="chart sessions" aria-labelledby="sessionsHeading">
+        <h2 class="label" id="sessionsHeading">Sessions</h2>
+        <p class="chart-note" id="sessionsNote"></p>
+        <dl class="tiles five">
+          <div>
+            <dt>Sessions</dt>
+            <dd id="sessionCount">0</dd>
+            <p class="tile-note" id="sessionCountNote"></p>
+          </div>
+          <div>
+            <dt>Average</dt>
+            <dd id="sessionAverage">0s</dd>
+            <p class="tile-note" id="sessionMedian"></p>
+          </div>
+          <div>
+            <dt>Longest</dt>
+            <dd id="sessionLongest">0s</dd>
+            <p class="tile-note" id="sessionLongestNote"></p>
+          </div>
+          <div>
+            <dt>Shortest</dt>
+            <dd id="sessionShortest">0s</dd>
+            <p class="tile-note" id="sessionShortestNote"></p>
+          </div>
+          <div>
+            <dt>Focused</dt>
+            <dd id="sessionFocused">0s</dd>
+            <p class="tile-note" id="sessionFocusedNote"></p>
+          </div>
+        </dl>
+        <div id="buckets" class="buckets"></div>
+      </section>
+
+      <div class="split">
+        <section class="chart" aria-labelledby="sitesHeading">
+          <h2 class="label" id="sitesHeading">Where it went</h2>
+          <ol class="sites" id="sites"></ol>
+          <button type="button" class="text-button" id="moreSites" hidden></button>
+          <p class="empty" id="sitesEmpty" hidden>Nothing counted in this period yet.</p>
+        </section>
+
+        <section class="chart" aria-labelledby="heatHeading">
+          <h2 class="label" id="heatHeading">When you're online</h2>
+          <div class="heat" id="heat"></div>
+          <p class="heat-key" aria-hidden="true">
+            less <i style="--s: 0.35"></i><i style="--s: 0.6"></i><i style="--s: 0.8"></i
+            ><i style="--s: 1"></i> more
+          </p>
+        </section>
+      </div>
+
+      <details class="numbers">
+        <summary class="label">The numbers</summary>
+        <div class="numbers-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Site</th>
+                <th scope="col">Time</th>
+                <th scope="col">Sessions</th>
+                <th scope="col">Average</th>
+                <th scope="col">Shortest</th>
+                <th scope="col">Longest</th>
+              </tr>
+            </thead>
+            <tbody id="siteNumbers"></tbody>
+          </table>
+          <table>
+            <thead>
+              <tr>
+                <th scope="col" id="numbersHead">Day</th>
+                <th scope="col">Time</th>
+              </tr>
+            </thead>
+            <tbody id="numbersBody"></tbody>
+          </table>
+        </div>
+      </details>
+
+      <footer class="foot">
+        <label class="foot-switch">
+          <input type="checkbox" class="uh-switch" id="trackSwitch" />
+          <span>Count my time</span>
+        </label>
+        <p class="foot-note">
+          It counts the site in front while you're using it, not private windows. It stays on this
+          computer: never uploaded, and not part of Move settings.
+        </p>
+        <p class="foot-ignored" id="ignored" hidden></p>
+        <button type="button" class="text-button" id="eraseAll">Erase everything</button>
+      </footer>
+    </main>
+
+    <div class="tip" id="tip" role="tooltip" hidden>
+      <strong id="tipValue"></strong><span id="tipLabel"></span>
+    </div>
+
+    <dialog class="share-dialog" id="shareDialog" aria-labelledby="shareTitle">
+      <div class="share-head">
+        <h2 id="shareTitle">Share this</h2>
+        <button type="button" class="close" id="closeShare" aria-label="Close">
+          <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+            <path d="m3.5 3.5 9 9m0-9-9 9" />
+          </svg>
+        </button>
+      </div>
+      <canvas id="card" width="2400" height="1350"></canvas>
+      <div class="share-actions">
+        <label class="foot-switch">
+          <input type="checkbox" class="uh-switch" id="showNames" checked />
+          <span>Show site names</span>
+        </label>
+        <p class="share-status" id="shareStatus" role="status" aria-live="polite"></p>
+        <button type="button" class="action" id="savePng">Save PNG</button>
+        <button type="button" class="action" id="copyPng">Copy image</button>
+        <button type="button" class="action post" id="postX">Post on X</button>
+      </div>
+    </dialog>
+
+    <script type="module" src="time.ts"></script>
+  </body>
+</html>

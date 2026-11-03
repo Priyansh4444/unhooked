@@ -1,0 +1,165 @@
+/*
+ * Shared by the popup and the picker. Dark only. After anoma.ly's notes: ink panels with hairline
+ * rules, parchment serif for prose, small mono caps for chrome, amber dot-matrix drawings, and
+ * one hand-written red note. Red is the only colour that means "this is acting".
+ */
+@font-face {
+  font-family: "Commit Mono";
+  src: url("/ui/fonts/commit-mono.woff2") format("woff2");
+  font-display: block;
+}
+@font-face {
+  font-family: "Newsreader";
+  src: url("/ui/fonts/newsreader.woff2") format("woff2");
+  font-display: block;
+}
+@font-face {
+  font-family: "Caveat";
+  src: url("/ui/fonts/caveat.woff2") format("woff2");
+  font-weight: 600;
+  font-display: block;
+}
+
+:root {
+  color-scheme: dark;
+  --ink: #0a0a0a;
+  --panel: #0e0e0e;
+  --raised: #161616;
+  --rule: #262626;
+  --rule-strong: #3a3a3a;
+  --parchment: #d4cec4;
+  --bright: #f2ede4;
+  --stone: #8a857c;
+  --dim: #5c5852;
+  --amber: #d6a24e;
+  --red: #e3170c;
+  --mono: "Commit Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+  --serif: "Newsreader", "Iowan Old Style", Georgia, serif;
+  --hand: "Caveat", "Segoe Print", cursive;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+* {
+  box-sizing: border-box;
+}
+[hidden] {
+  display: none !important;
+}
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+html {
+  background: var(--ink);
+}
+body {
+  margin: 0;
+  color: var(--parchment);
+  background: var(--ink);
+  font: 12.5px/1.5 var(--mono);
+  -webkit-font-smoothing: antialiased;
+}
+button,
+input {
+  font: inherit;
+  color: inherit;
+}
+button {
+  cursor: pointer;
+}
+button:disabled,
+input:disabled {
+  opacity: 0.45;
+  cursor: wait;
+}
+:focus-visible {
+  outline: 1px solid var(--red);
+  outline-offset: 2px;
+}
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+/* Small mono caps: the chrome voice ("SESSION", "STOPPED"). */
+.label {
+  color: var(--stone);
+  font: 10.5px/1 var(--mono);
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
+/* Square switch: an outline when off, red with a parchment thumb when on. */
+.uh-switch {
+  appearance: none;
+  position: relative;
+  flex-shrink: 0;
+  width: 30px;
+  height: 16px;
+  margin: 0;
+  border: 1px solid var(--rule-strong);
+  border-radius: 0;
+  background: transparent;
+  cursor: pointer;
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease;
+}
+.uh-switch:after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 10px;
+  height: 10px;
+  background: var(--dim);
+  transition:
+    transform 160ms var(--ease-out),
+    background-color 150ms ease;
+}
+.uh-switch:checked,
+.uh-switch:indeterminate {
+  border-color: var(--red);
+  background: var(--red);
+}
+.uh-switch:checked:after,
+.uh-switch:indeterminate:after {
+  background: var(--bright);
+}
+.uh-switch:checked:after {
+  transform: translateX(14px);
+}
+.uh-switch:indeterminate:after {
+  transform: translateX(7px);
+}
+
+/* Text buttons: underline in red when current. */
+.text-button {
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  color: var(--parchment);
+  text-decoration: underline;
+  text-decoration-color: var(--rule-strong);
+  text-underline-offset: 3px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .text-button:hover {
+    color: var(--bright);
+    text-decoration-color: var(--red);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *:before,
+  *:after {
+    transition-property: background-color, border-color, color, opacity !important;
+    animation: none !important;
+  }
+}

@@ -1,0 +1,141 @@
+# Contributing
+
+Before opening a pull request, run `bun run check` (typecheck, lint, format) and `bun test`, and if you touched behaviour, the end-to-end suites (see [Tests](#tests)).
+
+## Getting started
+
+```sh
+bun install
+bun run dev            # unminified Chrome build in dist/, rebuilt on every change
+```
+
+Load `dist/` as an unpacked extension (`chrome://extensions` → Developer mode → Load unpacked). For Firefox, `bun run build:firefox` and load `dist-firefox/` from `about:debugging`. (Plain `bun build.ts` watches forever; use the `build:*` scripts for one-off builds.)
+
+## Map of the code
+
+```
+src/
+  background.ts            entry: install defaults, shortcuts, screenshots, Twitch
+  sites/
+    hosts.ts               every site's hosts: manifests, registries and the popup read this
+    registry.ts            hide controls: per-site features, route classifiers, generated CSS
+    social/content.ts      hide controls for X, Reddit, Instagram, TikTok, Facebook, LinkedIn, Threads
+    custom/content.ts      on every site: applies wand removals, draws hover previews
+    wand/content.ts        the magic wand, injected by the popup on demand
+    film/                  film mode, injected on demand; frame.ts is the framing arithmetic
+    youtube/               content.ts (controls in every frame), options.ts + controls.css
+    x/                     X's Layout switches: content.ts + style.css
+    excalidraw/            the site's switch: content.ts + style.css
+    twitch/                chat link pills, hover cards, URL log
+      links.ts               URL -> kind + pill label (pure, used by both sides)
+      chat/                  page side: observer, pills, hover card
+      background/            lookups (providers.ts), cache, URL log
+  time/                    the time tracker: tracker.ts (pure arithmetic), store.ts (IndexedDB),
+                           stats.ts (what the page shows), background.ts (browser events)
+  shared/
+    ext-api.ts             the one browser API object (`browser` or `chrome`)
+    settings.ts            storage keys and defaults
+    preferences.ts         hide-control preferences: scalar keys, presets, pause, legacy fallback
+    page-runtime.ts        content lifecycle for hide controls: storage sync, SPA routes, self-healing
+    keys.ts                shortcut matching
+  ui/
+    shared/                theme.css (dark tokens, fonts, switch) and the bundled fonts with licences
+    popup/                 the toolbar popup
+    picker/                the click-to-hide page; sketches.ts maps each drawn part to a control
+    transfer/              moving settings between browsers (the file format is shared/transfer.ts)
+    time/                  your time: the charts (time.ts) and the share card (card.ts)
+build.ts, build/manifest.ts   bundling, and the one source for every browser's manifest
+e2e/                       end-to-end tests (Chrome + Firefox)
+```
+
+Each folder under `sites/` with a `content.ts` is bundled to `dist/sites/<name>/content.js`, and its stylesheets are attached by the manifest (`BUNDLES` in `build/manifest.ts`). Code talks to the browser only through `ext`, so nothing is polyfilled. Bundles are wrapped in their own scope: scripts injected into one page share an isolated world (on x.com the social and focus scripts both run), and minified top-level names would otherwise collide.
+
+## How hide controls work
+
+**The popup writes preferences; content scripts only read them.** Each preference is its own storage key (`unhooked.site.<site>.<feature>`), so writes never overwrite each other. `shared/preferences.ts` resolves them, including the global pause and the read-only fallback to the original YouTube extension's `unhookedOptions`.
+
+- Rules are CSS gated on `<html>` state: `data-uh-site`, `data-uh-route` (from the site's route classifier) and one class per feature. New posts are covered by CSS; turning a control off restores the page without touching its nodes.
+- Route classifiers are conservative. Feed rules apply only on routes a classifier recognises; anything else is `other`, which nothing hides. Sidebar-only rules use the `*` route and apply everywhere.
+- `shared/page-runtime.ts` keeps the page in sync: a storage snapshot with early changes buffered, a cheap URL poll (isolated worlds can't see the page's `pushState`), back/forward-cache stop and start, and an observer on `<html>` that restores state when a site resets its classes or drops the injected stylesheet. Renders write only what changed, so the observer can't loop.
+- YouTube keeps its long-standing class-per-option stylesheet (`controls.css`) and runs in every frame, so embedded players on other sites get the controls too.
+
+### Add a hide-control site
+
+1. `sites/hosts.ts`: add its hosts. 2. `sites/registry.ts`: add a route classifier and its features (conservative selectors; feed rules on `home`, sidebar-only rules on `*`). 3. Add the site to `SOCIAL_SITES` in `build/manifest.ts`. 4. Draw it in `ui/picker/sketches.ts`, from measurements (below); a unit test fails until every feature appears in a sketch. 5. Add a fixture to `e2e/social-fixtures.mjs`.
+
+### Test the real sites
+
+Stubbed pages prove the extension's logic; only the real sites prove the selectors. `e2e/live.mjs` visits every page of every site in a real Chrome, counts what each control matches, turns it on and checks those elements are gone, with before/after screenshots and `e2e/shots/live/report.json`. Pages behind a login need a signed-in profile, which you create once:
+
+```sh
+CHROME_PATH=/path/to/chromium bun scripts/live-login.ts      # log in to the sites, close the window
+CHROME_PATH=/path/to/chromium bun e2e/live.mjs [youtube x …]  # LIVE_PROFILE overrides the profile
+```
+
+"STILL VISIBLE" fails the run (hiding is broken). "no match" is a warning: the part may just not be on that page, or the site changed its markup; the screenshot tells which. The profile lives in `~/.cache/unhooked-live-profile`; your passwords never pass through the scripts.
+
+**In the browser you already use.** Signed-in markup is easiest to read in your own browser. With a Chromium browser (Helium, Chrome 144+), open `chrome://inspect/#remote-debugging`, turn remote debugging on, then:
+
+```sh
+bun scripts/attach.ts serve &                          # connects once; allow it in the browser
+bun scripts/attach.ts open https://www.instagram.com/ 1440   # its own window, behind yours
+bun scripts/attach.ts outline instagram.com main 10    # roles, test ids, labels and boxes
+bun scripts/attach.ts measure instagram.com 'stories=[data-pagelet="story_tray"]'
+bun scripts/attach.ts quit                             # closes its windows, disconnects
+```
+
+`serve` holds one connection so the browser asks only once. Your own tabs are only read; `open`, `goto` and `shot` work on the windows it opened. Prefer what a site keeps stable — `<main>`, `<article>`, `data-testid`, `data-pagelet`, `aria-*` and the app's own link targets (`a[href="/reels/"]`) — over generated class names, and write down where and when a rule was measured.
+
+### Keep sketches and selectors true to the sites
+
+Sites change their markup. `scripts/measure-layout.ts` loads a page and prints where each selector sits (in pixels of a 1440px window) and how many elements it matches:
+
+```sh
+CHROME_PATH=/path/to/chromium bun scripts/measure-layout.ts https://www.reddit.com/r/popular/ \
+  'feed=shreddit-feed' 'sidebar=#right-sidebar-container'
+```
+
+Use it to place parts in `ui/picker/sketches.ts` (boxes are `[x, y, width, height]` in those pixels) and to catch hide selectors that match nothing. Mark a view `basis: "measured"` only when it was measured; pages behind a login are `"structure"`, and the picker says so.
+
+## How film mode works
+
+The popup, or the `film-mode` command, injects `sites/film/content.js`, the same way the wand starts. Both count as invoking the extension on that tab, which is what lets `tabs.captureVisibleTab` run: the background takes the picture when the script asks, and the script hides its overlay first and crops afterwards.
+
+A framed post is a copy on a stage above the page. X rebuilds its timeline as you scroll and moves posts with transforms, so the real post is never moved or restyled beyond hiding it while its copy is up. The e2e build has `<all_urls>` so tests can take a picture without a real click on the toolbar.
+
+## How the time tracker works
+
+Every browser event ends in `step` (`time/background.ts`): credit the time since the last step to the site being counted, then look at what's in front now. Steps run one at a time and the current site is stored, so the browser stopping the background loses nothing; a minute's alarm wakes it, and `MAX_GAP_MS` keeps a sleeping computer from counting as time on a site.
+
+History lives in IndexedDB, not `storage.local`. Every content script reads and listens to `storage.local`, and a year of browsing shouldn't reach every page, or wake every tab each minute.
+
+## How Twitch link pills work
+
+`chat/observer.ts` watches the chat and turns links into pills (`chat/pill.ts`) and/or logs them; pills and the log are independent settings, and both stop while paused. Hovering a pill opens one shared card (`chat/hovercard.ts`, content in `chat/card-views.ts`). Details come from the background (`background/resolve.ts`), which asks a **provider** per site.
+
+### Add a link provider
+
+In `sites/twitch/background/providers.ts`: write `(link, base) => Promise<LinkMeta>`, register it in `PROVIDERS` by link kind, and add its host to `LOOKUP_HOSTS` in `sites/hosts.ts` (that becomes the manifests' host permissions). New kinds of link (label, icon) go in `links.ts` and `chat/icons.ts`. Update the network list in the README's privacy section.
+
+## Tests
+
+`bun test` runs the unit tests (preferences, registry and routes, YouTube options, the page runtime through a fake environment, Twitch link parsing, and a production build check).
+
+`e2e/` drives a real browser with the built extension, the same tests in Chrome and Firefox. A special "e2e" build (`dist-e2e-<browser>`) is the real code plus a tiny bridge (`e2e/extension/`) so tests can read and write extension storage and badges; everything else goes through pages like a user would.
+
+```sh
+# one-time: browsers (Chrome must be a build that still allows --load-extension, e.g. Chromium)
+bunx @puppeteer/browsers install chromium@latest
+bunx @puppeteer/browsers install firefox@stable
+
+CHROME_PATH=/path/to/chromium bun run e2e chrome
+FIREFOX_PATH=/path/to/firefox bun run e2e firefox
+bun e2e/run.mjs chrome social popup        # only some suites
+MINIFY=1 bun e2e/run.mjs chrome            # the minified bundle, as shipped
+```
+
+Suites `smoke`, `social`, `youtube-controls`, `popup`, `transfer`, `film`, `time`, `picker`, `wand`, `skip`, `twitter` and `twitch` run against stubbed pages and need no network (`popup`, `transfer` and `picker` are Chrome only: Firefox won't let automation open extension pages). `twitch-cards`, `excalidraw` and the `youtube*` suites use the live sites deliberately, so they need network and can fail when a site changes.
+
+## Releasing
+
+Bump `version` in `package.json` (the manifests read it). `bun run package` builds every browser and writes reproducible ZIPs to `dist/`; `bun run package:firefox:review` includes the source for add-on review. See [docs/PUBLISHING.md](docs/PUBLISHING.md).

@@ -1,0 +1,684 @@
+/*
+ * Popup layout. Tokens, fonts and the switch come from ../shared/theme.css.
+ * A session-list rail on the left (like anoma.ly's OpenCode panels), the selected site on the
+ * right. Hairlines, not boxes; red only where the extension is acting.
+ */
+
+/* Chromium action popups are capped at 600px tall. */
+body {
+  display: grid;
+  grid-template-columns: 132px 1fr;
+  width: 400px;
+  height: 600px;
+}
+
+/* ---- Rail ----------------------------------------------------------------------------------------- */
+.rail {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 16px 0 12px;
+  border-right: 1px solid var(--rule);
+  background: var(--panel);
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 14px 16px;
+  color: var(--bright);
+  font: 19px/1 var(--serif);
+}
+.brand img {
+  display: block;
+  border-radius: 4px;
+}
+.sites {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  transition: opacity 150ms ease;
+}
+.sites legend {
+  padding: 0 14px 8px;
+}
+.site {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 5px 12px 5px 14px;
+  color: var(--stone);
+  cursor: pointer;
+}
+/* The real radio covers the row, so clicks, arrow keys and focus stay native. */
+.site input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.site-name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.site-meta {
+  flex-shrink: 0;
+  color: var(--dim);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.site[data-state="on"] .site-meta {
+  color: var(--parchment);
+}
+.site[data-state="off"] .site-name {
+  color: var(--dim);
+}
+.site:has(input:checked) {
+  background: var(--raised);
+  box-shadow: inset 2px 0 0 var(--parchment);
+  color: var(--bright);
+}
+.rail .site:has(input:focus-visible) {
+  outline: 1px solid var(--red);
+  outline-offset: -1px;
+}
+.rail-foot {
+  display: grid;
+  gap: 10px;
+  margin-top: auto;
+  padding: 0 10px;
+}
+/* Icons share one 16px grid and draw in the text's colour. */
+.icon {
+  display: block;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.pause {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 9px;
+  line-height: 16px;
+  border: 1px solid var(--rule-strong);
+  background: transparent;
+  color: var(--parchment);
+  white-space: nowrap;
+  transition: transform 160ms var(--ease-out);
+}
+/* Paused is the one filled control in the rail. */
+.pause[aria-pressed="true"] {
+  border-color: var(--red);
+  background: var(--red);
+  color: var(--bright);
+}
+.pause:active {
+  transform: scale(0.98);
+}
+.rail-links {
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+  padding: 0 4px;
+  font-size: 11px;
+}
+.rail-links button {
+  padding: 0;
+  border: 0;
+  background: none;
+}
+.rail-links a,
+.rail-links button {
+  color: var(--stone);
+  text-decoration: underline;
+  text-decoration-color: var(--rule-strong);
+  text-underline-offset: 3px;
+}
+
+/* ---- Pane --------------------------------------------------------------------------------------- */
+.pane {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+.site-head {
+  padding: 15px 18px 12px;
+}
+.site-title {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+h1 {
+  color: var(--bright);
+  font: 26px/1.05 var(--serif);
+}
+#siteState {
+  margin-top: 5px;
+  color: var(--stone);
+  font-size: 11px;
+}
+.site-title .uh-switch {
+  margin-top: 6px;
+}
+.paused-note {
+  margin-top: 10px;
+  padding: 6px 9px;
+  border: 1px solid var(--red);
+  color: var(--red);
+  font-size: 11px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  transition:
+    opacity 200ms var(--ease-out),
+    transform 200ms var(--ease-out);
+  @starting-style {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+}
+.paused-note button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--bright);
+  letter-spacing: inherit;
+  text-transform: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* Text choices (presets, focus memory): the current one is bright with a red underline. */
+.choices {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+#presets {
+  margin-top: 13px;
+}
+.choices button {
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  color: var(--stone);
+}
+.choices button[aria-pressed="true"] {
+  color: var(--bright);
+  box-shadow: inset 0 -1px 0 var(--red);
+}
+
+/* Two ways to remove things by pointing: on the real page, or on a sketch of it. */
+.tools {
+  display: grid;
+  gap: 4px;
+  margin-top: 12px;
+}
+.tool {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--rule);
+  background: var(--panel);
+  color: var(--parchment);
+  font-size: 11.5px;
+  line-height: 16px;
+  text-align: left;
+  white-space: nowrap;
+  transition: transform 160ms var(--ease-out);
+}
+.tool span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* The wand button and its shortcut, which you click to record a new one. */
+.tool-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px;
+}
+.tool-row.even {
+  grid-template-columns: 1fr 1fr;
+}
+.shortcut {
+  min-width: 64px;
+  padding: 0 8px;
+  border: 1px solid var(--rule);
+  background: var(--panel);
+  color: var(--stone);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.shortcut.is-recording {
+  border-color: var(--red);
+  color: var(--bright);
+  animation: listening 1.1s ease-in-out infinite;
+}
+@keyframes listening {
+  50% {
+    border-color: var(--rule-strong);
+  }
+}
+.tool:disabled {
+  color: var(--dim);
+  cursor: not-allowed;
+}
+.tool:not(:disabled):active {
+  transform: scale(0.98);
+}
+.dots {
+  stroke: var(--amber);
+}
+.tool:disabled .dots {
+  stroke: var(--dim);
+}
+/* The wand's stick takes the text's colour; its sparks are red. */
+.spark {
+  fill: var(--red);
+  stroke: none;
+}
+.tool:disabled .spark {
+  fill: var(--dim);
+}
+
+main {
+  /* Holds the hidden row hints too; left to the page, they make the whole popup scroll. */
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--rule-strong) transparent;
+  padding: 0 0 10px;
+  border-top: 1px solid var(--rule);
+  transition: opacity 150ms ease;
+}
+/* Paused choices stay editable but read as dormant. */
+.is-paused main,
+.is-paused .sites {
+  opacity: 0.45;
+}
+main section:not([hidden]) + section:not([hidden]) {
+  margin-top: 6px;
+  border-top: 1px solid var(--rule);
+}
+main h2.label {
+  padding: 14px 18px 2px;
+}
+
+.row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 18px;
+  cursor: pointer;
+}
+.row .uh-switch,
+.row .choices {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.row-label,
+.feature-copy {
+  flex: 1;
+  min-width: 0;
+  color: var(--parchment);
+}
+.feature-copy strong {
+  display: block;
+  font-weight: inherit;
+}
+/* Descriptions are prose, so they are set in the serif. */
+.feature-hint,
+.feature-copy small,
+.log-empty {
+  display: block;
+  margin-top: 2px;
+  color: var(--stone);
+  font: 13.5px/1.3 var(--serif);
+}
+/* Row descriptions stay for screen readers; sighted users get them in the footer on hover. */
+.feature-hint,
+.feature-copy small {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.row {
+  align-items: center;
+}
+.slider-row {
+  flex-wrap: wrap;
+  align-items: baseline;
+}
+.slider-row output {
+  color: var(--stone);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+/* A hairline track and a square red thumb, instead of the browser's bright default. */
+.slider-row input[type="range"] {
+  flex-basis: 100%;
+  height: 16px;
+  margin: 4px 0 0;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+.slider-row input[type="range"]::-webkit-slider-runnable-track {
+  height: 1px;
+  background: var(--rule-strong);
+}
+.slider-row input[type="range"]::-moz-range-track {
+  height: 1px;
+  background: var(--rule-strong);
+}
+.slider-row input[type="range"]::-webkit-slider-thumb {
+  width: 10px;
+  height: 10px;
+  margin-top: -4.5px;
+  appearance: none;
+  background: var(--red);
+}
+.slider-row input[type="range"]::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  border: 0;
+  border-radius: 0;
+  background: var(--red);
+}
+.group-head {
+  position: relative;
+}
+/* The chevron sits beside the switch so every label shares one left edge. */
+.group-head .row-label {
+  padding-right: 28px;
+}
+.collapse-btn {
+  position: absolute;
+  top: 6px;
+  right: 50px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--stone);
+}
+.collapse-btn:before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-right: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;
+  transform: translateY(-2px) rotate(45deg);
+  transition: transform 160ms var(--ease-out);
+}
+.collapse-btn[aria-expanded="false"]:before {
+  transform: rotate(-45deg);
+}
+.group-children {
+  margin: 0 0 4px 18px;
+  border-left: 1px solid var(--rule);
+}
+.group-children .row {
+  padding-left: 12px;
+}
+.group.collapsed .group-children {
+  display: none;
+}
+
+.log-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 14px 18px 0;
+}
+.log-head h2.label {
+  padding: 0;
+}
+.log-head button,
+#undo,
+#resetAll {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--parchment);
+  font-size: 11px;
+  text-decoration: underline;
+  text-decoration-color: var(--rule-strong);
+  text-underline-offset: 3px;
+}
+.link-log {
+  margin: 0;
+  padding: 4px 18px 10px;
+  list-style: none;
+}
+.link-log li {
+  min-width: 0;
+  padding: 5px 0;
+}
+.link-log a {
+  display: block;
+  overflow: hidden;
+  color: var(--parchment);
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.link-log small {
+  color: var(--dim);
+  font-size: 11px;
+}
+
+.foot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 50px;
+  padding: 8px 18px;
+  border-top: 1px solid var(--rule);
+  font-size: 11px;
+}
+#undo {
+  color: var(--bright);
+  text-decoration-color: var(--red);
+}
+#saveStatus {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--stone);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.hint {
+  display: none;
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: var(--stone);
+  font: 13px/1.25 var(--serif);
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.is-hinting .hint {
+  display: -webkit-box;
+}
+.is-hinting #saveStatus {
+  display: none;
+}
+#saveStatus.error {
+  color: var(--red);
+  white-space: normal;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .site:not(:has(input:checked)):hover {
+    color: var(--parchment);
+  }
+  .pause[aria-pressed="false"]:hover,
+  .tool:not(:disabled):hover,
+  .shortcut:hover {
+    border-color: var(--red);
+  }
+  .rail-links a:hover,
+  .rail-links button:hover,
+  #resetAll:hover,
+  .log-head button:hover,
+  .link-log a:hover {
+    color: var(--bright);
+    text-decoration: underline;
+    text-decoration-color: var(--red);
+  }
+  .choices button:not([aria-pressed="true"]):hover,
+  .collapse-btn:hover {
+    color: var(--bright);
+  }
+  .row:hover {
+    background: var(--panel);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pause:active,
+  .tool:active {
+    transform: none;
+  }
+}
+
+/* Wand removals: first in the pane, one line each, and scrolling on their own past five. */
+.custom-list {
+  max-height: 150px;
+  margin: 0;
+  padding: 4px 0 6px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--rule-strong) transparent;
+  list-style: none;
+}
+.custom-list .row {
+  gap: 8px;
+  padding: 3px 12px 3px 18px;
+  cursor: default;
+}
+.bring-back {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--stone);
+  transition: transform 160ms var(--ease-out);
+}
+.bring-back:active {
+  transform: scale(0.9);
+}
+@media (hover: hover) and (pointer: fine) {
+  .bring-back:hover {
+    color: var(--bright);
+  }
+}
+
+/* A removal's name is a field that reads as text until you click it. */
+.rule-name {
+  flex: 1;
+  min-width: 0;
+  margin-left: -5px;
+  padding: 2px 4px;
+  border: 1px solid transparent;
+  background: none;
+  color: var(--parchment);
+  font: inherit;
+  text-overflow: ellipsis;
+  transition: border-color 150ms ease;
+}
+.rule-name:hover {
+  border-color: var(--rule);
+}
+.rule-name:focus {
+  border-color: var(--rule-strong);
+  outline: none;
+  background: var(--ink);
+  color: var(--bright);
+}
+
+/* Skip the feeds: where to go instead, as a short list of the site's own pages, or a path. */
+.skip-to {
+  flex-wrap: wrap;
+  align-items: baseline;
+  padding-top: 2px;
+  cursor: default;
+}
+.skip-to .row-label {
+  flex: 0 0 auto;
+  color: var(--stone);
+}
+.skip-to .choices {
+  flex-wrap: wrap;
+  row-gap: 4px;
+}
+.skip-path {
+  align-items: baseline;
+  padding-top: 0;
+  cursor: default;
+}
+.path-input {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 6px;
+  border: 1px solid var(--rule-strong);
+  background: var(--ink);
+  color: var(--bright);
+  font: inherit;
+  font-size: 11.5px;
+}
+.path-input:focus {
+  border-color: var(--stone);
+  outline: none;
+}
+.skip-path .text-button {
+  font-size: 11.5px;
+}
+.row.skip-to:hover,
+.row.skip-path:hover {
+  background: none;
+}
+
+/* The current tab's site, when Unhooked has no controls for it: set apart below the list. */
+.site-page {
+  margin-top: 6px;
+  padding-top: 9px;
+  border-top: 1px solid var(--rule);
+}
