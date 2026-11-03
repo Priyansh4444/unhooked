@@ -240,82 +240,119 @@ main {
   margin-bottom: 16px;
 }
 
-.bars-frame {
+/* A smooth line, and one amber fading out under it. Red is only ever "now". */
+.line-chart {
   position: relative;
-  height: 236px;
-  padding-left: 38px;
+  outline-offset: 4px;
+  cursor: crosshair;
+  touch-action: pan-y;
 }
-.grid {
-  position: absolute;
-  inset: 0 0 24px 0;
+.timeline {
+  height: 256px;
 }
-.grid div {
+.buckets {
+  height: 170px;
+  margin-top: 20px;
+}
+.line-chart svg {
   position: absolute;
-  right: 0;
-  left: 38px;
-  border-top: 1px solid var(--rule);
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.line-area {
+  stroke: none;
+}
+.stop-top {
+  stop-color: var(--amber);
+  stop-opacity: 0.34;
+}
+.stop-middle {
+  stop-color: var(--amber);
+  stop-opacity: 0.12;
+}
+.stop-bottom {
+  stop-color: var(--amber);
+  stop-opacity: 0;
+}
+.stop-line {
+  stop-color: var(--amber);
+}
+.stop-now {
+  stop-color: var(--red);
+}
+.line-stroke {
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.line-grid g {
   transition:
     transform var(--move),
     opacity 200ms ease;
 }
-.grid span {
-  position: absolute;
-  top: -7px;
-  left: -38px;
-  color: var(--dim);
-  font-size: 10.5px;
-  line-height: 14px;
+.line-grid line {
+  stroke: var(--rule);
+  stroke-width: 1;
+  shape-rendering: crispEdges;
+}
+.line-grid text {
+  fill: var(--dim);
+  font: 10.5px var(--mono);
   font-variant-numeric: tabular-nums;
 }
-.bars {
-  position: relative;
-  display: flex;
-  gap: 2px;
-  align-items: stretch;
-  justify-content: space-between;
-  height: 100%;
+.line-hair {
+  stroke: var(--rule-strong);
+  stroke-width: 1;
+  shape-rendering: crispEdges;
+  transition: opacity 120ms ease;
 }
-.col {
-  position: relative;
-  display: flex;
-  flex: 1 1 0;
-  flex-direction: column;
-  align-items: center;
-  min-width: 0;
-  max-width: 64px;
-  outline-offset: -1px;
+.line-dot {
+  fill: var(--amber);
+  stroke: var(--ink);
+  stroke-width: 2;
 }
-.track {
-  position: relative;
-  overflow: hidden;
-  flex: 1;
-  width: 100%;
-  max-width: 16px;
-  border-radius: 4px 4px 0 0;
+.line-end.is-now {
+  fill: var(--red);
 }
-.fill {
+.line-hover {
+  fill: var(--bright);
+  transition: opacity 120ms ease;
+  pointer-events: none;
+}
+.line-x {
   position: absolute;
-  inset: 0;
-  border-radius: 4px 4px 0 0;
-  background: var(--amber);
-  transform: translateY(100%);
-  transition:
-    transform var(--move),
-    background-color 150ms ease;
-  transition-delay: calc(var(--i, 0) * 1ms), 0ms;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 20px;
 }
-.col.is-current .fill {
-  background: var(--red);
-}
-.x {
-  height: 24px;
-  padding-top: 8px;
-  overflow: visible;
+.line-x span {
+  position: absolute;
+  top: 4px;
+  left: 0;
   color: var(--dim);
   font-size: 10.5px;
   line-height: 14px;
   white-space: nowrap;
 }
+.line-labels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.line-labels .count {
+  position: absolute;
+  top: 0;
+  left: 0;
+  color: var(--parchment);
+  font-size: 11px;
+  line-height: 16px;
+  font-variant-numeric: tabular-nums;
+}
+
 .split {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
@@ -356,21 +393,21 @@ main {
 .site-bar {
   grid-column: 1 / -1;
   overflow: hidden;
-  height: 4px;
+  height: 3px;
   border-radius: 2px;
 }
 .site-bar span {
   display: block;
   height: 100%;
   border-radius: 2px;
-  background: var(--amber);
+  background: linear-gradient(90deg, rgb(214 162 78 / 0.25), var(--amber));
   transform: translateX(-100%);
   transition:
     transform var(--move),
     background-color 150ms ease;
 }
 .site-row[aria-pressed="true"] .site-bar span {
-  background: var(--red);
+  background: linear-gradient(90deg, rgb(227 23 12 / 0.25), var(--red));
 }
 .site-row[aria-pressed="true"] .site-name {
   color: var(--bright);
@@ -456,37 +493,6 @@ main {
 .tiles.five {
   grid-template-columns: repeat(5, minmax(0, 1fr));
 }
-.buckets {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 2px;
-  height: 128px;
-  margin-top: 20px;
-}
-.bucket {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-width: 0;
-  outline-offset: -1px;
-}
-.bucket .track {
-  flex: 1;
-  width: 100%;
-  max-width: 24px;
-}
-.bucket .count {
-  height: 18px;
-  color: var(--parchment);
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-}
-.bucket .x {
-  height: 22px;
-  padding-top: 6px;
-  white-space: nowrap;
-}
-
 /* ---- The numbers ------------------------------------------------------------------------------ */
 .numbers {
   margin-top: 36px;
@@ -704,17 +710,11 @@ canvas {
   .action:not(.post):hover {
     border-color: var(--red);
   }
-  .col:hover .fill {
-    background: var(--bright);
-  }
   .cell:hover i {
     background: var(--bright);
   }
   .site-row:hover .site-name {
     color: var(--bright);
-  }
-  .site-row:hover .site-bar span {
-    background: var(--bright);
   }
   .sites.has-selection .site-row:hover {
     opacity: 1;
@@ -756,7 +756,6 @@ canvas {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .fill,
   .cell i,
   .site-bar span,
   .meter span {

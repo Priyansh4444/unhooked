@@ -22,15 +22,17 @@ export const RANGE_LABELS: Record<Range, string> = {
   all: "All time",
 };
 
-export interface Bar {
+export interface Point {
   key: string;
-  /** Under the bar, when there's room. */
+  /** Under the point, when there's room. */
   label: string;
   /** In the tooltip and the table. */
   title: string;
   seconds: number;
   /** The period the page is "in": today, this hour. */
   current: boolean;
+  /** Later today: it has a place on the axis, and nothing to show yet. */
+  future?: boolean;
 }
 
 export interface SiteRow {
@@ -72,7 +74,7 @@ export interface View {
   total: number;
   /** The same length of time just before, to compare with. Null when there's nothing to compare. */
   previous: number | null;
-  bars: Bar[];
+  points: Point[];
   sites: SiteRow[];
   /** Seconds by weekday (Monday first) and hour. */
   heat: number[][];
@@ -80,8 +82,8 @@ export interface View {
   feedShare: number;
   activeDays: number;
   peakHour: number | null;
-  /** The busiest bar, for naming it. */
-  peak: Bar | null;
+  /** The busiest point, for naming it. */
+  peak: Point | null;
   sessions: SessionStats;
   bySite: Record<string, SiteSessions>;
   /** The first day sessions were counted, when this period reaches further back. */
@@ -236,22 +238,23 @@ export function computeView(
   const total = site ? (totals.get(site) ?? 0) : everything;
   const feedTime = sites.filter((row) => row.feed).reduce((a, row) => a + row.seconds, 0);
 
-  let bars: Bar[];
+  const nowHour = new Date(now).getHours();
+  let points: Point[];
   if (range === "today") {
-    const nowHour = new Date(now).getHours();
-    bars = Array.from({ length: 24 }, (_, hour) => ({
+    points = Array.from({ length: 24 }, (_, hour) => ({
       key: String(hour),
       label: hour % 6 === 0 ? hourLabel(hour) : "",
       title: hourLabel(hour),
       seconds: hourTotals[hour]!,
       current: hour === nowHour,
+      future: hour > nowHour,
     }));
   } else if (length > 120) {
     // A year of days is thinner than a pixel can show; a week is still a habit.
-    bars = [];
+    points = [];
     for (let end = length; end > 0; end -= 7) {
       const part = window.slice(Math.max(0, end - 7), end);
-      bars.unshift({
+      points.unshift({
         key: part[0]!,
         label: "",
         title: `Week of ${SHORT_DATE.format(dayStart(part[0]!))}`,
@@ -259,12 +262,13 @@ export function computeView(
         current: part.includes(today),
       });
     }
-    bars.forEach((bar, i) => {
-      if (i % Math.ceil(bars.length / 6) === 0) bar.label = SHORT_DATE.format(dayStart(bar.key));
+    points.forEach((point, i) => {
+      if (i % Math.ceil(points.length / 6) === 0)
+        point.label = SHORT_DATE.format(dayStart(point.key));
     });
   } else {
     const every = length <= 7 ? 1 : Math.ceil(length / 6);
-    bars = window.map((date, i) => ({
+    points = window.map((date, i) => ({
       key: date,
       label:
         length <= 7
@@ -281,7 +285,6 @@ export function computeView(
   // The same stretch just before, cut off at the same time of day, because today isn't over yet.
   // Only with a whole earlier stretch to compare: a part of one would flatter any period.
   let previous: number | null = null;
-  const nowHour = new Date(now).getHours();
   if (range === "today") {
     const yesterday = byDate.get(shiftDays(today, -1));
     previous = yesterday ? secondsIn(yesterday, site, nowHour) : null;
@@ -322,8 +325,8 @@ export function computeView(
 
   const activeDays = window.filter((date) => secondsIn(byDate.get(date), site) > 0).length;
   const peakSeconds = Math.max(...hourTotals);
-  const busiest = bars.reduce<Bar | null>(
-    (best, bar) => (bar.seconds > (best?.seconds ?? 0) ? bar : best),
+  const busiest = points.reduce<Point | null>(
+    (best, point) => (point.seconds > (best?.seconds ?? 0) ? point : best),
     null,
   );
 
@@ -332,7 +335,7 @@ export function computeView(
     site,
     total,
     previous,
-    bars,
+    points,
     sites,
     heat,
     dailyAverage: activeDays ? total / activeDays : 0,
@@ -366,7 +369,7 @@ export function comparison(view: View): string | null {
 export function insights(view: View): string[] {
   const lines: string[] = [];
   if (view.total < 60) return lines;
-  if (view.peak && view.range !== "today" && view.bars.length <= 120) {
+  if (view.peak && view.range !== "today" && view.points.length <= 120) {
     const name =
       view.range === "7" ? LONG_WEEKDAY.format(dayStart(view.peak.key)) : view.peak.title;
     lines.push(`Your longest day was ${name}, at ${formatDuration(view.peak.seconds)}.`);

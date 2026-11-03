@@ -341,27 +341,27 @@ describe("the view of a range", () => {
   it("narrows to one site, but the list stays whole", () => {
     const view = computeView(days, "7", "x.com", NOW);
     expect(view.total).toBe(6000);
-    expect(view.bars.at(-2)!.seconds).toBe(3600);
+    expect(view.points.at(-2)!.seconds).toBe(3600);
     expect(view.sites).toHaveLength(3);
     expect(view.heat.flat().reduce((a, b) => a + b, 0)).toBe(6000);
   });
 
   it("draws hours for today and days for a week", () => {
     const today = computeView(days, "today", null, NOW);
-    expect(today.bars).toHaveLength(24);
-    expect(today.bars[9]!.seconds).toBe(1800);
-    expect(today.bars[15]!.current).toBe(true);
+    expect(today.points).toHaveLength(24);
+    expect(today.points[9]!.seconds).toBe(1800);
+    expect(today.points[15]!.current).toBe(true);
     const week = computeView(days, "7", null, NOW);
-    expect(week.bars).toHaveLength(7);
-    expect(week.bars.at(-1)!.current).toBe(true);
-    expect(week.bars.at(-1)!.label).toBe("Wed");
+    expect(week.points).toHaveLength(7);
+    expect(week.points.at(-1)!.current).toBe(true);
+    expect(week.points.at(-1)!.label).toBe("Wed");
   });
 
   it("folds a long history into weeks", () => {
     const old = [...days, day(-200, { "x.com": { 9: 60 } })];
     const view = computeView(old, "all", null, NOW);
-    expect(view.bars.length).toBeLessThan(40);
-    expect(view.bars.reduce((sum, bar) => sum + bar.seconds, 0)).toBe(view.total);
+    expect(view.points.length).toBeLessThan(40);
+    expect(view.points.reduce((sum, point) => sum + point.seconds, 0)).toBe(view.total);
   });
 
   it("places time on its weekday and hour, Monday first", () => {
@@ -409,7 +409,7 @@ describe("the view of a range", () => {
     expect(view.peakHour).toBeNull();
     expect(view.peak).toBeNull();
     expect(insights(view)).toEqual([]);
-    expect(view.bars).toHaveLength(7);
+    expect(view.points).toHaveLength(7);
   });
 
   it("reports sessions for the period, per site and overall", () => {

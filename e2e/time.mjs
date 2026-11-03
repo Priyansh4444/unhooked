@@ -164,9 +164,10 @@ await until("the shortest", async () => (await text("#sessionShortest")) === "45
 await until("and time in focus", async () => (await text("#sessionFocused")) === "1h 45m");
 check("as a share", (await text("#sessionFocusedNote")).startsWith("95%"));
 check("the longest says what and when", (await text("#sessionLongestNote")).startsWith("x.com · "));
-check(
+await until(
   "lengths are sorted into groups",
-  (await app.$$eval("#buckets .count", (counts) => counts.map((c) => c.textContent))).join() ===
+  async () =>
+    (await app.$$eval("#buckets .count", (counts) => counts.map((c) => c.textContent))).join() ===
     "1,,1,1,1,1",
 );
 check(
@@ -179,46 +180,89 @@ check(
   "a site with no sessions yet says so rather than showing zero",
   (await app.$$eval("#siteNumbers tr:last-child td", (cells) => cells[2].textContent)) === "–",
 );
-check("a week draws seven bars", (await app.$$("#bars .col")).length === 7);
+const chart = "#timeline";
+check("a week has seven points", (await app.$eval(chart, (el) => el.dataset.count)) === "7");
 await until(
-  "bars rise to their height",
+  "the line is drawn, with its gradient under it",
   () =>
-    app.$eval("#bars .col:nth-child(6) .fill", (el) => {
-      const r = el.getBoundingClientRect();
-      const track = el.parentElement.getBoundingClientRect();
-      return r.top - track.top < track.height * 0.6 && r.top - track.top >= 0;
+    app.$eval(chart, (el) => {
+      const line = el.querySelector(".line-stroke").getAttribute("d");
+      const area = el.querySelector(".line-area").getAttribute("d");
+      return line.startsWith("M") && line.includes("C") && area.endsWith("Z");
     }),
   3000,
 );
+const fill = await app.$eval(`${chart} .line-area`, (el) => {
+  const gradient = document.querySelector(el.getAttribute("fill").slice(4, -1));
+  return [...gradient.children].map((stop) => getComputedStyle(stop).stopColor);
+});
 check(
-  "today is the one marked",
-  await app.$eval("#bars .col:last-child", (el) => el.classList.contains("is-current")),
+  "the gradient stays on the scheme's amber",
+  fill.every((color) => color === "rgb(214, 162, 78)"),
+  fill.join(),
+);
+check(
+  "today, not over yet, is the one point in red",
+  await app.$eval(`${chart} .line-end`, (el) => getComputedStyle(el).fill === "rgb(227, 23, 12)"),
+);
+await until(
+  "nothing is left animating out of place",
+  () =>
+    app.$eval(chart, (el) => {
+      const box = el.getBoundingClientRect();
+      const line = el.querySelector(".line-stroke").getBoundingClientRect();
+      return line.bottom <= box.bottom && line.top >= box.top;
+    }),
+  3000,
 );
 
-// Hover and keyboard read the same values.
-await app.hover("#bars .col:nth-child(6)");
-await until("hovering a bar shows its time", async () =>
+// Hover and keyboard read the same values, and the pointer only has to find the x.
+const pointX = async (index, of = 7) =>
+  app.$eval(
+    chart,
+    (el, [index, of]) => {
+      const box = el.getBoundingClientRect();
+      const left = box.left + 40;
+      return [left + ((box.width - 54) * index) / (of - 1), box.top + 8];
+    },
+    [index, of],
+  );
+const [yesterdayX, nearTop] = await pointX(5);
+await app.mouse.move(yesterdayX, nearTop);
+await until("pointing above a day still finds it", async () =>
   (await text("#tipValue")).startsWith("2h 30m"),
 );
 check(
   "the tooltip is visible",
   await app.$eval("#tip", (el) => !el.hidden && !el.classList.contains("is-away")),
 );
+check(
+  "with a line marking the day",
+  await app.$eval(`${chart} .line-hair`, (el) => el.style.opacity === "1"),
+);
 await app.mouse.move(5, 5);
 await until("and leaves with the pointer", () =>
   app.$eval("#tip", (el) => el.classList.contains("is-away")),
 );
-await app.focus("#bars .col:last-child");
-await app.keyboard.press("ArrowLeft");
-check(
-  "arrow keys walk the bars",
-  (await app.evaluate(() => document.activeElement.dataset.key)) ===
-    dateKey(Date.now() - 86_400_000),
+await app.focus(chart);
+await until("focus lands on the latest point", async () =>
+  (await text("#tipLabel")).endsWith("so far"),
 );
+await app.keyboard.press("ArrowLeft");
+await until("arrow keys walk the line", async () => (await text("#tipValue")).startsWith("2h 30m"));
 check(
   "with one tab stop for the whole chart",
-  (await app.$$eval("#bars .col", (cols) => cols.filter((col) => col.tabIndex === 0).length)) === 1,
+  await app.$eval(
+    chart,
+    (el) => el.tabIndex === 0 && el.querySelectorAll("[tabindex]").length === 0,
+  ),
 );
+check(
+  "and a description for a screen reader",
+  (await app.$eval(chart, (el) => el.getAttribute("aria-label"))).includes("2h 30m"),
+);
+await app.keyboard.press("Tab");
+await app.mouse.move(5, 5);
 
 // The heat grid.
 check("the grid has every hour of the week", (await app.$$("#heat .cell")).length === 168);
@@ -236,7 +280,11 @@ await until(
 );
 await app.click('[data-range="today"]');
 await until("today shows today", async () => (await text("#hero")) === "1h 15m");
-check("drawn by the hour", (await app.$$("#bars .col")).length === 24);
+check("drawn by the hour", (await app.$eval(chart, (el) => el.dataset.count)) === "24");
+check(
+  "with no line into hours that haven't happened",
+  Number(await app.$eval(chart, (el) => el.dataset.plotted)) === new Date().getHours() + 1,
+);
 await app.click('[data-range="7"]');
 await until("back to the week", async () => (await text("#hero")) === "4h 15m");
 const markLeft = await app.$eval("#rangesMark", (el) => el.getBoundingClientRect().left);

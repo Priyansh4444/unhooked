@@ -14,7 +14,6 @@ import {
   insights,
   periodPhrase,
   timeTicks,
-  type Bar,
   type Range,
   type View,
 } from "../../time/stats.ts";
@@ -29,6 +28,7 @@ import {
 } from "../../time/store.ts";
 import { MIN_SESSION_SECONDS, formatDuration, type Session } from "../../time/tracker.ts";
 import { cardFonts, drawCard, postText } from "./card.ts";
+import { LineChart, type LinePoint } from "./line.ts";
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string): T => document.getElementById(id) as T;
 const calm = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -85,24 +85,14 @@ const whole = (value: number) => String(Math.round(value));
 const tip = $("tip");
 let tipShown = false;
 
-function showTip(target: HTMLElement): void {
-  const { tipValue, tipLabel } = target.dataset;
-  if (!tipLabel) return hideTip();
-  $("tipValue").textContent = tipValue ?? "";
-  $("tipLabel").textContent = tipLabel;
-  const box = target.getBoundingClientRect();
+function placeAt(x: number, y: number): void {
   tip.hidden = false;
   const own = tip.getBoundingClientRect();
-  const x = Math.min(
-    innerWidth - own.width - 8,
-    Math.max(8, box.left + box.width / 2 - own.width / 2),
-  );
-  const fill = target.querySelector<HTMLElement>(".fill");
-  const top = fill ? Math.max(box.top, fill.getBoundingClientRect().top) : box.top;
-  const y = Math.max(8, top - own.height - 8);
+  const left = Math.min(innerWidth - own.width - 8, Math.max(8, x - own.width / 2));
+  const top = Math.max(8, y - own.height - 12);
   // The first appearance lands in place; after that it glides.
   if (!tipShown) tip.style.transition = "opacity 120ms ease";
-  tip.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
+  tip.style.transform = `translate(${Math.round(left)}px, ${Math.round(top)}px)`;
   tip.classList.remove("is-away");
   if (!tipShown) {
     tipShown = true;
@@ -110,6 +100,19 @@ function showTip(target: HTMLElement): void {
       tip.style.transition = "";
     });
   }
+}
+
+function placeTip(value: string, label: string, x: number, y: number): void {
+  $("tipValue").textContent = value;
+  $("tipLabel").textContent = label;
+  placeAt(x, y);
+}
+
+function showTip(target: HTMLElement): void {
+  const { tipValue, tipLabel } = target.dataset;
+  if (!tipLabel) return hideTip();
+  const box = target.getBoundingClientRect();
+  placeTip(tipValue ?? "", tipLabel, box.left + box.width / 2, box.top);
 }
 
 function hideTip(): void {
@@ -152,67 +155,39 @@ function bindArrows(container: HTMLElement, selector: string, columns: () => num
 
 // ---- time over time --------------------------------------------------------------------------
 
-function renderBars(): void {
-  const container = $("bars");
-  const { bars } = view;
-  const ticks = timeTicks(Math.max(...bars.map((bar) => bar.seconds), 0));
-  const top = Math.max(ticks.at(-1)!, ...bars.map((bar) => bar.seconds), 1);
+const onLinePoint = (point: LinePoint | null, x: number, y: number) => {
+  if (point) placeTip(point.text, point.title, x, y);
+  else hideTip();
+};
 
-  const rebuilt = container.children.length !== bars.length;
-  if (rebuilt) {
-    container.replaceChildren(
-      ...bars.map((_, i) => {
-        const col = document.createElement("div");
-        col.className = "col";
-        col.tabIndex = i === bars.length - 1 ? 0 : -1;
-        col.setAttribute("role", "img");
-        const track = document.createElement("div");
-        track.className = "track";
-        const fill = document.createElement("div");
-        fill.className = "fill";
-        // They rise one after another, quickly, whatever the number of bars.
-        fill.style.setProperty("--i", String(Math.round((i / bars.length) * 260)));
-        track.append(fill);
-        const x = document.createElement("div");
-        x.className = "x";
-        col.append(track, x);
-        return col;
-      }),
-    );
-    // Starting from the baseline this frame, so the change below is a rise.
-    void container.offsetWidth;
-  }
-  bars.forEach((bar: Bar, i) => {
-    const col = container.children[i] as HTMLElement;
-    const seconds = bar.seconds;
-    const time = seconds >= 1 ? formatDuration(seconds) : "Nothing";
-    col.dataset.tipValue = time;
-    col.dataset.tipLabel = bar.title;
-    col.dataset.key = bar.key;
-    col.setAttribute("aria-label", `${bar.title}: ${time}`);
-    col.classList.toggle("is-current", bar.current);
-    (col.querySelector(".x") as HTMLElement).textContent = bar.label;
-    const fill = col.querySelector<HTMLElement>(".fill")!;
-    fill.style.transform = `translateY(${(1 - seconds / top) * 100}%)`;
-  });
+const timeline = new LineChart($("timeline"), {
+  axis: true,
+  summary: (points) =>
+    `Time online: ${points
+      .filter((point) => !point.future && point.value >= 1)
+      .map((point) => `${point.title}, ${point.text}`)
+      .join("; ")}`,
+  onPoint: onLinePoint,
+});
 
-  // Hairlines at round times, sliding to their new height rather than jumping.
-  const grid = $("barsGrid");
-  const height = grid.clientHeight || 212;
-  const wanted = [0, ...ticks];
-  while (grid.children.length < wanted.length) {
-    const line = document.createElement("div");
-    line.append(document.createElement("span"));
-    grid.append(line);
-  }
-  [...grid.children].forEach((child, i) => {
-    const line = child as HTMLElement;
-    const tick = wanted[i];
-    line.style.opacity = tick === undefined ? "0" : "1";
-    if (tick === undefined) return;
-    line.style.transform = `translateY(${height - (tick / top) * height}px)`;
-    line.firstElementChild!.textContent = tick ? formatDuration(tick) : "0";
-  });
+function renderTimeline(): void {
+  const most = Math.max(...view.points.map((point) => point.seconds), 0);
+  const ticks = timeTicks(most);
+  const top = Math.max(ticks.at(-1)!, most, 1);
+  timeline.update(
+    view.points.map((point) => ({
+      label: point.label,
+      // The current day or hour isn't over, and a line falling away at the end shouldn't read as
+      // a habit changing.
+      title: point.current ? `${point.title}, so far` : point.title,
+      value: point.seconds,
+      text: point.seconds >= 1 ? formatDuration(point.seconds) : "Nothing",
+      current: point.current,
+      future: point.future,
+    })),
+    top,
+    ticks.map((value) => ({ value, label: formatDuration(value) })),
+  );
 }
 
 // ---- sessions --------------------------------------------------------------------------------
@@ -225,6 +200,13 @@ function sessionNote(session: Session | null): string {
   return !site && session.host ? `${session.host} · ${when}` : when;
 }
 
+const lengths = new LineChart($("buckets"), {
+  counts: true,
+  summary: (points) =>
+    `How long sessions last: ${points.map((point) => `${point.title}, ${point.text}`).join("; ")}`,
+  onPoint: onLinePoint,
+});
+
 function renderSessions(): void {
   const stats = view.sessions;
   const scope = site ? "visit to this site" : "stretch online";
@@ -234,7 +216,7 @@ function renderSessions(): void {
   $("sessionsNote").textContent =
     `One unbroken ${scope}: stepping away for under a minute doesn't end it, and under ${MIN_SESSION_SECONDS} seconds is only passing through.${since}`;
   countTo($("sessionCount"), stats.count, whole);
-  $("sessionCountNote").textContent = view.activeDays
+  $("sessionCountNote").textContent = stats.count
     ? `${(stats.count / view.activeDays).toFixed(1)} a day`
     : "";
   countTo($("sessionAverage"), stats.average, formatDuration);
@@ -248,44 +230,15 @@ function renderSessions(): void {
     ? `${Math.round(stats.focusedShare * 100)}% in stretches of 10m+`
     : "stretches of 10m or more";
 
-  const container = $("buckets");
-  if (!container.children.length) {
-    container.append(
-      ...stats.buckets.map((_, i) => {
-        const bucket = document.createElement("div");
-        bucket.className = "bucket";
-        bucket.tabIndex = i === 0 ? 0 : -1;
-        bucket.setAttribute("role", "img");
-        const count = document.createElement("div");
-        count.className = "count";
-        const track = document.createElement("div");
-        track.className = "track";
-        const fill = document.createElement("div");
-        fill.className = "fill";
-        fill.style.setProperty("--i", String(i * 30));
-        track.append(fill);
-        const x = document.createElement("div");
-        x.className = "x";
-        bucket.append(count, track, x);
-        return bucket;
-      }),
-    );
-    void container.offsetWidth;
-  }
-  const most = Math.max(1, ...stats.buckets.map((bucket) => bucket.count));
-  stats.buckets.forEach((bucket, i) => {
-    const el = container.children[i] as HTMLElement;
-    const sessions = `${bucket.count} ${bucket.count === 1 ? "session" : "sessions"}`;
-    el.dataset.tipValue = sessions;
-    el.dataset.tipLabel = bucket.label;
-    el.setAttribute("aria-label", `${bucket.label}: ${sessions}`);
-    (el.querySelector(".count") as HTMLElement).textContent = bucket.count
-      ? String(bucket.count)
-      : "";
-    (el.querySelector(".x") as HTMLElement).textContent = bucket.label;
-    el.querySelector<HTMLElement>(".fill")!.style.transform =
-      `translateY(${(1 - bucket.count / most) * 100}%)`;
-  });
+  lengths.update(
+    stats.buckets.map((bucket) => ({
+      label: bucket.label,
+      title: bucket.label,
+      value: bucket.count,
+      text: `${bucket.count} ${bucket.count === 1 ? "session" : "sessions"}`,
+    })),
+    Math.max(1, ...stats.buckets.map((bucket) => bucket.count)),
+  );
 }
 
 // ---- where it went ---------------------------------------------------------------------------
@@ -442,12 +395,12 @@ function renderNumbers(): void {
   );
   $("numbersHead").textContent = range === "today" ? "Hour" : "Day";
   $("numbersBody").replaceChildren(
-    ...[...view.bars].reverse().map((bar) => {
+    ...[...view.points].reverse().map((point) => {
       const row = document.createElement("tr");
       const name = document.createElement("td");
-      name.textContent = bar.title;
+      name.textContent = point.title;
       const time = document.createElement("td");
-      time.textContent = bar.seconds >= 1 ? formatDuration(bar.seconds) : "–";
+      time.textContent = point.seconds >= 1 ? formatDuration(point.seconds) : "–";
       row.append(name, time);
       return row;
     }),
@@ -492,7 +445,7 @@ function render(): void {
   $("tileTop").textContent = view.sites[0]?.host ?? "";
   $("tilePeak").textContent = view.peakHour === null ? "None yet" : hourLabel(view.peakHour);
 
-  renderBars();
+  renderTimeline();
   renderSessions();
   renderSites();
   renderHeat();
@@ -657,11 +610,7 @@ function bind(): void {
     await reload();
   });
 
-  bindTips($("bars"));
   bindTips($("heat"));
-  bindTips($("buckets"));
-  bindArrows($("buckets"), ".bucket", () => 0);
-  bindArrows($("bars"), ".col", () => 0);
   bindArrows($("heat"), ".cell", () => 24);
 
   const dialog = $<HTMLDialogElement>("shareDialog");
@@ -695,7 +644,6 @@ function bind(): void {
 
   addEventListener("resize", () => {
     moveRangeMark();
-    renderBars();
   });
   document.addEventListener("visibilitychange", () => {
     if (!document.hidden) void reload();

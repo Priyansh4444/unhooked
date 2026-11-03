@@ -2,6 +2,7 @@
  * The share card: the view drawn on a canvas at twice its size, 2400 by 1350, because a timeline
  * shows 16:9 best and recompresses whatever it's given. The page's own type and colours, no chrome.
  */
+import { areaPath, smoothPath } from "./curve.ts";
 import { comparison, hourLabel, periodPhrase, type View } from "../../time/stats.ts";
 import { formatDuration } from "../../time/tracker.ts";
 
@@ -146,23 +147,40 @@ export function drawCard(
     ctx.fillText(hourLabel(hour), grid.x + hour * grid.cell + 4, grid.y + 7 * grid.cell + 20);
   });
 
-  // Over time: thin columns, the current one in red.
-  const chart = { x: 636, y: 330, width: 504, height: 196 };
-  const most = Math.max(1, ...view.bars.map((bar) => bar.seconds));
-  const gap = view.bars.length > 60 ? 1 : 3;
-  const barWidth = Math.min(14, (chart.width - gap * (view.bars.length - 1)) / view.bars.length);
-  const span = barWidth * view.bars.length + gap * (view.bars.length - 1);
+  // Over time: the same smooth line as the page, with the same fade under it.
+  const chart = { x: 636, y: 340, width: 504, height: 186 };
   const base = chart.y + chart.height;
-  view.bars.forEach((bar, i) => {
-    if (bar.seconds <= 0) return;
-    const height = Math.max(2, (bar.seconds / most) * chart.height);
-    const x = chart.x + (chart.width - span) + i * (barWidth + gap);
-    ctx.fillStyle = bar.current ? RED : AMBER;
+  const plotted = view.points.filter((point) => !point.future);
+  const most = Math.max(1, ...plotted.map((point) => point.seconds));
+  const slots = Math.max(view.points.length - 1, 1);
+  const xs = plotted.map((_, i) => chart.x + (i / slots) * chart.width);
+  const ys = plotted.map((point) => base - (point.seconds / most) * chart.height);
+  if (plotted.length > 1) {
+    const fade = ctx.createLinearGradient(0, chart.y, 0, base);
+    fade.addColorStop(0, "rgb(214 162 78 / 0.34)");
+    fade.addColorStop(0.55, "rgb(214 162 78 / 0.12)");
+    fade.addColorStop(1, "rgb(214 162 78 / 0)");
+    ctx.fillStyle = fade;
+    ctx.fill(new Path2D(areaPath(xs, ys, base)));
+    const line = ctx.createLinearGradient(chart.x, 0, xs.at(-1)!, 0);
+    line.addColorStop(0, AMBER);
+    line.addColorStop(0.95, AMBER);
+    line.addColorStop(1, plotted.at(-1)!.current ? RED : AMBER);
+    ctx.strokeStyle = line;
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.stroke(new Path2D(smoothPath(xs, ys)));
+  }
+  if (plotted.length) {
     ctx.beginPath();
-    const radius = Math.min(4, barWidth / 2);
-    ctx.roundRect(x, base - height, barWidth, height, [radius, radius, 0, 0]);
+    ctx.arc(xs.at(-1)!, ys.at(-1)!, 5, 0, Math.PI * 2);
+    ctx.fillStyle = plotted.at(-1)!.current ? RED : AMBER;
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 2;
     ctx.fill();
-  });
+    ctx.stroke();
+  }
   ctx.strokeStyle = RULE;
   ctx.lineWidth = 1;
   ctx.beginPath();
