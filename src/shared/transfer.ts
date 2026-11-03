@@ -30,6 +30,8 @@ const FIXED_KEYS: Record<string, (value: unknown) => boolean> = {
   [K.LEGACY_YOUTUBE_OPTIONS]: isRecord,
   [K.WAND_SHORTCUT]: (value) => typeof value === "string" && value.length < 60,
   [K.EXCALIDRAW_CANVAS_ONLY]: isBool,
+  [K.TIME_TRACKING]: isBool,
+  [K.TIME_IGNORED]: (value) => Array.isArray(value) && value.every((v) => typeof v === "string"),
   [K.TWITTER_WIDTH]: inRange(30, 100),
   [K.TWITTER_FONT_SIZE]: inRange(13, 22),
   [K.TWITTER_USE_DEFAULT_FONT]: isBool,

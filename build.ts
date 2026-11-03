@@ -78,7 +78,12 @@ export async function buildExtension({ target, outdir, minify, e2e = false }: Bu
     }
   }
   await bundle(
-    ["src/ui/popup/index.html", "src/ui/picker/index.html", "src/ui/transfer/index.html"],
+    [
+      "src/ui/popup/index.html",
+      "src/ui/picker/index.html",
+      "src/ui/transfer/index.html",
+      "src/ui/time/index.html",
+    ],
     "src/ui",
     join(outdir, "ui"),
     "esm",
@@ -88,7 +93,7 @@ export async function buildExtension({ target, outdir, minify, e2e = false }: Bu
   await cp("src/ui/shared/fonts", join(outdir, "ui", "fonts"), { recursive: true });
   if (minify) {
     // Comments and indentation only: a newline still separates elements, so inline spacing is kept.
-    for (const page of ["popup", "picker", "transfer"]) {
+    for (const page of ["popup", "picker", "transfer", "time"]) {
       const file = join(outdir, "ui", page, "index.html");
       const html = await readFile(file, "utf8");
       await writeFile(file, html.replace(/<!--[\s\S]*?-->/g, "").replace(/\n\s+/g, "\n"));

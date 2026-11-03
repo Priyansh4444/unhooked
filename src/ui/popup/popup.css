@@ -301,6 +301,8 @@ h1 {
 }
 
 main {
+  /* Holds the hidden row hints too; left to the page, they make the whole popup scroll. */
+  position: relative;
   flex: 1;
   min-height: 0;
   overflow-y: auto;

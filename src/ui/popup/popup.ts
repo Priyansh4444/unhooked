@@ -36,6 +36,9 @@ import { CONTROL_SITES, controlSiteById, type ControlSite } from "../../sites/re
 import { TWITCH_ACTIONS, type ChatUrlEntry } from "../../sites/twitch/protocol.ts";
 import { PREVIEW_ACTION, type PreviewRequest } from "../../sites/custom/protocol.ts";
 import { restore, snapshot } from "../../shared/undo.ts";
+import { TIME_FLUSH } from "../../time/protocol.ts";
+import { allDays } from "../../time/store.ts";
+import { dateKey, formatDuration, siteKey } from "../../time/tracker.ts";
 
 const YOUTUBE_GROUPS: Record<string, string[]> = {
   bulkVideoSidebar: ["hideRelatedSidebar", "hideLiveChat", "hidePlaylistSidebar", "hideFundraiser"],
@@ -57,6 +60,9 @@ let loaded = false;
 let selected: Selection = "youtube";
 let activeTab: { id: number; site: SiteId | undefined; host: string | null } | null = null;
 let shortcuts: Record<string, string> = {};
+/** Seconds on each site today, from the time tracker. */
+let today: Record<string, number> = {};
+const todayOn = (host: string) => today[siteKey(host)] ?? 0;
 
 const shortHost = (id: SiteId) => SITE_HOSTS[id][0].replace(/^www\./, "");
 const railLabel = (id: Selection) => RAIL.find((s) => s.id === id)!.label;
@@ -167,8 +173,12 @@ function renderHeader(control: ControlSite | undefined, paused: boolean): void {
     const state = resolveSettings(raw, control);
     enabled.checked = state.enabled;
     enabled.setAttribute("aria-label", `Hide controls on ${label}`);
-    $("siteState").textContent =
-      `${state.enabled ? "Active on" : "Off on"} ${shortHost(control.id)}`;
+    const spent = todayOn(shortHost(control.id));
+    $("siteState").textContent = !state.enabled
+      ? `Off on ${shortHost(control.id)}`
+      : spent >= 60
+        ? `${shortHost(control.id)} · ${formatDuration(spent)} today`
+        : `Active on ${shortHost(control.id)}`;
     const match = matchingPreset(selected, state);
     for (const preset of PRESETS) {
       $(`preset-${preset}`).setAttribute("aria-pressed", String(preset === match));
@@ -657,6 +667,10 @@ function bind(): void {
       (error: Error) => status(`Could not undo. ${error.message}`, true),
     );
   });
+  $("openTime").addEventListener("click", () => {
+    void ext.tabs.create({ url: ext.runtime.getURL("ui/time/index.html") });
+    window.close();
+  });
   $("openTransfer").addEventListener("click", () => {
     void ext.tabs.create({ url: ext.runtime.getURL("ui/transfer/index.html") });
     window.close();
@@ -808,6 +822,18 @@ function bind(): void {
   });
 }
 
+async function loadToday(): Promise<void> {
+  await ext.runtime.sendMessage({ action: TIME_FLUSH }).catch(() => {});
+  const record = (await allDays().catch(() => [])).find((day) => day.date === dateKey(Date.now()));
+  today = Object.fromEntries(
+    Object.entries(record?.hosts ?? {}).map(([host, hours]) => [
+      host,
+      Object.values(hours).reduce((sum, seconds) => sum + seconds, 0),
+    ]),
+  );
+  render();
+}
+
 async function init(): Promise<void> {
   buildRail();
   const controls = [
@@ -871,6 +897,7 @@ async function init(): Promise<void> {
   render();
   await refreshSelected();
   status("Saved in this browser");
+  void loadToday();
 }
 
 void init();

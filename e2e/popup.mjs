@@ -241,7 +241,7 @@ await ext.set({ "unhooked.site.reddit.hideHomeFeed": false });
 // The wand shortcut recorder.
 check(
   "the wand button shows its shortcut",
-  /W$/.test(await onReddit.$eval("#wandShortcut", (el) => el.textContent.trim())),
+  /E$/.test(await onReddit.$eval("#wandShortcut", (el) => el.textContent.trim())),
 );
 await onReddit.click("#wandShortcut");
 await until(
@@ -266,7 +266,7 @@ await until(
   "Backspace removes the shortcut",
   async () => (await ext.get("unhooked.wandShortcut"))["unhooked.wandShortcut"] === "",
 );
-await ext.set({ "unhooked.wandShortcut": "Alt+Shift+KeyW" });
+await ext.set({ "unhooked.wandShortcut": "Alt+Shift+KeyE" });
 await onReddit.click("#customList .bring-back");
 await until(
   "Bring back removes a wand removal",

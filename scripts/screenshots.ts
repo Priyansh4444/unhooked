@@ -1,4 +1,4 @@
-// CHROME_PATH=… bun scripts/screenshots.ts [popup|transfer|picker|wand|youtube]
+// CHROME_PATH=… bun scripts/screenshots.ts [popup|transfer|picker|wand|youtube|time]
 // Regenerates the README's images in docs/screenshots from the real extension. Nothing here is
 // signed in, so no account's feed ends up in the repository; `wand` and `youtube` use public pages.
 // film.png isn't made here: X shows posts only when signed in, so it is a public account's post,
@@ -9,6 +9,7 @@ import { join } from "node:path";
 import { buildExtension } from "../build.ts";
 import { launch, sleep, stub } from "../e2e/lib.mjs";
 import { presetPatch } from "../src/shared/preferences.ts";
+import { dateKey } from "../src/time/tracker.ts";
 
 const OUT = "docs/screenshots";
 const only = process.argv.slice(2);
@@ -25,7 +26,28 @@ const { browser, newPage: openPage, ext, close } = await launch();
 const newPage = openPage as (viewport?: Viewport) => Promise<Page>;
 const worker = await browser.waitForTarget((t) => t.type() === "service_worker");
 const base = `chrome-extension://${new URL(worker.url()).host}/ui`;
-const shot = (page: Page, name: string) => page.screenshot({ path: join(OUT, `${name}.png`) });
+/** A recording to a small GIF, in place of the recording. */
+async function toGif(raw: string, gif: string, width: number): Promise<void> {
+  const palette = `fps=12,scale=${width}:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=64:stats_mode=diff[p];[b][p]paletteuse=dither=none:diff_mode=rectangle`;
+  const args = ["-y", "-loglevel", "error", "-i", join(OUT, raw), "-filter_complex", palette];
+  await Bun.spawn(["ffmpeg", ...args, join(OUT, gif)], { stdout: "inherit", stderr: "inherit" })
+    .exited;
+  await rm(join(OUT, raw));
+}
+
+/** Headless Chromium draws on demand, so ask for frames first or the capture can be stale. */
+async function shot(page: Page, name: string): Promise<void> {
+  await page.evaluate(
+    () =>
+      new Promise((done) => {
+        const started = performance.now();
+        const tick = () =>
+          performance.now() - started < 500 ? requestAnimationFrame(tick) : done(null);
+        requestAnimationFrame(tick);
+      }),
+  );
+  await page.screenshot({ path: join(OUT, `${name}.png`) });
+}
 
 await ext.set({
   "unhooked.site.x.hideHomeFeed": true,
@@ -47,7 +69,7 @@ if (wanted("popup")) {
   await popup.goto(`${base}/popup/index.html?tab=${tabId}`, { waitUntil: "load" });
   await popup.waitForFunction(() => !document.querySelector<HTMLElement>("#customSection")?.hidden);
   await popup.bringToFront();
-  await sleep(300);
+  await sleep(1200);
   await shot(popup, "popup");
   await popup.close();
   await site.close();
@@ -81,6 +103,63 @@ if (wanted("picker")) {
   await shot(page, "picker");
   await page.close();
   await ext.set({ "unhooked.site.youtube.hideRelatedSidebar": false });
+}
+
+if (wanted("time")) {
+  // Sample data: a believable month, the same every run, and nobody's real browsing.
+  await ext.set({ "unhooked.time.enabled": false });
+  const sites: [string, number, number[]][] = [
+    ["x.com", 1, [8, 9, 12, 13, 21, 22, 23]],
+    ["youtube.com", 0.8, [19, 20, 21, 22]],
+    ["github.com", 1.1, [10, 11, 14, 15, 16]],
+    ["reddit.com", 0.45, [12, 22, 23]],
+    ["docs.example.com", 0.5, [10, 14, 15]],
+    ["news.ycombinator.com", 0.3, [9, 13]],
+    ["instagram.com", 0.25, [18, 23]],
+  ];
+  let seed = 7;
+  const random = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const sample = Array.from({ length: 40 }, (_, ago) => {
+    const when = new Date(Date.now() - ago * 86_400_000);
+    const weekend = [0, 6].includes(when.getDay());
+    const hosts: Record<string, Record<number, number>> = {};
+    for (const [host, weight, hours] of sites) {
+      for (const hour of hours) {
+        if (random() < 0.3) continue;
+        const shift = host === "github.com" && weekend ? 0.2 : 1;
+        (hosts[host] ??= {})[hour] = Math.round(random() * 1500 * weight * shift);
+      }
+    }
+    return { date: dateKey(when), hosts };
+  });
+  await ext.timeSeed(sample);
+  await ext.set({ "unhooked.time.enabled": true }); // the page is in front, which never counts
+  const page = await newPage({ width: 1180, height: 1240, deviceScaleFactor: 2 });
+  await page.goto(`${base}/time/index.html`, { waitUntil: "load" });
+  await page.bringToFront();
+  await page.click('[data-range="30"]');
+  await sleep(1400);
+  await shot(page, "time");
+  // The motion: switching periods, and narrowing to one site.
+  const film = await page.screencast({ path: join(OUT, "time-raw.webm") as `${string}.webm` });
+  await sleep(300);
+  for (const range of ["7", "today", "90", "30"]) {
+    await page.click(`[data-range="${range}"]`);
+    await sleep(1300);
+  }
+  await page.click('#sites li[data-host="github.com"] button');
+  await sleep(1300);
+  await page.click("#clearSite");
+  await sleep(1200);
+  await film.stop();
+  await toGif("time-raw.webm", "time.gif", 720);
+  await page.click("#openShare");
+  await sleep(600);
+  const card = await page.$eval("#card", (canvas) => (canvas as HTMLCanvasElement).toDataURL());
+  await writeFile(join(OUT, "time-card.png"), Buffer.from(card.split(",")[1]!, "base64"));
+  await page.close();
+  await ext.timeSeed([]);
+  await ext.set({ "unhooked.time.enabled": true });
 }
 
 if (wanted("youtube")) {
@@ -178,24 +257,7 @@ if (wanted("wand")) {
   await sleep(1600);
   await recording.stop();
   await page.close();
-  const palette =
-    "fps=12,scale=760:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=64:stats_mode=diff[p];[b][p]paletteuse=dither=none:diff_mode=rectangle";
-  const ffmpeg = Bun.spawn(
-    [
-      "ffmpeg",
-      "-y",
-      "-loglevel",
-      "error",
-      "-i",
-      join(OUT, "wand-raw.webm"),
-      "-filter_complex",
-      palette,
-      join(OUT, "wand.gif"),
-    ],
-    { stdout: "inherit", stderr: "inherit" },
-  );
-  await ffmpeg.exited;
-  await rm(join(OUT, "wand-raw.webm"));
+  await toGif("wand-raw.webm", "wand.gif", 760);
 }
 
 await close();

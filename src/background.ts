@@ -6,10 +6,11 @@ import { WAND_ACTION } from "./sites/custom/protocol.ts";
 import { FILM_CAPTURE, type CaptureReply } from "./sites/film/protocol.ts";
 import { siteForUrl } from "./sites/hosts.ts";
 import { DEFAULTS, STORAGE_KEYS } from "./shared/settings.ts";
+import { initTimeTracker } from "./time/background.ts";
 import { initTwitchBackground } from "./sites/twitch/background/index.ts";
 
 // One background for Chrome, Firefox and Safari. Everything that touches a page lives in the
-// content scripts; the background owns shortcuts, screenshots and cross-origin fetches.
+// content scripts; the background owns shortcuts, screenshots, the time tracker and cross-origin fetches.
 
 /** `STORAGE_KEYS.FOO` -> `DEFAULTS.FOO` for every setting that has a default. */
 const defaultSettings = (): Record<string, unknown> =>
@@ -56,5 +57,6 @@ ext.commands?.onCommand.addListener(async (command, given) => {
   }
 });
 
+initTimeTracker();
 initWandPages();
 initTwitchBackground();

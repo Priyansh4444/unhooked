@@ -78,8 +78,8 @@ export function createManifest(target: Target, extraContentScripts: object[] = [
       },
     }),
     permissions: mv2
-      ? ["storage", "tabs", ...hostPatterns]
-      : ["activeTab", "scripting", "storage", "tabs"],
+      ? ["alarms", "idle", "storage", "tabs", ...hostPatterns]
+      : ["activeTab", "alarms", "idle", "scripting", "storage", "tabs"],
     ...(!mv2 && { host_permissions: hostPatterns }),
     // Any other site, one at a time and only when asked: the wand on a page Unhooked doesn't cover.
     ...(mv2 ? { optional_permissions: ["*://*/*"] } : { optional_host_permissions: ["*://*/*"] }),
@@ -92,7 +92,7 @@ export function createManifest(target: Target, extraContentScripts: object[] = [
     options_ui: { page: "ui/transfer/index.html", open_in_tab: true },
     commands: {
       "toggle-site": {
-        suggested_key: { default: "Alt+Shift+U" },
+        suggested_key: { default: "Alt+Shift+S" },
         description: "Turn Unhooked on or off for this site",
       },
       "film-mode": {

@@ -12,6 +12,10 @@ export const STORAGE_KEYS = Object.freeze({
   WAND_SHORTCUT: "unhooked.wandShortcut",
   /** Excalidraw's site switch: hide the toolbars, leaving the canvas. */
   EXCALIDRAW_CANVAS_ONLY: "excalidraw_canvas_only",
+  /** Whether the time tracker counts; off only once someone turns it off. */
+  TIME_TRACKING: "unhooked.time.enabled",
+  /** Sites the time tracker leaves out. */
+  TIME_IGNORED: "unhooked.time.ignored",
   TWITTER_WIDTH: "twitter_width",
   TWITTER_FONT_SIZE: "twitter_font_size",
   TWITTER_USE_DEFAULT_FONT: "twitter_use_default_font",
@@ -24,6 +28,7 @@ export const STORAGE_KEYS = Object.freeze({
 
 export const DEFAULTS = Object.freeze({
   EXCALIDRAW_CANVAS_ONLY: false,
+  TIME_TRACKING: true,
   TWITTER_WIDTH: 80,
   TWITTER_FONT_SIZE: 15,
   TWITTER_USE_DEFAULT_FONT: true,

@@ -3,7 +3,8 @@
  * the key's position, not the character it types on a given layout. An empty string means none.
  */
 
-export const DEFAULT_WAND_SHORTCUT = "Alt+Shift+KeyW";
+// E for erase. Not W, which closes a tab group in Chromium on Linux and Windows.
+export const DEFAULT_WAND_SHORTCUT = "Alt+Shift+KeyE";
 
 interface KeyLike {
   code: string;
@@ -73,7 +74,7 @@ const keyName = (code: string): string =>
     .replace(/^Digit/, "")
     .replace(/^Numpad/, "Num ");
 
-/** "Alt+Shift+W", or "⌥⇧W" on a Mac. */
+/** "Alt+Shift+E", or "⌥⇧E" on a Mac. */
 export function formatShortcut(shortcut: string, mac = false): string {
   if (!shortcut) return "";
   const parts = normalize(shortcut).split("+");

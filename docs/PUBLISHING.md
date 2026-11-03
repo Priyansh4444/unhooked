@@ -28,7 +28,8 @@ Use the Chrome Web Store, Microsoft Edge Add-ons, or addons.mozilla.org dashboar
 Permission justifications must match the manifest:
 
 - `storage`: settings and the Twitch link log, stored locally.
-- `tabs`: opening the popup on the current site.
+- `tabs`: opening the popup on the current site, and the time tracker knowing which site is in front.
+- `alarms`, `idle`: the time tracker counting while a site is in use, and stopping when the user steps away. What it records stays in the browser and is listed in the README's privacy section; store listings must disclose it.
 - `activeTab`: film mode's screenshots, of a tab where the user started it.
 - `scripting`: starting the wand and film mode when the user asks.
 - Host access: exactly the supported sites (to apply local CSS) and the Twitch link lookup hosts listed in the README. The lookups only run for links in Twitch chat while link pills are on.

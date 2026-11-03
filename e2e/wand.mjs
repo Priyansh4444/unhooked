@@ -165,13 +165,13 @@ await until("resuming hides them again", async () =>
 const wandOn = async () => (await wandState(again)) !== null;
 await again.bringToFront();
 await again.mouse.click(5, 5);
-await press(again, "Alt+Shift+KeyW");
+await press(again, "Alt+Shift+KeyE");
 await until("the default shortcut starts the wand", wandOn);
-await press(again, "Alt+Shift+KeyW");
+await press(again, "Alt+Shift+KeyE");
 await until("pressing it again puts the wand away", async () => !(await wandOn()));
 await ext.set({ "unhooked.wandShortcut": "Ctrl+Alt+KeyK" });
 await sleep(300);
-await press(again, "Alt+Shift+KeyW");
+await press(again, "Alt+Shift+KeyE");
 await sleep(500);
 check("a changed shortcut replaces the default", !(await wandOn()));
 await press(again, "Control+Alt+KeyK");
@@ -188,7 +188,7 @@ await sleep(300);
 await press(again, "Control+Alt+KeyK");
 await sleep(500);
 check("a removed shortcut does nothing", !(await wandOn()));
-await ext.set({ "unhooked.wandShortcut": "Alt+Shift+KeyW" });
+await ext.set({ "unhooked.wandShortcut": "Alt+Shift+KeyE" });
 
 // ---- a site Unhooked has no controls for ------------------------------------------------------
 // The test build is already allowed on example.org, as if the user had said yes to the wand there.

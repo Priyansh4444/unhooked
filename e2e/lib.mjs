@@ -110,6 +110,10 @@ export async function launch() {
   const ext = {
     set: (values) => call({ op: "set", args: values }),
     get: (...keys) => call({ op: "get", args: keys }),
+    /** Replace the time tracker's history. */
+    timeSeed: (days) => call({ op: "timeSeed", args: days }),
+    /** Credit the time so far, and read the tracker's history. */
+    timeDays: () => call({ op: "timeDays", args: null }),
     /** Id of the first tab whose URL contains `urlPart`. */
     tabId: (urlPart) => call({ op: "tabId", args: urlPart }),
     /** Run an extension script in the first tab whose URL contains `url`. */

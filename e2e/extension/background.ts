@@ -3,8 +3,13 @@
 // bridge.ts (a content script on the harness's own page) instead.
 import "../../src/background.ts";
 import { ext } from "../../src/shared/ext-api.ts";
+import { step } from "../../src/time/background.ts";
+import { allDays, eraseAll, putDays, type DayRecord } from "../../src/time/store.ts";
 
-type Op = { op: "set" | "get" | "tabId" | "inject" | "send"; args: never };
+type Op = {
+  op: "set" | "get" | "timeSeed" | "timeDays" | "tabId" | "inject" | "send";
+  args: never;
+};
 
 async function run({ op, args }: { op: string; args: unknown }): Promise<unknown> {
   switch (op) {
@@ -13,6 +18,13 @@ async function run({ op, args }: { op: string; args: unknown }): Promise<unknown
       return {};
     case "get":
       return ext.storage.local.get(args as string[]);
+    case "timeSeed":
+      await eraseAll();
+      await putDays(args as DayRecord[]);
+      return {};
+    case "timeDays":
+      await step();
+      return allDays();
     case "tabId":
       // id of the first tab whose URL contains `args`
       return (await ext.tabs.query({})).find((t) => t.url?.includes(args as string))?.id ?? null;

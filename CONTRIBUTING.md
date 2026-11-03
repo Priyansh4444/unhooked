@@ -30,6 +30,8 @@ src/
       links.ts               URL -> kind + pill label (pure, used by both sides)
       chat/                  page side: observer, pills, hover card
       background/            lookups (providers.ts), cache, URL log
+  time/                    the time tracker: tracker.ts (pure arithmetic), store.ts (IndexedDB),
+                           stats.ts (what the page shows), background.ts (browser events)
   shared/
     ext-api.ts             the one browser API object (`browser` or `chrome`)
     settings.ts            storage keys and defaults
@@ -41,6 +43,7 @@ src/
     popup/                 the toolbar popup
     picker/                the click-to-hide page; sketches.ts maps each drawn part to a control
     transfer/              moving settings between browsers (the file format is shared/transfer.ts)
+    time/                  your time: the charts (time.ts) and the share card (card.ts)
 build.ts, build/manifest.ts   bundling, and the one source for every browser's manifest
 e2e/                       end-to-end tests (Chrome + Firefox)
 ```
@@ -100,6 +103,12 @@ The popup, or the `film-mode` command, injects `sites/film/content.js`, the same
 
 A framed post is a copy on a stage above the page. X rebuilds its timeline as you scroll and moves posts with transforms, so the real post is never moved or restyled beyond hiding it while its copy is up. The e2e build has `<all_urls>` so tests can take a picture without a real click on the toolbar.
 
+## How the time tracker works
+
+Every browser event ends in `step` (`time/background.ts`): credit the time since the last step to the site being counted, then look at what's in front now. Steps run one at a time and the current site is stored, so the browser stopping the background loses nothing; a minute's alarm wakes it, and `MAX_GAP_MS` keeps a sleeping computer from counting as time on a site.
+
+History lives in IndexedDB, not `storage.local`. Every content script reads and listens to `storage.local`, and a year of browsing shouldn't reach every page, or wake every tab each minute.
+
 ## How Twitch link pills work
 
 `chat/observer.ts` watches the chat and turns links into pills (`chat/pill.ts`) and/or logs them; pills and the log are independent settings, and both stop while paused. Hovering a pill opens one shared card (`chat/hovercard.ts`, content in `chat/card-views.ts`). Details come from the background (`background/resolve.ts`), which asks a **provider** per site.
@@ -125,7 +134,7 @@ bun e2e/run.mjs chrome social popup        # only some suites
 MINIFY=1 bun e2e/run.mjs chrome            # the minified bundle, as shipped
 ```
 
-Suites `smoke`, `social`, `youtube-controls`, `popup`, `transfer`, `film`, `picker`, `wand`, `skip`, `twitter` and `twitch` run against stubbed pages and need no network (`popup`, `transfer` and `picker` are Chrome only: Firefox won't let automation open extension pages). `twitch-cards`, `excalidraw` and the `youtube*` suites use the live sites deliberately, so they need network and can fail when a site changes.
+Suites `smoke`, `social`, `youtube-controls`, `popup`, `transfer`, `film`, `time`, `picker`, `wand`, `skip`, `twitter` and `twitch` run against stubbed pages and need no network (`popup`, `transfer` and `picker` are Chrome only: Firefox won't let automation open extension pages). `twitch-cards`, `excalidraw` and the `youtube*` suites use the live sites deliberately, so they need network and can fail when a site changes.
 
 ## Releasing
 
