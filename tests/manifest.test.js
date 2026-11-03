@@ -12,6 +12,7 @@ describe("manifest.json", () => {
   it("is valid manifest v3", () => {
     expect(manifest.manifest_version).toBe(3);
     expect(manifest.name).toBeTruthy();
+    expect(manifest.description.length).toBeLessThanOrEqual(132);
     expect(typeof manifest.version).toBe("string");
     expect(manifest.version).toMatch(/^\d+\.\d+\.\d+/);
   });
@@ -22,11 +23,15 @@ describe("manifest.json", () => {
     const cs = manifest.content_scripts[0];
     expect(cs.js).toEqual([
       "shared/options.js",
+      "shared/sites.js",
+      "shared/settings.js",
       "shared/mappings.js",
       "shared/apply-option-classes.js",
+      "shared/runtime.js",
       "content/content.js"
     ]);
     expect(cs.css).toContain("content/styles.css");
+    expect(cs.all_frames).toBe(true);
     expect(manifest.action?.default_popup).toBe("popup/popup.html");
   });
 
@@ -46,9 +51,11 @@ describe("manifest.json", () => {
   it("every referenced extension file exists on disk", () => {
     const paths = new Set();
     paths.add(manifest.action.default_popup);
-    const cs = manifest.content_scripts[0];
-    for (const p of cs.js || []) paths.add(p);
-    for (const p of cs.css || []) paths.add(p);
+    for (const cs of manifest.content_scripts) {
+      for (const p of cs.js || []) paths.add(p);
+      for (const p of cs.css || []) paths.add(p);
+    }
+    for (const p of Object.values(manifest.icons || {})) paths.add(p);
     for (const rel of paths) {
       const abs = join(root, rel);
       expect(existsSync(abs), `missing ${rel}`).toBe(true);
@@ -61,5 +68,16 @@ describe("manifest.json", () => {
     expect(matches).toContain("youtube.com");
     expect(matches).toContain("m.youtube.com");
     expect(matches).toContain("youtube-nocookie.com");
+  });
+});
+
+describe("precise social permissions", () => {
+  const manifest = JSON.parse(readFileSync(join(root, "manifest.json"), "utf8"));
+  it("uses only storage and exact content script hosts", () => {
+    expect(manifest.permissions).toEqual(["storage"]);
+    expect(manifest.background).toBeUndefined();
+    const matches = manifest.content_scripts.flatMap((entry) => entry.matches);
+    expect([...matches].sort()).toEqual([...manifest.host_permissions].sort());
+    for (const match of matches) expect(match).toMatch(/^\*:\/\/[a-z0-9.-]+\/\*$/);
   });
 });

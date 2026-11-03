@@ -10,10 +10,13 @@ describe("popup/popup.html", () => {
   const html = readFileSync(join(rootDir, "popup/popup.html"), "utf8");
   const { UNHOOKED_OPTION_KEYS } = loadOptionsModule();
 
-  it.each(UNHOOKED_OPTION_KEYS)("has checkbox id=%s", (key) => {
-    const re = new RegExp(`id="${key}"`, "m");
-    expect(html).toMatch(re);
-  });
+  it.each(UNHOOKED_OPTION_KEYS.filter((key) => key !== "extensionDisabled"))(
+    "has checkbox id=%s",
+    (key) => {
+      const re = new RegExp(`id="${key}"`, "m");
+      expect(html).toMatch(re);
+    }
+  );
 
   it("declares bulk group controls", () => {
     expect(html).toMatch(/id="bulkVideoSidebar"/);

@@ -6,11 +6,7 @@ import vm from "node:vm";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const rootDir = join(__dirname, "../..");
 
-const SHARED_CHAIN = [
-  "shared/options.js",
-  "shared/mappings.js",
-  "shared/apply-option-classes.js"
-];
+const SHARED_CHAIN = ["shared/options.js", "shared/mappings.js", "shared/apply-option-classes.js"];
 
 /**
  * Loads options → mappings → apply-option-classes in one VM context (like the extension).

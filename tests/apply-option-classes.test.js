@@ -18,7 +18,11 @@ describe("shared/apply-option-classes.js", () => {
     vm.runInContext(code, context);
     const el = createElementWithClassMock();
     expect(() =>
-      context.unhookedApplyOptionClasses(el, { extensionDisabled: false }, { isMobile: false, isEmbed: false })
+      context.unhookedApplyOptionClasses(
+        el,
+        { extensionDisabled: false },
+        { isMobile: false, isEmbed: false }
+      )
     ).toThrow(/mappings\.js/);
   });
 

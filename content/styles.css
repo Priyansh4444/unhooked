@@ -4,8 +4,12 @@
 
 /* Related column: hide list only (keep live chat column area) */
 html:not(.uh-extension-disabled).uh-hide-related-sidebar ytd-watch-flexy #related,
-html:not(.uh-extension-disabled).uh-hide-related-sidebar ytd-watch-flexy ytd-watch-next-secondary-results-renderer,
-html:not(.uh-extension-disabled).uh-hide-related-sidebar ytd-watch-flexy ytd-compact-autoplay-renderer {
+html:not(.uh-extension-disabled).uh-hide-related-sidebar
+  ytd-watch-flexy
+  ytd-watch-next-secondary-results-renderer,
+html:not(.uh-extension-disabled).uh-hide-related-sidebar
+  ytd-watch-flexy
+  ytd-compact-autoplay-renderer {
   display: none !important;
 }
 
@@ -32,21 +36,29 @@ html:not(.uh-extension-disabled).uh-hide-fundraiser ytd-donation-video-renderer 
 /* --- Comments --- */
 html:not(.uh-extension-disabled).uh-hide-comments ytd-comments,
 html:not(.uh-extension-disabled).uh-hide-comments #comments,
-html:not(.uh-extension-disabled).uh-hide-comments ytd-item-section-renderer[section-identifier="comment-section"] {
+html:not(.uh-extension-disabled).uh-hide-comments
+  ytd-item-section-renderer[section-identifier="comment-section"] {
   display: none !important;
 }
 
-html:not(.uh-extension-disabled).uh-hide-comment-avatars ytd-comment-thread-renderer #author-thumbnail,
+html:not(.uh-extension-disabled).uh-hide-comment-avatars
+  ytd-comment-thread-renderer
+  #author-thumbnail,
 html:not(.uh-extension-disabled).uh-hide-comment-avatars ytd-comment-view-model #author-thumbnail,
 html:not(.uh-extension-disabled).uh-hide-comment-avatars #comments ytd-thumbnail {
   display: none !important;
 }
 
 /* --- Video actions --- */
-html:not(.uh-extension-disabled).uh-hide-video-actions-bar ytd-watch-metadata #top-level-buttons-computed,
-html:not(.uh-extension-disabled).uh-hide-video-actions-bar ytd-menu-renderer.ytd-watch-metadata #top-level-buttons,
+html:not(.uh-extension-disabled).uh-hide-video-actions-bar
+  ytd-watch-metadata
+  #top-level-buttons-computed,
+html:not(.uh-extension-disabled).uh-hide-video-actions-bar
+  ytd-menu-renderer.ytd-watch-metadata
+  #top-level-buttons,
 html:not(.uh-extension-disabled).uh-hide-video-actions-bar #actions-inner > ytd-menu-renderer,
-html:not(.uh-extension-disabled).uh-hide-video-actions-bar ytd-segmented-like-dislike-button-view-model {
+html:not(.uh-extension-disabled).uh-hide-video-actions-bar
+  ytd-segmented-like-dislike-button-view-model {
   display: none !important;
 }
 
@@ -60,20 +72,24 @@ html:not(.uh-extension-disabled).uh-hide-channel-row #owner {
 /* --- Description --- */
 html:not(.uh-extension-disabled).uh-hide-description ytd-watch-metadata #description,
 html:not(.uh-extension-disabled).uh-hide-description ytd-watch-metadata ytd-text-inline-expander,
-html:not(.uh-extension-disabled).uh-hide-description ytd-expandable-video-description-body-renderer {
+html:not(.uh-extension-disabled).uh-hide-description
+  ytd-expandable-video-description-body-renderer {
   display: none !important;
 }
 
 /* --- Notifications --- */
 html:not(.uh-extension-disabled).uh-hide-notification-bell ytd-notification-topbar-button-renderer,
-html:not(.uh-extension-disabled).uh-hide-notification-bell #buttons ytd-notification-topbar-button-renderer {
+html:not(.uh-extension-disabled).uh-hide-notification-bell
+  #buttons
+  ytd-notification-topbar-button-renderer {
   display: none !important;
 }
 
 /* --- Shorts --- */
 html:not(.uh-extension-disabled).uh-hide-shorts ytd-reel-shelf-renderer,
 html:not(.uh-extension-disabled).uh-hide-shorts ytd-rich-item-renderer:has(a[href^="/shorts/"]),
-html:not(.uh-extension-disabled).uh-hide-shorts ytd-compact-video-renderer:has(a[href^="/shorts/"]) {
+html:not(.uh-extension-disabled).uh-hide-shorts
+  ytd-compact-video-renderer:has(a[href^="/shorts/"]) {
   display: none !important;
 }
 
@@ -82,36 +98,53 @@ html:not(.uh-extension-disabled).uh-hide-shorts ytd-guide-entry-renderer:has(a[h
   display: none !important;
 }
 
-html:not(.uh-extension-disabled).uh-hide-shorts ytd-chip-cloud-chip-renderer:has(a[href^="/shorts"]) {
+html:not(.uh-extension-disabled).uh-hide-shorts
+  ytd-chip-cloud-chip-renderer:has(a[href^="/shorts"]) {
   display: none !important;
 }
 
 /* --- Home feed --- */
-html:not(.uh-extension-disabled).uh-hide-home-feed ytd-browse[page-subtype="home"] #primary ytd-rich-grid-renderer,
-html:not(.uh-extension-disabled).uh-hide-home-feed ytd-browse[page-subtype="home"] ytd-rich-section-renderer {
+html:not(.uh-extension-disabled).uh-hide-home-feed
+  ytd-browse[page-subtype="home"]
+  #primary
+  ytd-rich-grid-renderer,
+html:not(.uh-extension-disabled).uh-hide-home-feed
+  ytd-browse[page-subtype="home"]
+  ytd-rich-section-renderer {
   display: none !important;
 }
 
 /* --- Explore / Trending in guide --- */
-html:not(.uh-extension-disabled).uh-hide-trending-nav ytd-guide-entry-renderer:has(a[href="/feed/trending"]),
-html:not(.uh-extension-disabled).uh-hide-trending-nav ytd-guide-entry-renderer:has(a[href^="/feed/explore"]),
-html:not(.uh-extension-disabled).uh-hide-trending-nav ytd-mini-guide-entry-renderer:has(a[href="/feed/trending"]),
-html:not(.uh-extension-disabled).uh-hide-trending-nav ytd-mini-guide-entry-renderer:has(a[href^="/feed/explore"]) {
+html:not(.uh-extension-disabled).uh-hide-trending-nav
+  ytd-guide-entry-renderer:has(a[href="/feed/trending"]),
+html:not(.uh-extension-disabled).uh-hide-trending-nav
+  ytd-guide-entry-renderer:has(a[href^="/feed/explore"]),
+html:not(.uh-extension-disabled).uh-hide-trending-nav
+  ytd-mini-guide-entry-renderer:has(a[href="/feed/trending"]),
+html:not(.uh-extension-disabled).uh-hide-trending-nav
+  ytd-mini-guide-entry-renderer:has(a[href^="/feed/explore"]) {
   display: none !important;
 }
 
 /* --- Subscriptions link in guide --- */
-html:not(.uh-extension-disabled).uh-hide-subscriptions-nav ytd-guide-entry-renderer:has(a[href="/feed/subscriptions"]),
-html:not(.uh-extension-disabled).uh-hide-subscriptions-nav ytd-mini-guide-entry-renderer:has(a[href="/feed/subscriptions"]) {
+html:not(.uh-extension-disabled).uh-hide-subscriptions-nav
+  ytd-guide-entry-renderer:has(a[href="/feed/subscriptions"]),
+html:not(.uh-extension-disabled).uh-hide-subscriptions-nav
+  ytd-mini-guide-entry-renderer:has(a[href="/feed/subscriptions"]) {
   display: none !important;
 }
 
 /* --- More from YouTube (guide footer products) --- */
-html:not(.uh-extension-disabled).uh-hide-more-from-youtube ytd-guide-entry-renderer:has(a[href="/premium"]),
-html:not(.uh-extension-disabled).uh-hide-more-from-youtube ytd-guide-entry-renderer:has(a[href^="https://music.youtube.com"]),
-html:not(.uh-extension-disabled).uh-hide-more-from-youtube ytd-guide-entry-renderer:has(a[href^="https://www.youtubekids.com"]),
-html:not(.uh-extension-disabled).uh-hide-more-from-youtube ytd-guide-entry-renderer:has(a[href="/paid_memberships"]),
-html:not(.uh-extension-disabled).uh-hide-more-from-youtube ytd-guide-entry-renderer:has(a[href*="studio.youtube.com"]) {
+html:not(.uh-extension-disabled).uh-hide-more-from-youtube
+  ytd-guide-entry-renderer:has(a[href="/premium"]),
+html:not(.uh-extension-disabled).uh-hide-more-from-youtube
+  ytd-guide-entry-renderer:has(a[href^="https://music.youtube.com"]),
+html:not(.uh-extension-disabled).uh-hide-more-from-youtube
+  ytd-guide-entry-renderer:has(a[href^="https://www.youtubekids.com"]),
+html:not(.uh-extension-disabled).uh-hide-more-from-youtube
+  ytd-guide-entry-renderer:has(a[href="/paid_memberships"]),
+html:not(.uh-extension-disabled).uh-hide-more-from-youtube
+  ytd-guide-entry-renderer:has(a[href*="studio.youtube.com"]) {
   display: none !important;
 }
 
@@ -126,7 +159,9 @@ html:not(.uh-extension-disabled).uh-hide-mixes ytd-rich-grid-media a[href*="star
 /* --- End screen: autoplay / video wall “feed” --- */
 html:not(.uh-extension-disabled).uh-hide-end-screen-feed .ytp-autonav-endscreen,
 html:not(.uh-extension-disabled).uh-hide-end-screen-feed ytd-endscreen-watch-next-renderer,
-html:not(.uh-extension-disabled).uh-hide-end-screen-feed .ytp-endscreen-content .ytp-videowall-still {
+html:not(.uh-extension-disabled).uh-hide-end-screen-feed
+  .ytp-endscreen-content
+  .ytp-videowall-still {
   display: none !important;
 }
 
@@ -139,11 +174,14 @@ html:not(.uh-extension-disabled).uh-hide-end-screen-cards ytd-endscreen-playlist
 /* --- Merch, tickets, transaction offers --- */
 html:not(.uh-extension-disabled).uh-hide-merch-tickets-offers ytd-merch-shelf-renderer,
 html:not(.uh-extension-disabled).uh-hide-merch-tickets-offers ytd-ticket-shelf-renderer,
-html:not(.uh-extension-disabled).uh-hide-merch-tickets-offers ytd-transaction-offers-module-renderer {
+html:not(.uh-extension-disabled).uh-hide-merch-tickets-offers
+  ytd-transaction-offers-module-renderer {
   display: none !important;
 }
 
-html:not(.uh-extension-disabled).uh-hide-merch-tickets-offers ytd-watch-metadata ytd-product-list-item-renderer {
+html:not(.uh-extension-disabled).uh-hide-merch-tickets-offers
+  ytd-watch-metadata
+  ytd-product-list-item-renderer {
   display: none !important;
 }
 
@@ -154,7 +192,11 @@ html:not(.uh-extension-disabled).uh-hide-inapt-search ytd-search ytd-ad-slot-ren
 html:not(.uh-extension-disabled).uh-hide-inapt-search ytd-search ytd-search-pyv-renderer,
 html:not(.uh-extension-disabled).uh-hide-inapt-search ytd-search ytd-movie-offer-module-renderer,
 html:not(.uh-extension-disabled).uh-hide-inapt-search ytd-search ytd-clarify-renderer,
-html:not(.uh-extension-disabled).uh-hide-inapt-search ytd-search ytd-shelf-renderer #dismissable ytd-ad-slot-renderer {
+html:not(.uh-extension-disabled).uh-hide-inapt-search
+  ytd-search
+  ytd-shelf-renderer
+  #dismissable
+  ytd-ad-slot-renderer {
   display: none !important;
 }
 
@@ -168,7 +210,9 @@ html:not(.uh-extension-disabled).uh-disable-annotations .iv-branding {
 
 /* ========== Embeds ========== */
 html:not(.uh-extension-disabled).uh-embed.uh-hide-end-screen-feed .ytp-autonav-endscreen,
-html:not(.uh-extension-disabled).uh-embed.uh-hide-end-screen-feed .ytp-endscreen-content .ytp-videowall-still {
+html:not(.uh-extension-disabled).uh-embed.uh-hide-end-screen-feed
+  .ytp-endscreen-content
+  .ytp-videowall-still {
   display: none !important;
 }
 
@@ -177,18 +221,27 @@ html:not(.uh-extension-disabled).uh-embed.uh-hide-end-screen-cards .ytp-ce-eleme
 }
 
 /* ========== Mobile m.youtube.com ========== */
-html:not(.uh-extension-disabled).uh-mobile.uh-hide-related-sidebar ytm-watch-next-secondary-results-renderer lazy-list,
-html:not(.uh-extension-disabled).uh-mobile.uh-hide-related-sidebar ytm-single-column-watch-next-results-renderer lazy-list {
+html:not(.uh-extension-disabled).uh-mobile.uh-hide-related-sidebar
+  ytm-watch-next-secondary-results-renderer
+  lazy-list,
+html:not(.uh-extension-disabled).uh-mobile.uh-hide-related-sidebar
+  ytm-single-column-watch-next-results-renderer
+  lazy-list {
   display: none !important;
 }
 
 html:not(.uh-extension-disabled).uh-mobile.uh-hide-comments ytm-comment-section-renderer,
-html:not(.uh-extension-disabled).uh-mobile.uh-hide-comments ytm-comments-entry-point-header-renderer {
+html:not(.uh-extension-disabled).uh-mobile.uh-hide-comments
+  ytm-comments-entry-point-header-renderer {
   display: none !important;
 }
 
-html:not(.uh-extension-disabled).uh-mobile.uh-hide-comment-avatars ytm-comment-thread-renderer .comment-thumbnail,
-html:not(.uh-extension-disabled).uh-mobile.uh-hide-comment-avatars ytm-comment-simplebox-renderer .thumbnail {
+html:not(.uh-extension-disabled).uh-mobile.uh-hide-comment-avatars
+  ytm-comment-thread-renderer
+  .comment-thumbnail,
+html:not(.uh-extension-disabled).uh-mobile.uh-hide-comment-avatars
+  ytm-comment-simplebox-renderer
+  .thumbnail {
   display: none !important;
 }
 
@@ -197,13 +250,20 @@ html:not(.uh-extension-disabled).uh-mobile.uh-hide-shorts a[href^="/shorts/"] {
   display: none !important;
 }
 
-html:not(.uh-extension-disabled).uh-mobile.uh-hide-home-feed ytm-browse[page-subtype="home"] ytm-rich-grid-renderer,
-html:not(.uh-extension-disabled).uh-mobile.uh-hide-home-feed ytm-browse[page-subtype="home"] lazy-list ytm-rich-item-renderer {
+html:not(.uh-extension-disabled).uh-mobile.uh-hide-home-feed
+  ytm-browse[page-subtype="home"]
+  ytm-rich-grid-renderer,
+html:not(.uh-extension-disabled).uh-mobile.uh-hide-home-feed
+  ytm-browse[page-subtype="home"]
+  lazy-list
+  ytm-rich-item-renderer {
   display: none !important;
 }
 
 html:not(.uh-extension-disabled).uh-mobile.uh-hide-end-screen-feed .ytp-autonav-endscreen,
-html:not(.uh-extension-disabled).uh-mobile.uh-hide-end-screen-feed .ytp-endscreen-content .ytp-videowall-still {
+html:not(.uh-extension-disabled).uh-mobile.uh-hide-end-screen-feed
+  .ytp-endscreen-content
+  .ytp-videowall-still {
   display: none !important;
 }
 
