@@ -114,6 +114,8 @@ export async function launch(attempt = 1) {
     timeSeed: (days) => call({ op: "timeSeed", args: days }),
     /** Credit the time so far, and read the tracker's history. */
     timeDays: () => call({ op: "timeDays", args: null }),
+    /** Credit the time so far, and read the history and what's being counted together. */
+    timeSnapshot: () => call({ op: "timeSnapshot", args: null }),
     /** Credit the time so far, and read what's being counted. */
     timeState: () => call({ op: "timeState", args: null }),
     /** Id of the first tab whose URL contains `urlPart`. */

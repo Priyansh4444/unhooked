@@ -60,28 +60,37 @@ await sleep(1200);
 check("turning it off stops counting", (await spentOn("example.org")) - before < 0.5);
 await ext.set({ "unhooked.time.enabled": true });
 
-// Accuracy: what's counted is what passed on the clock.
+// Accuracy: what's counted is what passed on the clock. Each read takes a moment, longer on a slow
+// machine, so the clock is measured both ways around the two reads, and the count must fall between.
 await ext.timeSeed([]);
 await x.bringToFront();
-await ext.timeDays();
-const before2 = await spentOn("x.com");
-const clockStart = Date.now();
+const beforeFirstRead = Date.now();
+const first = await spentOn("x.com");
+const afterFirstRead = Date.now();
 await sleep(3000);
-const counted = (await spentOn("x.com")) - before2;
-const elapsed = (Date.now() - clockStart) / 1000;
+const beforeSecondRead = Date.now();
+const counted = (await spentOn("x.com")) - first;
+const afterSecondRead = Date.now();
+const least = (beforeSecondRead - afterFirstRead) / 1000;
+const most = (afterSecondRead - beforeFirstRead) / 1000;
 check(
-  "the count matches the clock to within half a second",
-  Math.abs(counted - elapsed) < 0.5,
-  `counted ${counted}, clock ${elapsed}`,
+  "the count matches the clock",
+  counted >= least - 0.05 && counted <= most + 0.05,
+  `counted ${counted}, clock between ${least} and ${most}`,
 );
 await sleep(3000);
-const state = await ext.timeState();
-const live = state.open["x.com"];
-check("the visit in progress is being timed", live?.seconds >= 5, JSON.stringify(state));
+const snapshot = await ext.timeSnapshot();
+const live = snapshot.state.open["x.com"];
+const total = snapshot.days.reduce(
+  (sum, day) =>
+    sum + Object.values(day.hosts["x.com"] ?? {}).reduce((all, seconds) => all + seconds, 0),
+  0,
+);
+check("the visit in progress is being timed", live?.seconds >= 5, JSON.stringify(snapshot.state));
 check(
-  "and matches the time counted",
-  Math.abs(live.seconds - (await spentOn("x.com"))) < 1,
-  `${live?.seconds}`,
+  "and it agrees with the time counted",
+  Math.abs(live.seconds - total) < 0.01,
+  `session ${live?.seconds}, total ${total}`,
 );
 await other.bringToFront();
 await ext.timeDays();

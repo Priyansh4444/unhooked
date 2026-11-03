@@ -7,7 +7,16 @@ import { step } from "../../src/time/background.ts";
 import { allDays, eraseAll, getTracker, putDays, type DayRecord } from "../../src/time/store.ts";
 
 type Op = {
-  op: "set" | "get" | "timeSeed" | "timeDays" | "timeState" | "tabId" | "inject" | "send";
+  op:
+    | "set"
+    | "get"
+    | "timeSeed"
+    | "timeDays"
+    | "timeState"
+    | "timeSnapshot"
+    | "tabId"
+    | "inject"
+    | "send";
   args: never;
 };
 
@@ -22,6 +31,12 @@ async function run({ op, args }: { op: string; args: unknown }): Promise<unknown
       await eraseAll();
       await putDays(args as DayRecord[]);
       return {};
+    case "timeSnapshot": {
+      // Both from the same step, with no time passing between them.
+      await step();
+      const [days, state] = await Promise.all([allDays(), getTracker()]);
+      return { days, state };
+    }
     case "timeState":
       await step();
       return getTracker();
