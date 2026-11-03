@@ -3,17 +3,20 @@
  * storage.local, and a year of browsing shouldn't reach every page, or wake every tab each minute.
  * One record per day, so a write touches a few hundred bytes.
  */
-import { dateKey, type Slice, type Watch } from "./tracker.ts";
+import { EMPTY_STATE, dateKey, type Session, type Slice, type TrackerState } from "./tracker.ts";
 
 /** Seconds per site, per hour of the day. */
 export interface DayRecord {
   date: string;
   hosts: Record<string, Record<number, number>>;
+  /** Visits that started this day. Only since sessions were added; older days have none. */
+  sessions?: Session[];
 }
 
 const KEEP_DAYS = 400;
 const DAYS = "days";
 const STATE = "state";
+const TRACKER = "tracker";
 
 let opened: Promise<IDBDatabase> | null = null;
 
@@ -42,16 +45,22 @@ const read = <T>(request: IDBRequest<T>) =>
     request.onerror = () => reject(request.error);
   });
 
-export async function addSlices(slices: Slice[]): Promise<void> {
-  if (!slices.length) return;
+export async function commit(slices: Slice[], sessions: Session[]): Promise<void> {
+  if (!slices.length && !sessions.length) return;
   const tx = (await open()).transaction(DAYS, "readwrite");
   const days = tx.objectStore(DAYS);
-  for (const date of new Set(slices.map((slice) => slice.date))) {
+  const dates = new Set([
+    ...slices.map((slice) => slice.date),
+    ...sessions.map((session) => dateKey(session.start)),
+  ]);
+  for (const date of dates) {
     const record: DayRecord = (await read(days.get(date))) ?? { date, hosts: {} };
     for (const { host, hour, seconds } of slices.filter((slice) => slice.date === date)) {
       const hours = (record.hosts[host] ??= {});
-      hours[hour] = (hours[hour] ?? 0) + seconds;
+      hours[hour] = Math.max(0, (hours[hour] ?? 0) + seconds);
     }
+    const started = sessions.filter((session) => dateKey(session.start) === date);
+    if (started.length) record.sessions = [...(record.sessions ?? []), ...started];
     days.put(record);
   }
   await done(tx);
@@ -69,23 +78,31 @@ export async function putDays(records: DayRecord[]): Promise<void> {
 }
 
 export async function eraseAll(): Promise<void> {
-  const tx = (await open()).transaction(DAYS, "readwrite");
+  const tx = (await open()).transaction([DAYS, STATE], "readwrite");
   tx.objectStore(DAYS).clear();
+  tx.objectStore(STATE).put(EMPTY_STATE, TRACKER);
   await done(tx);
 }
 
 /** Removes one site's history. What was removed comes back, so it can be put back. */
 export async function forgetHost(host: string): Promise<DayRecord[]> {
   const records = await allDays();
-  const touched = records.filter((record) => record.hosts[host]);
+  const touched = records.filter(
+    (record) => record.hosts[host] || record.sessions?.some((session) => session.host === host),
+  );
   const removed = touched.map((record) => ({
     date: record.date,
-    hosts: { [host]: record.hosts[host]! },
+    hosts: record.hosts[host] ? { [host]: record.hosts[host]! } : {},
+    sessions: record.sessions?.filter((session) => session.host === host) ?? [],
   }));
   await putDays(
     touched.map((record) => {
       const { [host]: _gone, ...hosts } = record.hosts;
-      return { date: record.date, hosts };
+      return {
+        date: record.date,
+        hosts,
+        sessions: record.sessions?.filter((session) => session.host !== host) ?? [],
+      };
     }),
   );
   return removed;
@@ -96,7 +113,11 @@ export async function restoreHost(removed: DayRecord[]): Promise<void> {
   await putDays(
     removed.map((part) => {
       const record = records.get(part.date);
-      return { date: part.date, hosts: { ...record?.hosts, ...part.hosts } };
+      return {
+        date: part.date,
+        hosts: { ...record?.hosts, ...part.hosts },
+        sessions: [...(record?.sessions ?? []), ...(part.sessions ?? [])],
+      };
     }),
   );
 }
@@ -108,14 +129,15 @@ export async function pruneOld(now: number): Promise<void> {
   await done(tx);
 }
 
-/** The site being counted. Kept here too, because the background can be stopped at any moment. */
-export async function getWatch(): Promise<Watch | null> {
+/** What's being counted. Kept here, because the background can be stopped at any moment. */
+export async function getTracker(): Promise<TrackerState> {
   const db = await open();
-  return (await read(db.transaction(STATE).objectStore(STATE).get("watch"))) ?? null;
+  const state = await read(db.transaction(STATE).objectStore(STATE).get(TRACKER));
+  return (state as TrackerState | undefined) ?? EMPTY_STATE;
 }
 
-export async function setWatch(watch: Watch | null): Promise<void> {
+export async function setTracker(state: TrackerState): Promise<void> {
   const tx = (await open()).transaction(STATE, "readwrite");
-  tx.objectStore(STATE).put(watch, "watch");
+  tx.objectStore(STATE).put(state, TRACKER);
   await done(tx);
 }

@@ -80,6 +80,39 @@
         </div>
       </section>
 
+      <section class="chart sessions" aria-labelledby="sessionsHeading">
+        <h2 class="label" id="sessionsHeading">Sessions</h2>
+        <p class="chart-note" id="sessionsNote"></p>
+        <dl class="tiles five">
+          <div>
+            <dt>Sessions</dt>
+            <dd id="sessionCount">0</dd>
+            <p class="tile-note" id="sessionCountNote"></p>
+          </div>
+          <div>
+            <dt>Average</dt>
+            <dd id="sessionAverage">0s</dd>
+            <p class="tile-note" id="sessionMedian"></p>
+          </div>
+          <div>
+            <dt>Longest</dt>
+            <dd id="sessionLongest">0s</dd>
+            <p class="tile-note" id="sessionLongestNote"></p>
+          </div>
+          <div>
+            <dt>Shortest</dt>
+            <dd id="sessionShortest">0s</dd>
+            <p class="tile-note" id="sessionShortestNote"></p>
+          </div>
+          <div>
+            <dt>Focused</dt>
+            <dd id="sessionFocused">0s</dd>
+            <p class="tile-note" id="sessionFocusedNote"></p>
+          </div>
+        </dl>
+        <div class="buckets" id="buckets"></div>
+      </section>
+
       <div class="split">
         <section class="chart" aria-labelledby="sitesHeading">
           <h2 class="label" id="sitesHeading">Where it went</h2>
@@ -101,6 +134,19 @@
       <details class="numbers">
         <summary class="label">The numbers</summary>
         <div class="numbers-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Site</th>
+                <th scope="col">Time</th>
+                <th scope="col">Sessions</th>
+                <th scope="col">Average</th>
+                <th scope="col">Shortest</th>
+                <th scope="col">Longest</th>
+              </tr>
+            </thead>
+            <tbody id="siteNumbers"></tbody>
+          </table>
           <table>
             <thead>
               <tr>

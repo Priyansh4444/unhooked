@@ -83,6 +83,18 @@ export function drawCard(
     ctx.fillText(compare, PAD, 296);
   }
 
+  // Sessions, when there are any to speak of.
+  if (view.sessions.count) {
+    const { count, average, longest } = view.sessions;
+    ctx.fillStyle = STONE;
+    ctx.font = `15px ${MONO}`;
+    ctx.fillText(
+      `${count} ${count === 1 ? "session" : "sessions"} · average ${formatDuration(average)} · longest ${formatDuration(longest?.seconds ?? 0)}`,
+      PAD,
+      compare ? 324 : 296,
+    );
+  }
+
   // Where it went: ranked, one hue, one baseline.
   const left = { x: PAD, width: 500 };
   const rows = view.sites.slice(0, 5);

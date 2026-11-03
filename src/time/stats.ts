@@ -2,7 +2,15 @@
 import { SITE_HOSTS } from "../sites/hosts.ts";
 import { CONTROL_SITES } from "../sites/registry.ts";
 import type { DayRecord } from "./store.ts";
-import { dateKey, dayStart, formatDuration, siteKey } from "./tracker.ts";
+import {
+  MIN_SESSION_SECONDS,
+  SESSION_GAP_MS,
+  dateKey,
+  dayStart,
+  formatDuration,
+  siteKey,
+  type Session,
+} from "./tracker.ts";
 
 export type Range = "today" | "7" | "30" | "90" | "all";
 
@@ -33,6 +41,31 @@ export interface SiteRow {
   feed: boolean;
 }
 
+export interface Bucket {
+  label: string;
+  count: number;
+}
+
+export interface SessionStats {
+  count: number;
+  average: number;
+  median: number;
+  longest: Session | null;
+  shortest: Session | null;
+  /** Time spent in sessions of FOCUS_SECONDS or more. */
+  focused: number;
+  /** That, as a share of all time in sessions. */
+  focusedShare: number;
+  buckets: Bucket[];
+}
+
+export interface SiteSessions {
+  count: number;
+  average: number;
+  shortest: number;
+  longest: number;
+}
+
 export interface View {
   range: Range;
   site: string | null;
@@ -49,6 +82,63 @@ export interface View {
   peakHour: number | null;
   /** The busiest bar, for naming it. */
   peak: Bar | null;
+  sessions: SessionStats;
+  bySite: Record<string, SiteSessions>;
+  /** The first day sessions were counted, when this period reaches further back. */
+  sessionsSince: string | null;
+}
+
+/** A stretch this long on one thing, without leaving for more than a minute, is focus. */
+export const FOCUS_SECONDS = 600;
+const BUCKETS: [string, number][] = [
+  ["<1m", 60],
+  ["1–5m", 300],
+  ["5–15m", 900],
+  ["15–30m", 1800],
+  ["30–60m", 3600],
+  ["1h+", Infinity],
+];
+
+export function summarizeSessions(sessions: Session[]): SessionStats {
+  const sorted = [...sessions].sort((a, b) => a.seconds - b.seconds);
+  const total = sorted.reduce((sum, session) => sum + session.seconds, 0);
+  const middle = sorted.length / 2;
+  const focused = sorted
+    .filter((session) => session.seconds >= FOCUS_SECONDS)
+    .reduce((sum, session) => sum + session.seconds, 0);
+  return {
+    count: sorted.length,
+    average: sorted.length ? total / sorted.length : 0,
+    median: !sorted.length
+      ? 0
+      : sorted.length % 2
+        ? sorted[Math.floor(middle)]!.seconds
+        : (sorted[middle - 1]!.seconds + sorted[middle]!.seconds) / 2,
+    longest: sorted.at(-1) ?? null,
+    shortest: sorted[0] ?? null,
+    focused,
+    focusedShare: total ? focused / total : 0,
+    buckets: BUCKETS.map(([label, under], i) => ({
+      label,
+      count: sorted.filter(
+        (session) => session.seconds < under && session.seconds >= (i ? BUCKETS[i - 1]![1] : 0),
+      ).length,
+    })),
+  };
+}
+
+/** Sessions on any site joined into stretches online, broken by a gap of over a minute. */
+export function joinSessions(sessions: Session[]): Session[] {
+  const joined: Session[] = [];
+  for (const session of [...sessions].sort((a, b) => a.start - b.start)) {
+    const last = joined.at(-1);
+    if (last && session.start - last.end <= SESSION_GAP_MS) {
+      last.end = Math.max(last.end, session.end);
+      last.seconds += session.seconds;
+      last.host = last.host === session.host ? last.host : "";
+    } else joined.push({ ...session });
+  }
+  return joined;
 }
 
 const FEED_HOSTS = new Set<string>(CONTROL_SITES.map((site) => siteKey(SITE_HOSTS[site.id][0])));
@@ -96,6 +186,7 @@ export function computeView(
   range: Range,
   site: string | null,
   now: number,
+  openSessions: Session[] = [],
 ): View {
   const today = dateKey(now);
   const byDate = new Map(days.map((record) => [record.date, record]));
@@ -187,16 +278,47 @@ export function computeView(
     }));
   }
 
-  // The same stretch just before. Today is compared with yesterday up to this hour.
+  // The same stretch just before, cut off at the same time of day, because today isn't over yet.
+  // Only with a whole earlier stretch to compare: a part of one would flatter any period.
   let previous: number | null = null;
+  const nowHour = new Date(now).getHours();
   if (range === "today") {
     const yesterday = byDate.get(shiftDays(today, -1));
-    previous = yesterday ? secondsIn(yesterday, site, new Date(now).getHours()) : null;
+    previous = yesterday ? secondsIn(yesterday, site, nowHour) : null;
   } else if (range !== "all") {
     const before = Array.from({ length }, (_, i) => shiftDays(today, i - 2 * length + 1));
-    if (before.some((date) => byDate.has(date)))
-      previous = before.reduce((sum, date) => sum + secondsIn(byDate.get(date), site), 0);
+    if (earliest <= before[0]!)
+      previous = before.reduce(
+        (sum, date, i) => sum + secondsIn(byDate.get(date), site, i === length - 1 ? nowHour : 23),
+        0,
+      );
   }
+
+  // Sessions that started in this period, including any still going.
+  const inPeriod = new Set(window);
+  const recorded = window.flatMap((date) => byDate.get(date)?.sessions ?? []);
+  const live = openSessions.filter((session) => inPeriod.has(dateKey(session.start)));
+  const every = [...recorded, ...live].filter((session) => session.seconds >= MIN_SESSION_SECONDS);
+  const bySiteLists = new Map<string, Session[]>();
+  for (const session of every) {
+    bySiteLists.set(session.host, [...(bySiteLists.get(session.host) ?? []), session]);
+  }
+  const bySite: Record<string, SiteSessions> = {};
+  for (const [host, list] of bySiteLists) {
+    const seconds = list.map((session) => session.seconds);
+    bySite[host] = {
+      count: list.length,
+      average: seconds.reduce((a, b) => a + b, 0) / list.length,
+      shortest: Math.min(...seconds),
+      longest: Math.max(...seconds),
+    };
+  }
+  const sessions = summarizeSessions(site ? (bySiteLists.get(site) ?? []) : joinSessions(every));
+  const firstCounted = dates.find((date) => byDate.get(date)?.sessions?.length);
+  const sessionsSince =
+    total > 0 && (!firstCounted || firstCounted > (dates.find((d) => inPeriod.has(d)) ?? today))
+      ? (firstCounted ?? today)
+      : null;
 
   const activeDays = window.filter((date) => secondsIn(byDate.get(date), site) > 0).length;
   const peakSeconds = Math.max(...hourTotals);
@@ -218,6 +340,9 @@ export function computeView(
     activeDays,
     peakHour: peakSeconds > 0 ? hourTotals.indexOf(peakSeconds) : null,
     peak: busiest,
+    sessions,
+    bySite,
+    sessionsSince,
   };
 }
 

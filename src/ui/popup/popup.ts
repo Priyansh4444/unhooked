@@ -227,6 +227,7 @@ function renderXLayout(): void {
   if (selected !== "x") return;
   const centered = raw[STORAGE_KEYS.TWITTER_CENTER_TIMELINE] === true;
   $<HTMLInputElement>("xCenter").checked = centered;
+  $<HTMLInputElement>("xFilmButton").checked = raw[STORAGE_KEYS.TWITTER_FILM_BUTTON] !== false;
   $("xWidthRow").hidden = !centered;
   const width = Number(raw[STORAGE_KEYS.TWITTER_WIDTH] ?? DEFAULTS.TWITTER_WIDTH);
   $<HTMLInputElement>("xWidth").value = String(width);
@@ -544,6 +545,7 @@ function previewTarget(row: Element): Omit<PreviewRequest, "action"> | null {
   if (input && YOUTUBE_GROUPS[input.id])
     return { features: YOUTUBE_GROUPS[input.id], label: title };
   // Nothing goes away with this one: it shows the column that moves.
+  if (input?.id === "xFilmButton") return { selectors: [".uh-film-slot"], label: "Film buttons" };
   if (input?.id === "xCenter")
     return { selectors: ['[data-testid="primaryColumn"]'], label: "Centers the timeline" };
   const control = controlSiteById(selected);
@@ -803,6 +805,9 @@ function bind(): void {
     void write({
       [STORAGE_KEYS.TWITTER_USE_DEFAULT_FONT]: !(event.target as HTMLInputElement).checked,
     });
+  });
+  $("xFilmButton").addEventListener("change", (event) => {
+    void write({ [STORAGE_KEYS.TWITTER_FILM_BUTTON]: (event.target as HTMLInputElement).checked });
   });
   $("xCenter").addEventListener("change", (event) => {
     void write({

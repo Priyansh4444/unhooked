@@ -4,10 +4,10 @@
 import "../../src/background.ts";
 import { ext } from "../../src/shared/ext-api.ts";
 import { step } from "../../src/time/background.ts";
-import { allDays, eraseAll, putDays, type DayRecord } from "../../src/time/store.ts";
+import { allDays, eraseAll, getTracker, putDays, type DayRecord } from "../../src/time/store.ts";
 
 type Op = {
-  op: "set" | "get" | "timeSeed" | "timeDays" | "tabId" | "inject" | "send";
+  op: "set" | "get" | "timeSeed" | "timeDays" | "timeState" | "tabId" | "inject" | "send";
   args: never;
 };
 
@@ -22,6 +22,9 @@ async function run({ op, args }: { op: string; args: unknown }): Promise<unknown
       await eraseAll();
       await putDays(args as DayRecord[]);
       return {};
+    case "timeState":
+      await step();
+      return getTracker();
     case "timeDays":
       await step();
       return allDays();

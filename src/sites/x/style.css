@@ -84,3 +84,45 @@ html.uh-x-font [data-testid="primaryColumn"] article [data-testid="User-Name"] i
 html.uh-x-font [data-testid="primaryColumn"] article [data-testid="Tweet-User-Avatar"] {
   transform: none !important;
 }
+
+/* The film button, sized and coloured like the actions beside it. */
+.uh-film-slot {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+}
+.uh-film-slot.uh-film-share {
+  flex: 1 1 0;
+  justify-content: flex-start;
+  min-width: 0;
+}
+/* X's icons sit at the left of their share, with the hover circle hanging past the edge. */
+.uh-film-share .uh-film-btn {
+  margin-left: -5.5px;
+}
+.uh-film-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34.75px;
+  height: 34.75px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: rgb(113, 118, 123);
+  cursor: pointer;
+  transition:
+    background-color 200ms ease,
+    color 200ms ease,
+    transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.uh-film-btn:hover,
+.uh-film-btn:focus-visible {
+  background: rgb(227 23 12 / 0.12);
+  color: #e3170c;
+}
+.uh-film-btn:active {
+  transform: scale(0.9);
+}

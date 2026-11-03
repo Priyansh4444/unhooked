@@ -123,18 +123,22 @@ if (wanted("time")) {
     const when = new Date(Date.now() - ago * 86_400_000);
     const weekend = [0, 6].includes(when.getDay());
     const hosts: Record<string, Record<number, number>> = {};
+    const sessions: { host: string; start: number; end: number; seconds: number }[] = [];
     for (const [host, weight, hours] of sites) {
       for (const hour of hours) {
         if (random() < 0.3) continue;
         const shift = host === "github.com" && weekend ? 0.2 : 1;
-        (hosts[host] ??= {})[hour] = Math.round(random() * 1500 * weight * shift);
+        const seconds = Math.round(random() * 1500 * weight * shift);
+        (hosts[host] ??= {})[hour] = seconds;
+        const start = new Date(when).setHours(hour, Math.floor(random() * 30), 0, 0);
+        sessions.push({ host, start, end: start + seconds * 1000, seconds });
       }
     }
-    return { date: dateKey(when), hosts };
+    return { date: dateKey(when), hosts, sessions };
   });
   await ext.timeSeed(sample);
   await ext.set({ "unhooked.time.enabled": true }); // the page is in front, which never counts
-  const page = await newPage({ width: 1180, height: 1240, deviceScaleFactor: 2 });
+  const page = await newPage({ width: 1180, height: 1520, deviceScaleFactor: 2 });
   await page.goto(`${base}/time/index.html`, { waitUntil: "load" });
   await page.bringToFront();
   await page.click('[data-range="30"]');

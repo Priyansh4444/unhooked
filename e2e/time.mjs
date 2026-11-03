@@ -60,6 +60,33 @@ await sleep(1200);
 check("turning it off stops counting", (await spentOn("example.org")) - before < 0.5);
 await ext.set({ "unhooked.time.enabled": true });
 
+// Accuracy: what's counted is what passed on the clock.
+await ext.timeSeed([]);
+await x.bringToFront();
+await ext.timeDays();
+const before2 = await spentOn("x.com");
+const clockStart = Date.now();
+await sleep(3000);
+const counted = (await spentOn("x.com")) - before2;
+const elapsed = (Date.now() - clockStart) / 1000;
+check(
+  "the count matches the clock to within half a second",
+  Math.abs(counted - elapsed) < 0.5,
+  `counted ${counted}, clock ${elapsed}`,
+);
+await sleep(3000);
+const state = await ext.timeState();
+const live = state.open["x.com"];
+check("the visit in progress is being timed", live?.seconds >= 5, JSON.stringify(state));
+check(
+  "and matches the time counted",
+  Math.abs(live.seconds - (await spentOn("x.com"))) < 1,
+  `${live?.seconds}`,
+);
+await other.bringToFront();
+await ext.timeDays();
+check("looking away doesn't end it", (await ext.timeState()).open["x.com"]?.start === live.start);
+
 // A page reading everything mustn't be handed a year of browsing.
 const keys = await other.evaluate(() => Object.keys(localStorage));
 check("nothing is left in the page", keys.length === 0);
@@ -78,9 +105,22 @@ const hours = (from, to, seconds) =>
   Object.fromEntries(Array.from({ length: to - from }, (_, i) => [from + i, seconds]));
 const record = (daysAgo, hosts) => ({ date: dateKey(Date.now() - daysAgo * 86_400_000), hosts });
 await ext.set({ "unhooked.time.enabled": false }); // keep the numbers still while testing them
+const session = (host, daysAgo, seconds) => {
+  const start = Date.now() - daysAgo * 86_400_000 - 600_000;
+  return { host, start, end: start + seconds * 1000, seconds };
+};
+const withSessions = (entry, sessions) => ({ ...entry, sessions });
 await ext.timeSeed([
-  record(0, { "x.com": hours(8, 10, 1800), "example.org": hours(9, 10, 900) }),
-  record(1, { "x.com": hours(20, 22, 3600), "youtube.com": hours(21, 22, 1800) }),
+  record(13, {}),
+  withSessions(record(0, { "x.com": hours(8, 10, 1800), "example.org": hours(9, 10, 900) }), [
+    session("x.com", 0, 3600),
+    session("example.org", 0.2, 900),
+  ]),
+  withSessions(record(1, { "x.com": hours(20, 22, 3600), "youtube.com": hours(21, 22, 1800) }), [
+    session("x.com", 1, 300),
+    session("x.com", 1.2, 45),
+    session("youtube.com", 1.4, 1800),
+  ]),
   record(3, { "<b>weird</b>.example": hours(10, 11, 600), "example.org": hours(10, 11, 1200) }),
   record(10, { "x.com": hours(9, 11, 3600) }),
 ]);
@@ -114,6 +154,31 @@ check(
   await app.$eval("#sites li:last-child .site-name", (el) => el.children.length === 0),
 );
 check("the tiles agree", (await text("#tileSites")) === "4");
+
+// Sessions, worked out by hand from what was seeded: 3600, 900, 300, 45 and 1800 seconds.
+await until("sessions are counted", async () => (await text("#sessionCount")) === "5");
+await until("with their average", async () => (await text("#sessionAverage")) === "22m");
+check("and median", (await text("#sessionMedian")) === "median 15m");
+await until("the longest", async () => (await text("#sessionLongest")) === "1h");
+await until("the shortest", async () => (await text("#sessionShortest")) === "45s");
+await until("and time in focus", async () => (await text("#sessionFocused")) === "1h 45m");
+check("as a share", (await text("#sessionFocusedNote")).startsWith("95%"));
+check("the longest says what and when", (await text("#sessionLongestNote")).startsWith("x.com · "));
+check(
+  "lengths are sorted into groups",
+  (await app.$$eval("#buckets .count", (counts) => counts.map((c) => c.textContent))).join() ===
+    "1,,1,1,1,1",
+);
+check(
+  "every site has its numbers",
+  (
+    await app.$$eval("#siteNumbers tr:first-child td", (cells) => cells.map((c) => c.textContent))
+  ).join() === "x.com,3h,3,21m,45s,1h",
+);
+check(
+  "a site with no sessions yet says so rather than showing zero",
+  (await app.$$eval("#siteNumbers tr:last-child td", (cells) => cells[2].textContent)) === "–",
+);
 check("a week draws seven bars", (await app.$$("#bars .col")).length === 7);
 await until(
   "bars rise to their height",
@@ -190,6 +255,8 @@ await app.click('#sites li[data-host="x.com"] button');
 await until("choosing a site narrows everything", async () => (await text("#hero")) === "3h");
 check("the list stays, to choose another", (await rows()).length === 4);
 check("it's named", (await text("#heroNote")) === "on x.com in the last 7 days");
+await until("sessions narrow with it", async () => (await text("#sessionCount")) === "3");
+await until("to that site's", async () => (await text("#sessionAverage")) === "21m");
 await app.click("#clearSite");
 await until("and it can be cleared", async () => (await text("#hero")) === "4h 15m");
 

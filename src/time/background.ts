@@ -5,12 +5,11 @@
  */
 import { ext } from "../shared/ext-api.ts";
 import { STORAGE_KEYS } from "../shared/settings.ts";
-import { addSlices, getWatch, pruneOld, setWatch } from "./store.ts";
+import { commit, getTracker, pruneOld, setTracker } from "./store.ts";
 import { TIME_FLUSH } from "./protocol.ts";
-import { hostToCount, slicesOf, type FrontTab } from "./tracker.ts";
+import { IDLE_SECONDS, advance, hostToCount, type FrontTab } from "./tracker.ts";
 
 const HEARTBEAT = "unhooked-time";
-const IDLE_SECONDS = 60;
 
 let queue: Promise<unknown> = Promise.resolve();
 const inTurn = <T>(work: () => Promise<T>): Promise<T> => {
@@ -45,11 +44,17 @@ async function settings(): Promise<{ enabled: boolean; ignored: string[] }> {
 export const step = (): Promise<void> =>
   inTurn(async () => {
     const now = Date.now();
-    const watch = await getWatch();
-    if (watch) await addSlices(slicesOf(watch, now));
     const { enabled, ignored } = await settings();
-    const host = hostToCount(await frontTab(), enabled, ignored);
-    await setWatch(host ? { host, since: now } : null);
+    const tab = await frontTab();
+    const host = hostToCount(tab, enabled, ignored);
+    const state = await getTracker();
+    // A site just left out has its visit dropped rather than saved on its way out.
+    const open = Object.fromEntries(
+      Object.entries(state.open).filter(([name]) => !ignored.includes(name)),
+    );
+    const next = advance({ ...state, open }, now, host, tab?.idle === "idle" && !tab.audible);
+    await commit(next.slices, next.closed);
+    await setTracker(next.state);
   });
 
 export function initTimeTracker(): void {

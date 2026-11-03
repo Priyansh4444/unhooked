@@ -44,6 +44,50 @@ const center = (selector) =>
     return [r.left + r.width / 2, r.top + r.height / 2];
   });
 
+// The film button, in each post's row of actions.
+const slots = (selector = "main") =>
+  page.$$eval(`${selector} .uh-film-slot`, (found) => found.length);
+await until("each post gets a film button", async () => (await slots()) === 2);
+check(
+  "in its row of actions",
+  await page.$eval("#one-actions .uh-film-slot", (el) => el.parentElement.id === "one-actions"),
+);
+await page.click("#one-actions .uh-film-btn");
+await until("the button frames that post", async () => (await stage()) !== null);
+check("without opening it", page.url() === "https://x.com/home");
+check(
+  "the right post",
+  (await page.$eval("#uh-film-stage article", (el) => el.textContent)).includes("keeping, one"),
+);
+check(
+  "its copy doesn't show the button",
+  await page.$eval("#uh-film-stage .uh-film-slot", (el) => getComputedStyle(el).display === "none"),
+);
+await page.keyboard.press("Escape");
+await until("Esc goes back to the page", async () => (await stage()) === null);
+await until(
+  "and out of film mode, since it only started for this",
+  async () => (await overlay()) === null,
+);
+await page.evaluate(() => {
+  const row = document.querySelector("#two-actions");
+  row.replaceWith(Object.assign(row.cloneNode(false), { textContent: "redrawn" }));
+});
+await until(
+  "a post the site redraws gets its button back",
+  async () => (await page.$("#two-actions .uh-film-slot")) !== null,
+);
+await sleep(600);
+check("and only one", (await slots()) === 2);
+await ext.set({ twitter_film_button: false });
+await until("it can be turned off", async () => (await slots()) === 0);
+await ext.set({ twitter_film_button: true });
+await until("and on again", async () => (await slots()) === 2);
+await ext.set({ "unhooked.paused": true });
+await until("Pause all takes it away", async () => (await slots()) === 0);
+await ext.set({ "unhooked.paused": false });
+await until("Resume brings it back", async () => (await slots()) === 2);
+
 await ext.inject("x.com", "sites/film/content.js");
 await until("film mode starts on the page", async () => (await overlay()) !== null);
 

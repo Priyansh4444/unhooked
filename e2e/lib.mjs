@@ -12,7 +12,7 @@ const BINARY = BROWSER === "firefox" ? process.env.FIREFOX_PATH : process.env.CH
 
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-export async function launch() {
+export async function launch(attempt = 1) {
   if (!BINARY) {
     throw new Error(
       BROWSER === "firefox"
@@ -114,6 +114,8 @@ export async function launch() {
     timeSeed: (days) => call({ op: "timeSeed", args: days }),
     /** Credit the time so far, and read the tracker's history. */
     timeDays: () => call({ op: "timeDays", args: null }),
+    /** Credit the time so far, and read what's being counted. */
+    timeState: () => call({ op: "timeState", args: null }),
     /** Id of the first tab whose URL contains `urlPart`. */
     tabId: (urlPart) => call({ op: "tabId", args: urlPart }),
     /** Run an extension script in the first tab whose URL contains `url`. */
@@ -136,7 +138,14 @@ export async function launch() {
     );
     if (!ready) await sleep(250);
   }
-  if (!ready) throw new Error("the extension did not answer the test bridge within 60s");
+  if (!ready) {
+    await browser.close().catch(() => {});
+    server.stop(true);
+    // Now and then a cold CI runner starts Chromium without the extension's worker. A new browser
+    // is the honest retry: a real bug would fail the same way twice.
+    if (attempt < 2) return launch(attempt + 1);
+    throw new Error("the extension did not answer the test bridge within 60s, twice");
+  }
   // Close any extension page a fresh profile opened, so tests start from the harness page.
   for (const page of await browser.pages()) {
     if (/^(chrome|moz)-extension:/.test(page.url())) await page.close();

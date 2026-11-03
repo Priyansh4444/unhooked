@@ -22,11 +22,12 @@ import {
   allDays,
   eraseAll,
   forgetHost,
+  getTracker,
   putDays,
   restoreHost,
   type DayRecord,
 } from "../../time/store.ts";
-import { formatDuration } from "../../time/tracker.ts";
+import { MIN_SESSION_SECONDS, formatDuration, type Session } from "../../time/tracker.ts";
 import { cardFonts, drawCard, postText } from "./card.ts";
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string): T => document.getElementById(id) as T;
@@ -41,6 +42,8 @@ let days: DayRecord[] = [];
 let range: Range = "7";
 let site: string | null = null;
 let view: View = computeView([], range, site, Date.now());
+/** Visits still going, which count too, and move as they grow. */
+let openSessions: Session[] = [];
 let allRows = false;
 let tracking = true;
 let ignored: string[] = [];
@@ -212,6 +215,79 @@ function renderBars(): void {
   });
 }
 
+// ---- sessions --------------------------------------------------------------------------------
+
+const SHORT_DAY = new Intl.DateTimeFormat("en", { month: "short", day: "numeric" });
+
+function sessionNote(session: Session | null): string {
+  if (!session) return "";
+  const when = SHORT_DAY.format(session.start);
+  return !site && session.host ? `${session.host} · ${when}` : when;
+}
+
+function renderSessions(): void {
+  const stats = view.sessions;
+  const scope = site ? "visit to this site" : "stretch online";
+  const since = view.sessionsSince
+    ? ` Counted since ${SHORT_DAY.format(new Date(`${view.sessionsSince}T12:00`))}; earlier days only have totals.`
+    : "";
+  $("sessionsNote").textContent =
+    `One unbroken ${scope}: stepping away for under a minute doesn't end it, and under ${MIN_SESSION_SECONDS} seconds is only passing through.${since}`;
+  countTo($("sessionCount"), stats.count, whole);
+  $("sessionCountNote").textContent = view.activeDays
+    ? `${(stats.count / view.activeDays).toFixed(1)} a day`
+    : "";
+  countTo($("sessionAverage"), stats.average, formatDuration);
+  $("sessionMedian").textContent = stats.count ? `median ${formatDuration(stats.median)}` : "";
+  countTo($("sessionLongest"), stats.longest?.seconds ?? 0, formatDuration);
+  $("sessionLongestNote").textContent = sessionNote(stats.longest);
+  countTo($("sessionShortest"), stats.shortest?.seconds ?? 0, formatDuration);
+  $("sessionShortestNote").textContent = sessionNote(stats.shortest);
+  countTo($("sessionFocused"), stats.focused, formatDuration);
+  $("sessionFocusedNote").textContent = stats.count
+    ? `${Math.round(stats.focusedShare * 100)}% in stretches of 10m+`
+    : "stretches of 10m or more";
+
+  const container = $("buckets");
+  if (!container.children.length) {
+    container.append(
+      ...stats.buckets.map((_, i) => {
+        const bucket = document.createElement("div");
+        bucket.className = "bucket";
+        bucket.tabIndex = i === 0 ? 0 : -1;
+        bucket.setAttribute("role", "img");
+        const count = document.createElement("div");
+        count.className = "count";
+        const track = document.createElement("div");
+        track.className = "track";
+        const fill = document.createElement("div");
+        fill.className = "fill";
+        fill.style.setProperty("--i", String(i * 30));
+        track.append(fill);
+        const x = document.createElement("div");
+        x.className = "x";
+        bucket.append(count, track, x);
+        return bucket;
+      }),
+    );
+    void container.offsetWidth;
+  }
+  const most = Math.max(1, ...stats.buckets.map((bucket) => bucket.count));
+  stats.buckets.forEach((bucket, i) => {
+    const el = container.children[i] as HTMLElement;
+    const sessions = `${bucket.count} ${bucket.count === 1 ? "session" : "sessions"}`;
+    el.dataset.tipValue = sessions;
+    el.dataset.tipLabel = bucket.label;
+    el.setAttribute("aria-label", `${bucket.label}: ${sessions}`);
+    (el.querySelector(".count") as HTMLElement).textContent = bucket.count
+      ? String(bucket.count)
+      : "";
+    (el.querySelector(".x") as HTMLElement).textContent = bucket.label;
+    el.querySelector<HTMLElement>(".fill")!.style.transform =
+      `translateY(${(1 - bucket.count / most) * 100}%)`;
+  });
+}
+
 // ---- where it went ---------------------------------------------------------------------------
 
 function renderSites(): void {
@@ -344,6 +420,26 @@ function moveRangeMark(): void {
 }
 
 function renderNumbers(): void {
+  $("siteNumbers").replaceChildren(
+    ...view.sites.map((row) => {
+      const stats = view.bySite[row.host];
+      const line = document.createElement("tr");
+      const cells = [
+        row.host,
+        formatDuration(row.seconds),
+        stats ? String(stats.count) : "–",
+        stats ? formatDuration(stats.average) : "–",
+        stats ? formatDuration(stats.shortest) : "–",
+        stats ? formatDuration(stats.longest) : "–",
+      ];
+      for (const text of cells) {
+        const cell = document.createElement("td");
+        cell.textContent = text;
+        line.append(cell);
+      }
+      return line;
+    }),
+  );
   $("numbersHead").textContent = range === "today" ? "Hour" : "Day";
   $("numbersBody").replaceChildren(
     ...[...view.bars].reverse().map((bar) => {
@@ -359,7 +455,7 @@ function renderNumbers(): void {
 }
 
 function render(): void {
-  view = computeView(days, range, site, Date.now());
+  view = computeView(days, range, site, Date.now(), openSessions);
   for (const button of $("ranges").querySelectorAll<HTMLElement>("button")) {
     button.setAttribute("aria-pressed", String(button.dataset.range === range));
   }
@@ -397,6 +493,7 @@ function render(): void {
   $("tilePeak").textContent = view.peakHour === null ? "None yet" : hourLabel(view.peakHour);
 
   renderBars();
+  renderSessions();
   renderSites();
   renderHeat();
   renderNumbers();
@@ -448,6 +545,9 @@ function status(message: string, undo?: () => Promise<void>): void {
 async function reload(): Promise<void> {
   await ext.runtime.sendMessage({ action: TIME_FLUSH }).catch(() => {});
   days = await allDays();
+  openSessions = Object.values((await getTracker()).open).filter(
+    (session) => session.seconds >= MIN_SESSION_SECONDS,
+  );
   render();
 }
 
@@ -559,6 +659,8 @@ function bind(): void {
 
   bindTips($("bars"));
   bindTips($("heat"));
+  bindTips($("buckets"));
+  bindArrows($("buckets"), ".bucket", () => 0);
   bindArrows($("bars"), ".col", () => 0);
   bindArrows($("heat"), ".cell", () => 24);
 

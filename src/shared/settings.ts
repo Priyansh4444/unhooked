@@ -16,6 +16,8 @@ export const STORAGE_KEYS = Object.freeze({
   TIME_TRACKING: "unhooked.time.enabled",
   /** Sites the time tracker leaves out. */
   TIME_IGNORED: "unhooked.time.ignored",
+  /** The film button in each post's row of actions. */
+  TWITTER_FILM_BUTTON: "twitter_film_button",
   TWITTER_WIDTH: "twitter_width",
   TWITTER_FONT_SIZE: "twitter_font_size",
   TWITTER_USE_DEFAULT_FONT: "twitter_use_default_font",
@@ -29,6 +31,7 @@ export const STORAGE_KEYS = Object.freeze({
 export const DEFAULTS = Object.freeze({
   EXCALIDRAW_CANVAS_ONLY: false,
   TIME_TRACKING: true,
+  TWITTER_FILM_BUTTON: true,
   TWITTER_WIDTH: 80,
   TWITTER_FONT_SIZE: 15,
   TWITTER_USE_DEFAULT_FONT: true,
