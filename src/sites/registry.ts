@@ -84,6 +84,7 @@ const YOUTUBE_LABELS: Record<YouTubeOptionKey, string> = {
   hideSubscriptionsNav: "Hide subscriptions navigation",
   disableAutoplay: "Disable autoplay",
   disableAnnotations: "Disable annotations",
+  fillTheater: "Fill the window in theater",
 };
 
 const YOUTUBE_DESCRIPTIONS: Partial<Record<YouTubeOptionKey, string>> = {
@@ -101,6 +102,8 @@ const YOUTUBE_DESCRIPTIONS: Partial<Record<YouTubeOptionKey, string>> = {
   disableAutoplay:
     "Switch the player autoplay control off when it appears. Turning this option off leaves the player setting as it is.",
   disableAnnotations: "Hide legacy card teasers and player branding overlays.",
+  fillTheater:
+    "In theater mode (press T) the player fills the window; point at the top for the header.",
 };
 
 const YOUTUBE_BALANCED: readonly YouTubeOptionKey[] = [

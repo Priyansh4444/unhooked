@@ -1,5 +1,5 @@
 // The extension loads, its background answers, and content scripts reach a page.
-import { createChecker, launch, press, sleep, stub } from "./lib.mjs";
+import { createChecker, launch, sleep, stub } from "./lib.mjs";
 
 const { newPage, ext, close } = await launch();
 const { check, finish } = createChecker();
@@ -8,7 +8,7 @@ check("background answers through the bridge", (await ext.get("nothing")) !== un
 await ext.set({ smoke: 1 });
 check("storage round-trips", (await ext.get("smoke")).smoke === 1);
 
-// excalidraw's content script is the smallest one: Ctrl+B toggles a class on <html>
+// excalidraw's content script is the smallest one: its site switch sets a class on <html>
 const page = await newPage();
 await stub(page, [
   [
@@ -19,15 +19,10 @@ await stub(page, [
 await page.goto("https://excalidraw.com/", { waitUntil: "load" });
 await sleep(1500);
 const active = () =>
-  page.evaluate(() => document.documentElement.classList.contains("uh-focus-excalidraw"));
-check("content script not active before toggle", !(await active()));
-await press(page, "Control+b");
-await sleep(1000);
-check("Ctrl+B reaches the content script and the background", await active());
-check(
-  "badge says ON",
-  (await ext.badge("excalidraw.com")) === "ON",
-  String(await ext.badge("excalidraw.com")),
-);
+  page.evaluate(() => document.documentElement.classList.contains("uh-canvas-only"));
+check("content script not active before the switch", !(await active()));
+await ext.set({ excalidraw_canvas_only: true });
+await sleep(500);
+check("the switch reaches the content script", await active());
 await close();
 finish();

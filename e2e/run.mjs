@@ -17,13 +17,12 @@ const ALL = [
   "wand",
   "skip",
   "transfer",
+  "film",
   "twitter",
   "twitch",
   "twitch-cards",
   "excalidraw",
   "youtube",
-  "youtube-keys",
-  "youtube-global",
 ];
 const tests = only.length ? only : ALL;
 

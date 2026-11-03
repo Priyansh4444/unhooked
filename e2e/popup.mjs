@@ -1,5 +1,5 @@
 // The popup, opened as a page (Chrome only: Firefox will not let automation open extension
-// pages). `?tab=<id>` points it at a real tab, so its focus toggle acts on that page.
+// pages). `?tab=<id>` points it at a real tab, so its switches act on that page.
 import { BROWSER, createChecker, launch, sleep, stub } from "./lib.mjs";
 
 if (BROWSER !== "chrome") {
@@ -38,9 +38,9 @@ await until(
   "selecting a site shows its controls",
   async () => (await text(popup, "#siteName")) === "X / Twitter",
 );
-await popup.click('[data-preset="focused"]');
+await popup.click('[data-preset="hideAll"]');
 await until(
-  "Focus preset turns every X control on",
+  "Hide all turns every X control on",
   async () => (await text(popup, "#meta-x")) === "7",
 );
 check(
@@ -59,14 +59,8 @@ await until(
     (await popup.$$("#presets [aria-pressed=true]")).length === 0,
 );
 
-// X's layout switches act on their own, so they live outside focus mode.
-check(
-  "X has a Layout section, separate from focus",
-  await popup.$eval(
-    "#xLayoutSection",
-    (el) => !el.hidden && !document.querySelector("#focusSection #xCenter"),
-  ),
-);
+// X's layout switches.
+check("X has a Layout section", await popup.$eval("#xLayoutSection", (el) => !el.hidden));
 check("the width only shows once centered", await popup.$eval("#xWidthRow", (el) => el.hidden));
 await popup.click("label.row:has(#xCenter)");
 await until(
@@ -158,7 +152,7 @@ await until(
 );
 await ext.set({ twitch_link_pills: true });
 
-// Focus mode from the popup, acting on a real Excalidraw tab.
+// There is no separate focus mode: Excalidraw's site switch is the thing, on a real tab.
 const canvas = await newPage();
 await stub(canvas, [
   ["https://excalidraw.com/", "<!doctype html><div class='layer-ui__wrapper'>ui</div>"],
@@ -167,42 +161,23 @@ await canvas.goto("https://excalidraw.com/", { waitUntil: "load" });
 await sleep(800);
 const tabId = await ext.tabId("excalidraw.com");
 const scoped = await openPopup(`?tab=${tabId}`);
+const canvasOnly = () =>
+  canvas.evaluate(() => document.documentElement.classList.contains("uh-canvas-only"));
 check("opens on the current tab's site", (await text(scoped, "#siteName")) === "Excalidraw");
+check("the toolbars start on", !(await canvasOnly()));
+check("there is no focus section", (await scoped.$("#focusSection")) === null);
 check(
-  "the focus switch is available on that site",
-  await scoped.$eval("#focusToggle", (el) => !el.disabled),
+  "the site's switch is offered",
+  await scoped.$eval("#siteEnabled", (el) => !el.hidden && !el.checked),
 );
-await scoped.click("label.row:has(#focusToggle)");
-await until("the popup turns focus on in that tab", () =>
-  canvas.evaluate(() => document.documentElement.classList.contains("uh-focus-excalidraw")),
-);
-check("the badge shows ON", (await ext.badge("excalidraw.com")) === "ON");
+await scoped.click("#siteEnabled");
+await until("the site's switch leaves just the canvas", canvasOnly);
 await ext.set({ "unhooked.paused": true });
-await until(
-  "pausing hides focus mode and its badge",
-  async () =>
-    !(await canvas.evaluate(() =>
-      document.documentElement.classList.contains("uh-focus-excalidraw"),
-    )) && (await ext.badge("excalidraw.com")) === "",
-);
+await until("pausing brings the toolbars back", async () => !(await canvasOnly()));
 await ext.set({ "unhooked.paused": false });
-await until("resuming brings focus back", () =>
-  canvas.evaluate(() => document.documentElement.classList.contains("uh-focus-excalidraw")),
-);
-await scoped.hover("label.row:has(#focusToggle)");
-await until(
-  "hovering Focus this tab outlines what focus hides",
-  async () =>
-    (await canvas.evaluate(() => document.querySelector("unhooked-overlay")?.dataset.preview)) ===
-    "1",
-);
-await scoped.mouse.move(5, 5);
-await scoped.click('[data-memory="global"]');
-await until(
-  "All tabs saves global focus memory",
-  async () =>
-    (await ext.get("excalidraw_persistence_mode")).excalidraw_persistence_mode === "global",
-);
+await until("resuming leaves just the canvas again", canvasOnly);
+await scoped.click("#siteEnabled");
+await until("and the switch turns it off", async () => !(await canvasOnly()));
 await scoped.close();
 await popup.bringToFront();
 

@@ -1,7 +1,7 @@
 // Shared test harness: the same tests run in Chrome and Firefox (BROWSER=chrome|firefox).
 //
 // Both are driven by Puppeteer. The extension is a special "e2e" build (see e2e/extension): the
-// real code plus a bridge, so tests can read/write extension storage and badges from a page the
+// real code plus a bridge, so tests can read/write extension storage from a page the
 // harness serves itself. Everything else goes through the page, the way a user would.
 import puppeteer from "puppeteer-core";
 import { resolve } from "node:path";
@@ -110,8 +110,6 @@ export async function launch() {
   const ext = {
     set: (values) => call({ op: "set", args: values }),
     get: (...keys) => call({ op: "get", args: keys }),
-    /** Badge text of the first tab whose URL contains `urlPart`. */
-    badge: (urlPart) => call({ op: "badge", args: urlPart }),
     /** Id of the first tab whose URL contains `urlPart`. */
     tabId: (urlPart) => call({ op: "tabId", args: urlPart }),
     /** Run an extension script in the first tab whose URL contains `url`. */

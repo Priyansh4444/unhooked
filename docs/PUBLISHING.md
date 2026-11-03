@@ -27,9 +27,10 @@ Use the Chrome Web Store, Microsoft Edge Add-ons, or addons.mozilla.org dashboar
 
 Permission justifications must match the manifest:
 
-- `storage`: settings, focus state and the Twitch link log, stored locally.
-- `tabs`: the per-tab badge, per-tab focus state, and opening the popup on the current site.
-- `scripting`: starting focus mode in tabs opened before the extension was installed or updated.
-- Host access: exactly the supported sites (to apply local CSS and focus mode) and the Twitch link lookup hosts listed in the README. The lookups only run for links in Twitch chat while link pills are on.
+- `storage`: settings and the Twitch link log, stored locally.
+- `tabs`: opening the popup on the current site.
+- `activeTab`: film mode's screenshots, of a tab where the user started it.
+- `scripting`: starting the wand and film mode when the user asks.
+- Host access: exactly the supported sites (to apply local CSS) and the Twitch link lookup hosts listed in the README. The lookups only run for links in Twitch chat while link pills are on.
 
 There is no remote service, telemetry or account. Keep these statements accurate if behaviour changes, and list new permissions or lookup hosts in the release notes.

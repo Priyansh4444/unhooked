@@ -3,15 +3,9 @@
  * It opens on the site of the current tab. Storage is the source of truth; every control
  * writes one key (or one preset's keys) and re-renders from storage events.
  */
-import { FOCUS_ACTION, type FocusReply, type FocusRequest } from "../../focus/protocol.ts";
-import {
-  FOCUS_SITES,
-  FOCUS_TARGETS,
-  type FocusSite,
-  type PersistenceMode,
-} from "../../focus/sites.ts";
 import { formatShortcut, shortcutFromEvent, wandShortcut } from "../../shared/shortcut.ts";
 import { ext } from "../../shared/ext-api.ts";
+import { injectScript } from "../../shared/inject.ts";
 import {
   PRESETS,
   customKey,
@@ -24,6 +18,8 @@ import {
   redirectToPatch,
   renameRule,
   resolveSettings,
+  siteSwitchOn,
+  siteSwitchPatch,
   type Preset,
   type RawStorage,
   type SiteSettings,
@@ -53,20 +49,6 @@ const RAIL: { id: Selection; label: string }[] = [
   { id: "twitch", label: "Twitch" },
   { id: "excalidraw", label: "Excalidraw" },
 ];
-const FOCUS_COPY: Record<FocusSite, { page: string; command?: string; does: string }> = {
-  youtube: {
-    page: "`",
-    command: "toggle-youtube-style",
-    does: "Theater player, no recommendations or header.",
-  },
-  x: {
-    page: "Ctrl/⌘ B",
-    command: "toggle-twitter-style",
-    does: "Every switch at once, in this tab.",
-  },
-  excalidraw: { page: "Ctrl/⌘ B", does: "Just the canvas, without the toolbars." },
-};
-
 const $ = <T extends HTMLElement = HTMLElement>(id: string): T => document.getElementById(id) as T;
 
 let raw: RawStorage = {};
@@ -74,11 +56,8 @@ let pending: RawStorage = {};
 let loaded = false;
 let selected: Selection = "youtube";
 let activeTab: { id: number; site: SiteId | undefined; host: string | null } | null = null;
-/** Whether focus mode is on in the current tab (for its site, whichever site is selected). */
-let focusOn = false;
 let shortcuts: Record<string, string> = {};
 
-const isFocusSite = (id: Selection): id is FocusSite => id in FOCUS_SITES;
 const shortHost = (id: SiteId) => SITE_HOSTS[id][0].replace(/^www\./, "");
 const railLabel = (id: Selection) => RAIL.find((s) => s.id === id)!.label;
 /** Whether the selected site is the one open in this tab (so the page can be acted on). */
@@ -131,39 +110,12 @@ async function writeWithUndo(patch: RawStorage, message: string): Promise<void> 
   undoTimer = setTimeout(clearUndo, 15_000);
 }
 
-// ---- focus mode (owned by the background, per tab or global) -----------------------------------
-
-async function focusRequest(action: FocusRequest["action"], site: FocusSite): Promise<boolean> {
-  if (!activeTab || activeTab.site !== site) return false;
-  const request: FocusRequest = { action, site, tabId: activeTab.id };
-  const reply = (await ext.runtime.sendMessage(request).catch(() => undefined)) as
-    | FocusReply
-    | undefined;
-  return Boolean(reply?.enabled);
-}
-
-/** Re-reads focus in the current tab and, for Twitch, flushes the pending link log. */
+/** Flushes Twitch's pending link log, which the background keeps until someone looks. */
 async function refreshSelected(): Promise<void> {
   if (selected === "twitch") {
     await ext.runtime.sendMessage({ action: TWITCH_ACTIONS.GET_URL_LOG }).catch(() => {});
   }
-  const site = activeTab?.site;
-  focusOn = site && isFocusSite(site) ? await focusRequest(FOCUS_ACTION.GET, site) : false;
   render();
-}
-
-const memoryMode = (site: FocusSite): PersistenceMode => {
-  const { persistenceKey, defaultMode } = FOCUS_SITES[site];
-  const value = raw[persistenceKey];
-  return value === "global" || value === "tab" ? value : defaultMode;
-};
-
-function shortcutLine(site: FocusSite): string {
-  const { page, command } = FOCUS_COPY[site];
-  const browserKey = command ? shortcuts[command] : "";
-  return browserKey
-    ? `Press ${page} on the page, or ${browserKey} from anywhere in the browser.`
-    : `Press ${page} on the page.`;
 }
 
 // ---- rendering ----------------------------------------------------------------------------------
@@ -187,10 +139,11 @@ function renderRail(paused: boolean): void {
       meta = pills ? "on" : "off";
       state = pills ? "on" : "off";
       spoken = `link pills ${meta}`;
-    } else if (id === "excalidraw" && activeTab?.site === "excalidraw" && focusOn) {
-      meta = "on";
-      state = "on";
-      spoken = "focus on";
+    } else if (id === "excalidraw") {
+      const on = siteSwitchOn(raw, id);
+      meta = on ? "on" : "off";
+      state = on ? "on" : "idle";
+      spoken = on ? "just the canvas" : "off";
     } else if (id === "page") {
       const removed = customRules(raw, wandKey()).length;
       meta = removed ? String(removed) : "";
@@ -209,7 +162,7 @@ function renderHeader(control: ControlSite | undefined, paused: boolean): void {
   const label = railLabel(selected);
   $("siteName").textContent = label;
   const enabled = $<HTMLInputElement>("siteEnabled");
-  enabled.hidden = selected === "excalidraw" || selected === "page";
+  enabled.hidden = selected === "page";
   if (control) {
     const state = resolveSettings(raw, control);
     enabled.checked = state.enabled;
@@ -230,7 +183,10 @@ function renderHeader(control: ControlSite | undefined, paused: boolean): void {
       ? "Your removals stay hidden here"
       : "No controls here, but the wand works";
   } else {
-    $("siteState").textContent = "Focus mode for the canvas";
+    const canvas = siteSwitchOn(raw, "excalidraw");
+    enabled.checked = canvas;
+    enabled.setAttribute("aria-label", "Just the canvas on Excalidraw");
+    $("siteState").textContent = canvas ? "Just the canvas" : "Toolbars showing";
   }
   $("presets").hidden = !control;
   $("openPicker").hidden = !control;
@@ -241,6 +197,13 @@ function renderHeader(control: ControlSite | undefined, paused: boolean): void {
   $("openWand").title = here
     ? "Point at anything on the page and click to hide it"
     : `Open ${label} in this tab to pick on the page`;
+  $<HTMLButtonElement>("openFilm").disabled = !here;
+  const filmKey = shortcuts["film-mode"];
+  $("openFilm").title = here
+    ? `Clean screenshots${selected === "x" ? ", and a post framed at the center of the screen" : ""}${filmKey ? ` (${filmKey})` : ""}`
+    : `Open ${label} in this tab to film it`;
+  const siteKey = shortcuts["toggle-site"];
+  enabled.title = siteKey ? `On or off for this site (${siteKey})` : "On or off for this site";
   $("resetAll").hidden = !control && selected !== "page";
   $("resetAll").textContent = selected === "page" ? "Forget site" : "Reset site";
   $("pausedNote").hidden = !paused;
@@ -248,30 +211,7 @@ function renderHeader(control: ControlSite | undefined, paused: boolean): void {
   $("powerLabel").textContent = paused ? "Resume" : "Pause all";
 }
 
-function renderFocus(): void {
-  const section = $("focusSection");
-  section.hidden = !isFocusSite(selected);
-  if (!isFocusSite(selected)) return;
-  const site = selected;
-  const here = activeTab?.site === site;
-  const toggle = $<HTMLInputElement>("focusToggle");
-  toggle.disabled = !here;
-  toggle.checked = here && focusOn;
-  $("focusHint").textContent = here
-    ? FOCUS_COPY[site].does
-    : `Open ${railLabel(site)} in this tab to use it.`;
-  const mode = memoryMode(site);
-  for (const button of section.querySelectorAll<HTMLButtonElement>("[data-memory]")) {
-    button.setAttribute("aria-pressed", String(button.dataset.memory === mode));
-  }
-  $("memoryHint").textContent =
-    mode === "global" ? "On in every tab until you turn it off." : "Each tab starts without it.";
-  // The key sits on the row; where else it works is one hover away.
-  $("focusKey").textContent = FOCUS_COPY[site].page;
-  $("focusKey").title = shortcutLine(site);
-}
-
-/** X's own layout switches, which act as soon as they're flipped, with or without focus. */
+/** X's own layout switches. */
 function renderXLayout(): void {
   $("xLayoutSection").hidden = selected !== "x";
   if (selected !== "x") return;
@@ -293,7 +233,6 @@ function renderControls(control: ControlSite | undefined): void {
   $("controlsSection").hidden = !control;
   if (!control) return;
   const state = resolveSettings(raw, control);
-  $("controlsHeading").textContent = isFocusSite(selected) ? "Hide" : "Hide on this site";
   $("youtubeControls").hidden = selected !== "youtube";
   $("socialControls").hidden = selected === "youtube";
   if (selected === "youtube") {
@@ -467,7 +406,6 @@ function render(): void {
   const control = controlSiteById(selected);
   renderRail(paused);
   renderHeader(control, paused);
-  renderFocus();
   renderControls(control);
   renderXLayout();
   renderTwitch();
@@ -595,9 +533,6 @@ function previewTarget(row: Element): Omit<PreviewRequest, "action"> | null {
   // Group switches (YouTube's "Hide video sidebar") cover every control in the group.
   if (input && YOUTUBE_GROUPS[input.id])
     return { features: YOUTUBE_GROUPS[input.id], label: title };
-  // Focus mode and its X options hide parts of the page too.
-  if (input?.id === "focusToggle" && isFocusSite(selected))
-    return { selectors: [...FOCUS_TARGETS[selected]], label: "Focus mode hides" };
   // Nothing goes away with this one: it shows the column that moves.
   if (input?.id === "xCenter")
     return { selectors: ['[data-testid="primaryColumn"]'], label: "Centers the timeline" };
@@ -646,6 +581,17 @@ function bindHover(): void {
   addEventListener("blur", () => preview(null));
 }
 
+/** Runs a page tool in this tab and gets out of its way. */
+async function startOnPage(files: string[], name: string): Promise<void> {
+  if (!activeTab) return;
+  try {
+    for (const file of files) await injectScript(activeTab.id, file);
+    window.close();
+  } catch (error) {
+    status(`Could not start ${name}. ${(error as Error).message}`, true);
+  }
+}
+
 function bind(): void {
   $("sitePicker").addEventListener("change", (event) => {
     const target = event.target as HTMLInputElement;
@@ -656,9 +602,7 @@ function bind(): void {
     void refreshSelected();
   });
   $("siteEnabled").addEventListener("change", (event) => {
-    const checked = (event.target as HTMLInputElement).checked;
-    if (selected === "twitch") void write({ [STORAGE_KEYS.TWITCH_LINK_PILLS]: checked });
-    else void write(featurePatch(selected, "enabled", checked));
+    void write(siteSwitchPatch(raw, selected));
   });
   const setPaused = (value: boolean) =>
     write({ [STORAGE_KEYS.PAUSED]: value }, value ? "Paused on every site" : "Resumed");
@@ -677,20 +621,12 @@ function bind(): void {
       // The background registers the removals script for later visits; this visit gets it now.
       files.unshift("sites/custom/content.js");
     }
-    try {
-      for (const file of files) {
-        if (ext.scripting)
-          await ext.scripting.executeScript({ target: { tabId: activeTab.id }, files: [file] });
-        else
-          await (
-            ext.tabs as unknown as { executeScript: (id: number, d: object) => Promise<unknown> }
-          ).executeScript(activeTab.id, { file });
-      }
-      window.close();
-    } catch (error) {
-      status(`Could not start the wand. ${(error as Error).message}`, true);
-    }
+    await startOnPage(files, "the wand");
   });
+  $("openFilm").addEventListener(
+    "click",
+    () => void startOnPage(["sites/film/content.js"], "film mode"),
+  );
   const ruleOf = (el: Element) => el.closest<HTMLElement>("[data-selector]")?.dataset.selector;
   $("customList").addEventListener("click", (event) => {
     const button = (event.target as HTMLElement).closest(".bring-back");
@@ -842,19 +778,6 @@ function bind(): void {
     });
   }
 
-  // Focus mode
-  $("focusToggle").addEventListener("change", async () => {
-    if (!isFocusSite(selected)) return;
-    focusOn = await focusRequest(FOCUS_ACTION.TOGGLE, selected);
-    render();
-    status(focusOn ? "Focus on in this tab" : "Focus off in this tab");
-  });
-  for (const button of document.querySelectorAll<HTMLButtonElement>("[data-memory]")) {
-    button.addEventListener("click", () => {
-      if (!isFocusSite(selected)) return;
-      void write({ [FOCUS_SITES[selected].persistenceKey]: button.dataset.memory });
-    });
-  }
   const slider = (id: string, key: string) =>
     $(id).addEventListener("input", (event) => {
       void write({ [key]: Number((event.target as HTMLInputElement).value) });
@@ -898,14 +821,6 @@ async function init(): Promise<void> {
     if (loaded) {
       mergeChanges(raw, changes);
       render();
-      // A new focus memory mode or global state can change what the current tab shows.
-      const site = activeTab?.site;
-      if (
-        site &&
-        isFocusSite(site) &&
-        (FOCUS_SITES[site].persistenceKey in changes || FOCUS_SITES[site].stateKey in changes)
-      )
-        void refreshSelected();
     } else for (const [key, change] of Object.entries(changes)) pending[key] = change.newValue;
   });
 

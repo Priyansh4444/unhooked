@@ -26,6 +26,7 @@ export const YOUTUBE_OPTION_KEYS = [
   "hideSubscriptionsNav",
   "disableAutoplay",
   "disableAnnotations",
+  "fillTheater",
 ] as const;
 
 export type YouTubeOptionKey = (typeof YOUTUBE_OPTION_KEYS)[number];
@@ -55,6 +56,7 @@ export const OPTION_CLASSES: Record<YouTubeOptionKey, string> = {
   hideSubscriptionsNav: "uh-hide-subscriptions-nav",
   disableAutoplay: "uh-disable-autoplay",
   disableAnnotations: "uh-disable-annotations",
+  fillTheater: "uh-fill-theater",
 };
 
 export const defaultYouTubeOptions = (): YouTubeOptions => {

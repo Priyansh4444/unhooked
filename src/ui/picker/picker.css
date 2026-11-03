@@ -20,6 +20,11 @@ body {
   color: var(--bright);
   font: 22px/1 var(--serif);
 }
+.brand img {
+  margin-right: 8px;
+  vertical-align: -3px;
+  border-radius: 4px;
+}
 .crumb {
   color: var(--stone);
   font: 13px var(--mono);

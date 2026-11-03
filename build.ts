@@ -38,7 +38,7 @@ export async function buildExtension({ target, outdir, minify, e2e = false }: Bu
   await mkdir(outdir, { recursive: true });
 
   // Content scripts are classic scripts, and every script injected into a page shares one
-  // isolated world: on x.com the social and focus bundles run side by side. Each bundle gets its
+  // isolated world: on x.com the social and x bundles run side by side. Each bundle gets its
   // own function scope, or their minified top-level names (`var b`, `var S`) overwrite each other.
   const bundle = async (
     entrypoints: string[],
@@ -104,7 +104,8 @@ export async function buildExtension({ target, outdir, minify, e2e = false }: Bu
   const manifest = createManifest(target, bridge);
   // Tests can't click the browser's permission prompt, so the test build arrives already allowed
   // on one ordinary site, as if the user had said yes to the wand there.
-  if (e2e) manifest.host_permissions?.push("*://example.org/*");
+  // Likewise for screenshots, which a real browser allows once the user invokes Unhooked on a tab.
+  if (e2e) manifest.host_permissions?.push("*://example.org/*", "<all_urls>");
   await writeFile(join(outdir, "manifest.json"), JSON.stringify(manifest, null, 2));
 
   // Firefox add-on review wants the real source next to the (minified) bundle

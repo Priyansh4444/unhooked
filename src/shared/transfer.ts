@@ -4,7 +4,7 @@
  *
  * A file can come from anywhere, so nothing in it is trusted: only keys Unhooked knows are read,
  * each with the type that key must have. What belongs to this browser stays out: whether it's
- * paused, focus on or off, the Twitch link log, and account names read from the sites.
+ * paused, the Twitch link log, and account names read from the sites.
  */
 import { SITE_IDS, originPattern } from "../sites/hosts.ts";
 import { controlSiteById } from "../sites/registry.ts";
@@ -24,15 +24,12 @@ const inRange = (low: number, high: number) => (value: unknown) =>
   typeof value === "number" && value >= low && value <= high;
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   !!value && typeof value === "object" && !Array.isArray(value);
-const isMode = (value: unknown) => value === "tab" || value === "global";
 
 /** Settings outside the per-site keys, and what each must look like. */
 const FIXED_KEYS: Record<string, (value: unknown) => boolean> = {
   [K.LEGACY_YOUTUBE_OPTIONS]: isRecord,
   [K.WAND_SHORTCUT]: (value) => typeof value === "string" && value.length < 60,
-  [K.YOUTUBE_PERSISTENCE_MODE]: isMode,
-  [K.TWITTER_PERSISTENCE_MODE]: isMode,
-  [K.EXCALIDRAW_PERSISTENCE_MODE]: isMode,
+  [K.EXCALIDRAW_CANVAS_ONLY]: isBool,
   [K.TWITTER_WIDTH]: inRange(30, 100),
   [K.TWITTER_FONT_SIZE]: inRange(13, 22),
   [K.TWITTER_USE_DEFAULT_FONT]: isBool,

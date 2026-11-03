@@ -3,10 +3,6 @@
  * shared/preferences.ts (`unhooked.site.<site>.<feature>`), so they are not listed here.
  */
 
-export interface ToggleState {
-  enabled: boolean;
-}
-
 export const STORAGE_KEYS = Object.freeze({
   /** Global pause: every page change the extension makes stops until resumed. */
   PAUSED: "unhooked.paused",
@@ -14,12 +10,8 @@ export const STORAGE_KEYS = Object.freeze({
   LEGACY_YOUTUBE_OPTIONS: "unhookedOptions",
   /** Keyboard shortcut that starts the wand on a supported site (shared/shortcut.ts format). */
   WAND_SHORTCUT: "unhooked.wandShortcut",
-  YOUTUBE_PERSISTENCE_MODE: "youtube_persistence_mode",
-  TWITTER_PERSISTENCE_MODE: "twitter_persistence_mode",
-  EXCALIDRAW_PERSISTENCE_MODE: "excalidraw_persistence_mode",
-  YOUTUBE_STATE: "youtube_state",
-  TWITTER_STATE: "twitter_state",
-  EXCALIDRAW_STATE: "excalidraw_state",
+  /** Excalidraw's site switch: hide the toolbars, leaving the canvas. */
+  EXCALIDRAW_CANVAS_ONLY: "excalidraw_canvas_only",
   TWITTER_WIDTH: "twitter_width",
   TWITTER_FONT_SIZE: "twitter_font_size",
   TWITTER_USE_DEFAULT_FONT: "twitter_use_default_font",
@@ -31,12 +23,7 @@ export const STORAGE_KEYS = Object.freeze({
 });
 
 export const DEFAULTS = Object.freeze({
-  YOUTUBE_PERSISTENCE_MODE: "tab" as const,
-  TWITTER_PERSISTENCE_MODE: "tab" as const,
-  EXCALIDRAW_PERSISTENCE_MODE: "tab" as const,
-  YOUTUBE_STATE: { enabled: false } as ToggleState,
-  TWITTER_STATE: { enabled: false } as ToggleState,
-  EXCALIDRAW_STATE: { enabled: false } as ToggleState,
+  EXCALIDRAW_CANVAS_ONLY: false,
   TWITTER_WIDTH: 80,
   TWITTER_FONT_SIZE: 15,
   TWITTER_USE_DEFAULT_FONT: true,

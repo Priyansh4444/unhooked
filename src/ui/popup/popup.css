@@ -22,9 +22,16 @@ body {
   background: var(--panel);
 }
 .brand {
+  display: flex;
+  align-items: center;
+  gap: 7px;
   padding: 0 14px 16px;
   color: var(--bright);
   font: 19px/1 var(--serif);
+}
+.brand img {
+  display: block;
+  border-radius: 4px;
 }
 .sites {
   min-width: 0;
@@ -248,6 +255,9 @@ h1 {
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 4px;
 }
+.tool-row.even {
+  grid-template-columns: 1fr 1fr;
+}
 .shortcut {
   min-width: 64px;
   padding: 0 8px;
@@ -359,9 +369,6 @@ main h2.label {
 .row {
   align-items: center;
 }
-#focusToggle:disabled {
-  cursor: not-allowed;
-}
 .slider-row {
   flex-wrap: wrap;
   align-items: baseline;
@@ -402,14 +409,6 @@ main h2.label {
   border-radius: 0;
   background: var(--red);
 }
-/* A key the row answers to, in the chrome voice rather than as a button. */
-.key-hint {
-  margin-left: 6px;
-  color: var(--dim);
-  font: 10.5px var(--mono);
-  white-space: nowrap;
-}
-
 .group-head {
   position: relative;
 }

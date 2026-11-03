@@ -78,7 +78,6 @@ check(
   "the parent page is untouched",
   (await embed.evaluate(() => document.documentElement.getAttribute("class"))) === null,
 );
-check("the embed sets no focus badge", (await ext.badge("example.org")) === "");
 
 await close();
 finish();

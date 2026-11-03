@@ -7,8 +7,8 @@ import { mergeLegacyOptions, type YouTubeOptions } from "../sites/youtube/option
 import { STORAGE_KEYS } from "./settings.ts";
 
 export type RawStorage = Record<string, unknown>;
-export type Preset = "balanced" | "focused" | "clear";
-export const PRESETS: readonly Preset[] = ["balanced", "focused", "clear"];
+export type Preset = "balanced" | "hideAll" | "clear";
+export const PRESETS: readonly Preset[] = ["balanced", "hideAll", "clear"];
 
 export interface SiteSettings {
   paused: boolean;
@@ -83,13 +83,27 @@ export function redirectToPatch(siteId: string, path: string): RawStorage {
   return { [preferenceKey(siteId, "redirectTo")]: path };
 }
 
+/** The switch beside each site's name. Most sites start on; Excalidraw hides its own tools. */
+function siteSwitchKey(siteId: string): string {
+  if (siteId === "twitch") return STORAGE_KEYS.TWITCH_LINK_PILLS;
+  if (siteId === "excalidraw") return STORAGE_KEYS.EXCALIDRAW_CANVAS_ONLY;
+  return preferenceKey(siteId, "enabled");
+}
+
+export const siteSwitchOn = (raw: RawStorage, siteId: string): boolean =>
+  bool(raw[siteSwitchKey(siteId)], siteId !== "excalidraw");
+
+export const siteSwitchPatch = (raw: RawStorage, siteId: string): RawStorage => ({
+  [siteSwitchKey(siteId)]: !siteSwitchOn(raw, siteId),
+});
+
 export function presetPatch(siteId: string, preset: Preset): RawStorage {
   const site = controlSiteById(siteId);
   if (!site || !PRESETS.includes(preset)) throw new Error(`Unknown preset ${siteId}.${preset}`);
   return Object.fromEntries(
     site.features.map((f) => [
       preferenceKey(siteId, f.id),
-      preset === "focused" || (preset === "balanced" && f.balanced),
+      preset === "hideAll" || (preset === "balanced" && f.balanced),
     ]),
   );
 }

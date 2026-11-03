@@ -18,42 +18,31 @@ article {
 }
 
 /* ============================================================================
- * Focus mode: only the timeline. (The same parts have their own switches in the registry.)
- * ============================================================================ */
-
-html.uh-focus-x [data-testid="primaryColumn"] ~ [data-testid="sidebarColumn"],
-html.uh-focus-x [data-testid="chat-drawer-root"],
-html.uh-focus-x [data-testid="GrokDrawer"],
-html.uh-focus-x header[role="banner"] {
-  display: none !important;
-}
-
-/* ============================================================================
  * Center the timeline in the space beside the navigation. X sizes this chain for its
  * nav + 600px + sidebar layout, so each level gives that up. The column shrinks to leave the
  * sidebar room when there is one.
  * ============================================================================ */
 
-html:is(.uh-x-center, .uh-focus-x) header[role="banner"] {
+html.uh-x-center header[role="banner"] {
   flex: 0 0 auto !important;
 }
 
-html:is(.uh-x-center, .uh-focus-x) main[role="main"] {
+html.uh-x-center main[role="main"] {
   flex: 1 1 0 !important;
   min-width: 0 !important;
   width: auto !important;
 }
 
-html:is(.uh-x-center, .uh-focus-x) main[role="main"] div:has([data-testid="primaryColumn"]) {
+html.uh-x-center main[role="main"] div:has([data-testid="primaryColumn"]) {
   width: 100% !important;
   max-width: none !important;
 }
 
-html:is(.uh-x-center, .uh-focus-x) div:has(> [data-testid="primaryColumn"]) {
+html.uh-x-center div:has(> [data-testid="primaryColumn"]) {
   justify-content: center !important;
 }
 
-html:is(.uh-x-center, .uh-focus-x) [data-testid="primaryColumn"] {
+html.uh-x-center [data-testid="primaryColumn"] {
   flex: 0 1 var(--twitter-width, 80%) !important;
   min-width: 0 !important;
   width: var(--twitter-width, 80%) !important;
@@ -61,7 +50,7 @@ html:is(.uh-x-center, .uh-focus-x) [data-testid="primaryColumn"] {
 }
 
 /* r-1ye8kvj is X's atomic class for its 600px content width. */
-html:is(.uh-x-center, .uh-focus-x) [data-testid="primaryColumn"] .r-1ye8kvj {
+html.uh-x-center [data-testid="primaryColumn"] .r-1ye8kvj {
   width: 100% !important;
   max-width: none !important;
 }
@@ -94,35 +83,4 @@ html.uh-x-font [data-testid="primaryColumn"] article [data-testid="User-Name"] i
 
 html.uh-x-font [data-testid="primaryColumn"] article [data-testid="Tweet-User-Avatar"] {
   transform: none !important;
-}
-
-/* Toggle button in X's header (placed by content.ts) */
-#uh-focus-x-toggle {
-  display: flex;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  padding: 0;
-  margin: 0 4px 0 auto;
-  border: none;
-  border-radius: 50%;
-  background: transparent;
-  color: rgb(113, 118, 123);
-  cursor: pointer;
-  transition:
-    background-color 0.2s,
-    color 0.2s;
-}
-#uh-focus-x-toggle:hover {
-  background: rgba(29, 155, 240, 0.1);
-  color: rgb(29, 155, 240);
-}
-#uh-focus-x-toggle svg {
-  opacity: 0.6;
-  transition: opacity 0.2s;
-}
-#uh-focus-x-toggle[aria-pressed="true"] svg {
-  opacity: 1;
 }

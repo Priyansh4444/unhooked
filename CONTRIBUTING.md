@@ -15,25 +15,21 @@ Load `dist/` as an unpacked extension (`chrome://extensions` → Developer mode 
 
 ```
 src/
-  background.ts            entry: install defaults, wires up focus + Twitch
+  background.ts            entry: install defaults, shortcuts, screenshots, Twitch
   sites/
     hosts.ts               every site's hosts: manifests, registries and the popup read this
     registry.ts            hide controls: per-site features, route classifiers, generated CSS
     social/content.ts      hide controls for X, Reddit, Instagram, TikTok, Facebook, LinkedIn, Threads
     custom/content.ts      on every site: applies wand removals, draws hover previews
     wand/content.ts        the magic wand, injected by the popup on demand
-    youtube/               content.ts (controls in every frame + focus in the top frame),
-                           options.ts + controls.css (hide controls), focus.ts + focus.css
-    x/ excalidraw/         focus modes: content.ts + style.css
+    film/                  film mode, injected on demand; frame.ts is the framing arithmetic
+    youtube/               content.ts (controls in every frame), options.ts + controls.css
+    x/                     X's Layout switches: content.ts + style.css
+    excalidraw/            the site's switch: content.ts + style.css
     twitch/                chat link pills, hover cards, URL log
       links.ts               URL -> kind + pill label (pure, used by both sides)
       chat/                  page side: observer, pills, hover card
       background/            lookups (providers.ts), cache, URL log
-  focus/                   shared machinery for focus modes
-    sites.ts                 registry: storage keys + shortcut command per site
-    background.ts            toggles, badges, shortcuts, per-tab/global state
-    state.ts                 where "is focus on?" is stored
-    runtime.ts               content-script side: startFocusSite(adapter)
   shared/
     ext-api.ts             the one browser API object (`browser` or `chrome`)
     settings.ts            storage keys and defaults
@@ -98,17 +94,11 @@ CHROME_PATH=/path/to/chromium bun scripts/measure-layout.ts https://www.reddit.c
 
 Use it to place parts in `ui/picker/sketches.ts` (boxes are `[x, y, width, height]` in those pixels) and to catch hide selectors that match nothing. Mark a view `basis: "measured"` only when it was measured; pages behind a login are `"structure"`, and the picker says so.
 
-## How focus modes work
+## How film mode works
 
-**The background owns _whether_ focus mode is on (per tab or global); the content script owns _how_ the page looks.**
+The popup, or the `film-mode` command, injects `sites/film/content.js`, the same way the wand starts. Both count as invoking the extension on that tab, which is what lets `tabs.captureVisibleTab` run: the background takes the picture when the script asks, and the script hides its overlay first and crops afterwards.
 
-- `focus/runtime.ts`: `startFocusSite(adapter)` pulls the state, reacts to pushes, storage changes, the global pause and SPA navigation, and handles the keyboard shortcut. A site only implements `apply(enabled)`.
-- Prefer CSS gated on a class (and on the site's own markers) over script cleanup. YouTube's `focus.css` is active only on `html.uh-focus-youtube` + `ytd-app[is-watch-page]` + `[theater]`, so navigating away or leaving theater needs no code.
-- The popup toggles focus with an explicit `tabId`; content scripts use their sender tab.
-
-### Add a focus site
-
-1. `sites/hosts.ts`: add its hosts. 2. `focus/sites.ts`: add an entry (storage keys, optional manifest command) and its storage keys in `shared/settings.ts`. 3. `sites/<name>/content.ts` calling `startFocusSite`, plus `style.css`. 4. Add it to `BUNDLES` and `content_scripts` in `build/manifest.ts`, and to the popup's `RAIL` and `FOCUS_COPY`.
+A framed post is a copy on a stage above the page. X rebuilds its timeline as you scroll and moves posts with transforms, so the real post is never moved or restyled beyond hiding it while its copy is up. The e2e build has `<all_urls>` so tests can take a picture without a real click on the toolbar.
 
 ## How Twitch link pills work
 
@@ -135,7 +125,7 @@ bun e2e/run.mjs chrome social popup        # only some suites
 MINIFY=1 bun e2e/run.mjs chrome            # the minified bundle, as shipped
 ```
 
-Suites `smoke`, `social`, `youtube-controls`, `popup`, `transfer`, `picker`, `wand`, `skip`, `twitter` and `twitch` run against stubbed pages and need no network (`popup`, `transfer` and `picker` are Chrome only: Firefox won't let automation open extension pages). `twitch-cards`, `excalidraw` and the `youtube*` suites use the live sites deliberately, so they need network and can fail when a site changes.
+Suites `smoke`, `social`, `youtube-controls`, `popup`, `transfer`, `film`, `picker`, `wand`, `skip`, `twitter` and `twitch` run against stubbed pages and need no network (`popup`, `transfer` and `picker` are Chrome only: Firefox won't let automation open extension pages). `twitch-cards`, `excalidraw` and the `youtube*` suites use the live sites deliberately, so they need network and can fail when a site changes.
 
 ## Releasing
 

@@ -117,7 +117,7 @@ describe("independent scalar preferences", () => {
         expect(state.enabled).toBe(false);
         for (const f of s.features) {
           expect(state.features[f.id]).toBe(
-            preset === "focused" || (preset === "balanced" && f.balanced),
+            preset === "hideAll" || (preset === "balanced" && f.balanced),
           );
         }
       }
@@ -129,11 +129,11 @@ describe("independent scalar preferences", () => {
     // Every Threads control is in Balanced, so Balanced and Focus produce the same choices.
     const threads = site("threads");
     expect(
-      matchingPreset("threads", resolveSettings(presetPatch("threads", "focused"), threads)),
+      matchingPreset("threads", resolveSettings(presetPatch("threads", "hideAll"), threads)),
     ).toBe("balanced");
     expect(matchingPreset("threads", resolveSettings({}, threads))).toBe("clear");
     const custom = {
-      ...presetPatch("threads", "focused"),
+      ...presetPatch("threads", "hideAll"),
       ...featurePatch("threads", "hideSuggestions", false),
     };
     expect(matchingPreset("threads", resolveSettings(custom, threads))).toBeUndefined();

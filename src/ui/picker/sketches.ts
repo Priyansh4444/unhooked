@@ -94,6 +94,12 @@ export const SKETCHES: Record<ControlSiteId, readonly View[]> = {
         { label: "Header", box: [0, 0, 1440, 56], texture: "bar" },
         { label: "Player", box: [16, 68, 996, 560], texture: "media" },
         {
+          label: "Fill window",
+          box: [28, 580, 130, 40],
+          feature: "fillTheater",
+          texture: "chip",
+        },
+        {
           label: "End cards",
           box: [700, 92, 288, 150],
           feature: "hideEndScreenCards",

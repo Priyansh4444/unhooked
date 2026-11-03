@@ -1,6 +1,5 @@
 /**
- * The pages each site runs on. The manifests (build/manifest.ts), the focus registry
- * (focus/sites.ts), the control registry (sites/registry.ts) and the popup's current-site
+ * The pages each site runs on. The manifests (build/manifest.ts), the control registry (sites/registry.ts) and the popup's current-site
  * detection are all generated from this, so a new site is added in one place.
  */
 export const SITE_HOSTS = {

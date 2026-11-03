@@ -1,6 +1,8 @@
 // CHROME_PATH=… bun scripts/screenshots.ts [popup|transfer|picker|wand|youtube]
 // Regenerates the README's images in docs/screenshots from the real extension. Nothing here is
 // signed in, so no account's feed ends up in the repository; `wand` and `youtube` use public pages.
+// film.png isn't made here: X shows posts only when signed in, so it is a public account's post,
+// framed by hand with film mode.
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import type { Page, Viewport } from "puppeteer-core";
 import { join } from "node:path";

@@ -12,7 +12,7 @@ export interface PreviewRequest {
   features?: string[];
   /** A wand removal's selector. */
   selector?: string;
-  /** Raw selectors (what focus mode and its options hide). */
+  /** Raw selectors, for a switch that isn't a hide control. */
   selectors?: string[];
   label?: string;
   /** Stop outlining. */

@@ -16,7 +16,7 @@ export const SOCIAL_SITES = [
 
 /** Content bundles (`src/sites/<name>/content.ts`) and the stylesheets each one ships. */
 export const BUNDLES = {
-  youtube: ["controls.css", "focus.css"],
+  youtube: ["controls.css"],
   x: ["style.css"],
   social: [],
   excalidraw: ["style.css"],
@@ -25,6 +25,7 @@ export const BUNDLES = {
   custom: [],
   // Injected by the popup on demand, never listed in content_scripts.
   wand: [],
+  film: [],
 } as const;
 
 export const ICONS = {
@@ -56,9 +57,6 @@ export function createManifest(target: Target, extraContentScripts: object[] = [
     run_at,
   });
 
-  const shortcut = (key: string) =>
-    firefox ? { default: `Alt+${key}` } : { default: `Ctrl+${key}`, mac: `Command+${key}` };
-
   const action = {
     default_icon: ICONS,
     default_title: "Unhooked",
@@ -69,7 +67,7 @@ export function createManifest(target: Target, extraContentScripts: object[] = [
     manifest_version: mv2 ? 2 : 3,
     name: "Unhooked",
     description:
-      "Hide feeds on YouTube, X, Reddit and more; focus modes for YouTube, X, Excalidraw; Twitch chat link pills.",
+      "Hide feeds on YouTube, X, Reddit and more, or remove anything with a magic wand. Film mode for clean screenshots.",
     version: pkg.version,
     author: "Pronsh",
     icons: ICONS,
@@ -81,7 +79,7 @@ export function createManifest(target: Target, extraContentScripts: object[] = [
     }),
     permissions: mv2
       ? ["storage", "tabs", ...hostPatterns]
-      : ["scripting", "storage", "tabs", ...(firefox ? ["activeTab"] : [])],
+      : ["activeTab", "scripting", "storage", "tabs"],
     ...(!mv2 && { host_permissions: hostPatterns }),
     // Any other site, one at a time and only when asked: the wand on a page Unhooked doesn't cover.
     ...(mv2 ? { optional_permissions: ["*://*/*"] } : { optional_host_permissions: ["*://*/*"] }),
@@ -93,13 +91,13 @@ export function createManifest(target: Target, extraContentScripts: object[] = [
     [mv2 ? "browser_action" : "action"]: action,
     options_ui: { page: "ui/transfer/index.html", open_in_tab: true },
     commands: {
-      "toggle-youtube-style": {
-        suggested_key: shortcut("Shift+Y"),
-        description: "Toggle YouTube focus mode",
+      "toggle-site": {
+        suggested_key: { default: "Alt+Shift+U" },
+        description: "Turn Unhooked on or off for this site",
       },
-      "toggle-twitter-style": {
-        suggested_key: shortcut("Shift+X"),
-        description: "Toggle X focus mode",
+      "film-mode": {
+        suggested_key: { default: "Alt+Shift+F" },
+        description: "Start or stop film mode",
       },
     },
     content_scripts: [

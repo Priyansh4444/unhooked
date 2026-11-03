@@ -1,10 +1,6 @@
-/**
- * YouTube: hide controls (controls.css, gated on <html> classes) in every frame, including
- * embedded players, plus focus mode (focus.css) in the top frame only.
- */
+/** YouTube: hide controls (controls.css, gated on <html> classes) in every frame, including embeds. */
 import { runPageController } from "../../shared/page-runtime.ts";
 import { youTubeOptions } from "../../shared/preferences.ts";
-import { startYouTubeFocus } from "./focus.ts";
 import { applyOptionClasses, type YouTubeOptions } from "./options.ts";
 
 let options: YouTubeOptions = youTubeOptions({});
@@ -53,5 +49,3 @@ runPageController({
   },
   stop: stopAutoplay,
 });
-
-if (window.top === window) startYouTubeFocus();

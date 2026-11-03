@@ -85,7 +85,7 @@ for (const f of fixtures) {
   await ext.set({ [`unhooked.site.${f.id}.enabled`]: true });
   await visible(page, "#feed", false, `${f.id}: turning it back on reapplies`);
 
-  await ext.set(presetPatch(f.id, "focused"));
+  await ext.set(presetPatch(f.id, "hideAll"));
   for (const route of [f.profile, f.detail, f.search, f.messages, "/unrecognized/route"]) {
     await pushState(page, route);
     await visible(page, "#feed", true, `${f.id}: ${route} stays visible`);

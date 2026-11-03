@@ -2,9 +2,9 @@
 // Firefox won't let automation open extension pages, so tests reach the extension through
 // bridge.ts (a content script on the harness's own page) instead.
 import "../../src/background.ts";
-import { ext, getActionApi } from "../../src/shared/ext-api.ts";
+import { ext } from "../../src/shared/ext-api.ts";
 
-type Op = { op: "set" | "get" | "badge" | "tabId" | "inject" | "send"; args: never };
+type Op = { op: "set" | "get" | "tabId" | "inject" | "send"; args: never };
 
 async function run({ op, args }: { op: string; args: unknown }): Promise<unknown> {
   switch (op) {
@@ -29,11 +29,6 @@ async function run({ op, args }: { op: string; args: unknown }): Promise<unknown
       const { url, message } = args as { url: string; message: unknown };
       const tab = (await ext.tabs.query({})).find((t) => t.url?.includes(url));
       return tab?.id === undefined ? null : ext.tabs.sendMessage(tab.id, message);
-    }
-    case "badge": {
-      // badge text of the first tab whose URL contains `args`
-      const tab = (await ext.tabs.query({})).find((t) => t.url?.includes(args as string));
-      return tab?.id === undefined ? null : getActionApi().getBadgeText({ tabId: tab.id });
     }
     default:
       throw new Error(`unknown e2e op ${op}`);
