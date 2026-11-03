@@ -300,6 +300,8 @@ export const CONTROL_SITES: readonly ControlSite[] = [
       [
         '[data-testid="primaryColumn"] [aria-label^="Timeline:"]',
         '[data-testid="primaryColumn"] [data-testid="cellInnerDiv"]',
+        // The "new posts" pill that floats over the timeline.
+        '[data-testid="primaryColumn"] button:has([data-testid="pillLabel"])',
       ],
       true,
     ),
@@ -342,6 +344,38 @@ export const CONTROL_SITES: readonly ControlSite[] = [
         },
       ],
     },
+    feature(
+      "hideSidebar",
+      "Hide right sidebar",
+      "The whole column on every page, search box included.",
+      ANYWHERE,
+      ['[data-testid="primaryColumn"] ~ [data-testid="sidebarColumn"]'],
+      false,
+    ),
+    feature(
+      "hideGrok",
+      "Hide Grok",
+      "The floating Grok button, its drawer and its link in the navigation.",
+      ANYWHERE,
+      ['[data-testid="GrokDrawer"]', 'header[role="banner"] a[href^="/i/grok"]'],
+      false,
+    ),
+    feature(
+      "hideChat",
+      "Hide chat button",
+      "The floating chat button and its drawer. Chat stays in the navigation.",
+      ANYWHERE,
+      ['[data-testid="chat-drawer-root"]'],
+      false,
+    ),
+    feature(
+      "hideNavigation",
+      "Hide navigation",
+      "The whole left column. Pair it with Center timeline.",
+      ANYWHERE,
+      ['header[role="banner"]'],
+      false,
+    ),
   ]),
   site("reddit", "Reddit", [
     feature(

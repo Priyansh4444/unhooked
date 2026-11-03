@@ -41,7 +41,15 @@ describe("independent scalar preferences", () => {
     expect(state).toEqual({
       paused: false,
       enabled: true,
-      features: { hideHomeFeed: false, hideExplore: false, hideRecommendations: false },
+      features: {
+        hideHomeFeed: false,
+        hideExplore: false,
+        hideRecommendations: false,
+        hideSidebar: false,
+        hideGrok: false,
+        hideChat: false,
+        hideNavigation: false,
+      },
       redirect: false,
       redirectTo: "/notifications",
     });
@@ -118,12 +126,17 @@ describe("independent scalar preferences", () => {
   });
 
   it("marks one matching preset, preferring the first when two coincide", () => {
-    // Every X control is in Balanced, so Balanced and Focus produce the same choices.
-    const x = site("x");
-    expect(matchingPreset("x", resolveSettings(presetPatch("x", "focused"), x))).toBe("balanced");
-    expect(matchingPreset("x", resolveSettings({}, x))).toBe("clear");
-    const custom = { ...presetPatch("x", "focused"), ...featurePatch("x", "hideExplore", false) };
-    expect(matchingPreset("x", resolveSettings(custom, x))).toBeUndefined();
+    // Every Threads control is in Balanced, so Balanced and Focus produce the same choices.
+    const threads = site("threads");
+    expect(
+      matchingPreset("threads", resolveSettings(presetPatch("threads", "focused"), threads)),
+    ).toBe("balanced");
+    expect(matchingPreset("threads", resolveSettings({}, threads))).toBe("clear");
+    const custom = {
+      ...presetPatch("threads", "focused"),
+      ...featurePatch("threads", "hideSuggestions", false),
+    };
+    expect(matchingPreset("threads", resolveSettings(custom, threads))).toBeUndefined();
   });
 
   it("removing a scalar key restores its legacy fallback", () => {

@@ -107,15 +107,30 @@ export function describe(el: Element): string {
   const label = el.getAttribute("aria-label") || el.getAttribute("title");
   if (label) return clip(label);
   const heading = el.querySelector("h1, h2, h3, [role=heading]");
-  if (heading?.textContent?.trim()) return clip(heading.textContent);
+  const title = heading && firstWords(heading);
+  if (title) return clip(title);
   const tag = el.tagName.toLowerCase();
   if (tag.includes("-"))
     return tag
       .replace(/^(ytd|ytm|yt|shreddit|reddit|tp-yt)-/, "")
       .replace(/-renderer$/, "")
       .replace(/-/g, " ");
-  const text = el.textContent ? clip(el.textContent) : "";
-  return text || tag;
+  const words = firstWords(el);
+  return words ? clip(words) : tag;
+}
+
+/**
+ * The first readable text inside an element. Its whole text runs everything together: a repo card
+ * reads "t1code t1code Public", because sites repeat names for narrow layouts and screen readers.
+ */
+function firstWords(el: Element): string {
+  const walker = el.ownerDocument.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    const text = node.textContent ?? "";
+    if (/[\p{L}\p{N}]/u.test(text) && !node.parentElement?.closest("style, script, noscript"))
+      return text;
+  }
+  return "";
 }
 
 /** Wrappers too small to be "a part of the page" on their own (images, icons, text runs). */

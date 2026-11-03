@@ -7,7 +7,6 @@ import { FOCUS_ACTION, type FocusReply, type FocusRequest } from "../../focus/pr
 import {
   FOCUS_SITES,
   FOCUS_TARGETS,
-  X_FOCUS_TARGETS,
   type FocusSite,
   type PersistenceMode,
 } from "../../focus/sites.ts";
@@ -29,7 +28,7 @@ import {
   type RawStorage,
   type SiteSettings,
 } from "../../shared/preferences.ts";
-import { DEFAULTS, STORAGE_KEYS, type TwitterFocusControls } from "../../shared/settings.ts";
+import { DEFAULTS, STORAGE_KEYS } from "../../shared/settings.ts";
 import {
   SITE_HOSTS,
   originPattern,
@@ -40,6 +39,7 @@ import {
 import { CONTROL_SITES, controlSiteById, type ControlSite } from "../../sites/registry.ts";
 import { TWITCH_ACTIONS, type ChatUrlEntry } from "../../sites/twitch/protocol.ts";
 import { PREVIEW_ACTION, type PreviewRequest } from "../../sites/custom/protocol.ts";
+import { restore, snapshot } from "../../shared/undo.ts";
 
 const YOUTUBE_GROUPS: Record<string, string[]> = {
   bulkVideoSidebar: ["hideRelatedSidebar", "hideLiveChat", "hidePlaylistSidebar", "hideFundraiser"],
@@ -62,16 +62,10 @@ const FOCUS_COPY: Record<FocusSite, { page: string; command?: string; does: stri
   x: {
     page: "Ctrl/⌘ B",
     command: "toggle-twitter-style",
-    does: "One centered timeline without the sidebar, header and drawers.",
+    does: "Every switch at once, in this tab.",
   },
   excalidraw: { page: "Ctrl/⌘ B", does: "Just the canvas, without the toolbars." },
 };
-const X_CONTROLS: [keyof TwitterFocusControls, string, string][] = [
-  ["hideSidebarColumn", "Hide right sidebar", "Trends and suggestions."],
-  ["hideChatDrawer", "Hide chat drawer", "The direct-message drawer."],
-  ["hideGrokDrawer", "Hide Grok drawer", "The Grok side panel."],
-  ["centerTimeline", "Center timeline", "Also hides the top header."],
-];
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string): T => document.getElementById(id) as T;
 
@@ -105,6 +99,7 @@ function status(message: string, error = false): void {
 
 async function write(patch: RawStorage, message = "Saved"): Promise<void> {
   if (!loaded) return;
+  clearUndo();
   status("Saving…");
   try {
     await ext.storage.local.set(patch);
@@ -115,6 +110,25 @@ async function write(patch: RawStorage, message = "Saved"): Promise<void> {
     status(`Could not save. ${(error as Error).message}`, true);
     render();
   }
+}
+
+// ---- undo: what brings a lot back at once can be taken back, instead of asking first ------------
+
+let undoable: RawStorage | null = null;
+let undoTimer: ReturnType<typeof setTimeout> | undefined;
+
+function clearUndo(): void {
+  undoable = null;
+  clearTimeout(undoTimer);
+  $("undo").hidden = true;
+}
+
+async function writeWithUndo(patch: RawStorage, message: string): Promise<void> {
+  const before = snapshot(raw, patch);
+  await write(patch, message);
+  undoable = before;
+  $("undo").hidden = false;
+  undoTimer = setTimeout(clearUndo, 15_000);
 }
 
 // ---- focus mode (owned by the background, per tab or global) -----------------------------------
@@ -252,10 +266,18 @@ function renderFocus(): void {
   }
   $("memoryHint").textContent =
     mode === "global" ? "On in every tab until you turn it off." : "Each tab starts without it.";
-  $("shortcutLine").textContent = shortcutLine(site);
+  // The key sits on the row; where else it works is one hover away.
+  $("focusKey").textContent = FOCUS_COPY[site].page;
+  $("focusKey").title = shortcutLine(site);
+}
 
-  $("xFocusSettings").hidden = site !== "x";
-  if (site !== "x") return;
+/** X's own layout switches, which act as soon as they're flipped, with or without focus. */
+function renderXLayout(): void {
+  $("xLayoutSection").hidden = selected !== "x";
+  if (selected !== "x") return;
+  const centered = raw[STORAGE_KEYS.TWITTER_CENTER_TIMELINE] === true;
+  $<HTMLInputElement>("xCenter").checked = centered;
+  $("xWidthRow").hidden = !centered;
   const width = Number(raw[STORAGE_KEYS.TWITTER_WIDTH] ?? DEFAULTS.TWITTER_WIDTH);
   $<HTMLInputElement>("xWidth").value = String(width);
   $("xWidthValue").textContent = `${width}%`;
@@ -265,8 +287,6 @@ function renderFocus(): void {
   const font = Number(raw[STORAGE_KEYS.TWITTER_FONT_SIZE] ?? DEFAULTS.TWITTER_FONT_SIZE);
   $<HTMLInputElement>("xFont").value = String(font);
   $("xFontValue").textContent = `${font}px`;
-  const controls = xControls();
-  for (const [key] of X_CONTROLS) $<HTMLInputElement>(`x-${key}`).checked = controls[key];
 }
 
 function renderControls(control: ControlSite | undefined): void {
@@ -406,6 +426,8 @@ function bindShortcut(): void {
 function renderCustom(): void {
   const rules = customRules(raw, wandKey());
   $("customSection").hidden = !rules.length;
+  $("customHeading").textContent = `Removed · ${rules.length}`;
+  $("bringAllBack").textContent = rules.length > 1 ? "Bring all back" : "Bring back";
   const list = $("customList");
   // Don't rebuild under someone typing a name.
   if (list.contains(document.activeElement) && document.activeElement?.matches("input")) return;
@@ -415,8 +437,6 @@ function renderCustom(): void {
       item.className = "row";
       item.dataset.selector = rule.selector;
       item.dataset.label = rule.label;
-      const copy = document.createElement("span");
-      copy.className = "feature-copy";
       // The name is editable in place: click it, type, Enter.
       const title = document.createElement("input");
       title.type = "text";
@@ -426,17 +446,16 @@ function renderCustom(): void {
       title.maxLength = 80;
       title.spellcheck = false;
       title.setAttribute("aria-label", `Name for ${rule.label}`);
-      title.title = "Rename";
-      const small = document.createElement("small");
-      small.textContent = rule.selector;
-      small.className = "selector";
-      copy.append(title, small);
+      const hint = document.createElement("small");
+      hint.className = "feature-hint";
+      hint.textContent = "Click the name to rename it.";
       const back = document.createElement("button");
       back.type = "button";
       back.className = "bring-back";
-      back.textContent = "Bring back";
+      back.title = "Bring back";
       back.setAttribute("aria-label", `Bring back ${rule.label}`);
-      item.append(copy, back);
+      back.append($<HTMLTemplateElement>("undoIcon").content.cloneNode(true));
+      item.append(title, hint, back);
       return item;
     }),
   );
@@ -450,6 +469,7 @@ function render(): void {
   renderHeader(control, paused);
   renderFocus();
   renderControls(control);
+  renderXLayout();
   renderTwitch();
   renderSkip(control);
   renderCustom();
@@ -513,14 +533,6 @@ function switchRow(id: string, label: string, hint: string, data: Record<string,
   return row;
 }
 
-function xControls(): TwitterFocusControls {
-  const stored = raw[STORAGE_KEYS.TWITTER_FOCUS_CONTROLS];
-  return {
-    ...DEFAULTS.TWITTER_FOCUS_CONTROLS,
-    ...(stored && typeof stored === "object" ? (stored as Partial<TwitterFocusControls>) : {}),
-  };
-}
-
 function buildRailItem(id: Selection, label: string): HTMLElement {
   const item = document.createElement("label");
   item.className = "site";
@@ -546,11 +558,6 @@ function buildRail(): void {
   for (const button of document.querySelectorAll<HTMLButtonElement>("[data-preset]")) {
     button.id = `preset-${button.dataset.preset}`;
   }
-  $("xFocusControls").append(
-    ...X_CONTROLS.map(([key, label, hint]) =>
-      switchRow(`x-${key}`, label, hint, { xControl: key }),
-    ),
-  );
   // YouTube's static rows get their descriptions from the registry.
   for (const feature of controlSiteById("youtube")!.features) {
     const input = $<HTMLInputElement>(feature.id);
@@ -591,8 +598,9 @@ function previewTarget(row: Element): Omit<PreviewRequest, "action"> | null {
   // Focus mode and its X options hide parts of the page too.
   if (input?.id === "focusToggle" && isFocusSite(selected))
     return { selectors: [...FOCUS_TARGETS[selected]], label: "Focus mode hides" };
-  if (input?.dataset.xControl)
-    return { selectors: [...(X_FOCUS_TARGETS[input.dataset.xControl] ?? [])], label: title };
+  // Nothing goes away with this one: it shows the column that moves.
+  if (input?.id === "xCenter")
+    return { selectors: ['[data-testid="primaryColumn"]'], label: "Centers the timeline" };
   const control = controlSiteById(selected);
   const feature =
     input?.dataset.feature ?? (control?.features.some((f) => f.id === input?.id) ? input?.id : "");
@@ -607,9 +615,7 @@ function bindHover(): void {
   const enter = (event: Event) => {
     const row = (event.target as HTMLElement).closest(".row");
     if (!row) return;
-    const hint = row.querySelector(
-      ".feature-hint, .feature-copy small:not(.selector)",
-    )?.textContent;
+    const hint = row.querySelector(".feature-hint, .feature-copy small")?.textContent;
     $("hint").textContent = hint ?? "";
     document.body.classList.toggle("is-hinting", Boolean(hint));
     preview(previewTarget(row));
@@ -645,6 +651,7 @@ function bind(): void {
     const target = event.target as HTMLInputElement;
     if (target.name !== "site") return;
     selected = target.value as Selection;
+    clearUndo();
     render();
     void refreshSelected();
   });
@@ -689,13 +696,34 @@ function bind(): void {
     const button = (event.target as HTMLElement).closest(".bring-back");
     const selector = button && ruleOf(button);
     if (!selector) return;
-    void write(
+    void writeWithUndo(
       {
         [customKey(wandKey())]: customRules(raw, wandKey()).filter((r) => r.selector !== selector),
       },
       "Brought back",
     );
     preview(null);
+  });
+  $("bringAllBack").addEventListener("click", () => {
+    const count = customRules(raw, wandKey()).length;
+    void writeWithUndo(
+      { [customKey(wandKey())]: [] },
+      count > 1 ? `Brought back all ${count}` : "Brought back",
+    );
+    preview(null);
+  });
+  $("undo").addEventListener("click", () => {
+    if (!undoable) return;
+    const before = undoable;
+    clearUndo();
+    void restore(before).then(
+      () => status("Undone"),
+      (error: Error) => status(`Could not undo. ${error.message}`, true),
+    );
+  });
+  $("openTransfer").addEventListener("click", () => {
+    void ext.tabs.create({ url: ext.runtime.getURL("ui/transfer/index.html") });
+    window.close();
   });
   // Renaming a removal: saved on Enter or when the field loses focus; Esc puts it back.
   $("customList").addEventListener("change", (event) => {
@@ -795,8 +823,14 @@ function bind(): void {
       if (host) await ext.permissions.remove({ origins: [originPattern(host)] }).catch(() => {});
       return;
     }
-    void write(
-      { ...presetPatch(selected, "clear"), ...featurePatch(selected, "enabled", true) },
+    // Everything Unhooked changes on this site comes back: controls, skipped feeds, wand removals.
+    void writeWithUndo(
+      {
+        ...presetPatch(selected, "clear"),
+        ...featurePatch(selected, "enabled", true),
+        ...featurePatch(selected, "redirect", false),
+        [customKey(wandKey())]: [],
+      },
       `${railLabel(selected)} reset`,
     );
   });
@@ -833,13 +867,10 @@ function bind(): void {
       [STORAGE_KEYS.TWITTER_USE_DEFAULT_FONT]: !(event.target as HTMLInputElement).checked,
     });
   });
-  $("xFocusControls").addEventListener("change", (event) => {
-    const target = event.target as HTMLInputElement;
-    const key = target.dataset.xControl as keyof TwitterFocusControls | undefined;
-    if (key)
-      void write({
-        [STORAGE_KEYS.TWITTER_FOCUS_CONTROLS]: { ...xControls(), [key]: target.checked },
-      });
+  $("xCenter").addEventListener("change", (event) => {
+    void write({
+      [STORAGE_KEYS.TWITTER_CENTER_TIMELINE]: (event.target as HTMLInputElement).checked,
+    });
   });
 
   // Twitch

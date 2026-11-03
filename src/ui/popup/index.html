@@ -17,9 +17,13 @@
       </fieldset>
       <div class="rail-foot">
         <button type="button" class="pause" id="btnPower" aria-pressed="false">
-          <span class="icon-power" aria-hidden="true"></span><span id="powerLabel">Pause all</span>
+          <svg class="icon" viewBox="0 0 16 16" aria-hidden="true">
+            <path d="M4.85 4a5.5 5.5 0 1 0 6.3 0M8 2v6" />
+          </svg>
+          <span id="powerLabel">Pause all</span>
         </button>
         <div class="rail-links">
+          <button type="button" id="openTransfer">Move settings</button>
           <a
             href="https://github.com/Priyansh4444/unhooked"
             target="_blank"
@@ -51,61 +55,56 @@
         <div class="tools">
           <div class="tool-row">
             <button type="button" class="tool" id="openWand">
-              <span class="wand-mark" aria-hidden="true"></span>
+              <svg class="icon" viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M2.5 13.5 9 7" />
+                <path
+                  class="spark"
+                  d="M11.25 1.5l.95 2.3 2.3.95-2.3.95-.95 2.3-.95-2.3L8 4.75l2.3-.95z"
+                />
+                <circle class="spark" cx="4.75" cy="4" r=".8" />
+                <circle class="spark" cx="13.25" cy="11" r=".8" />
+              </svg>
               <span>Pick on page</span>
             </button>
             <button type="button" class="shortcut" id="wandShortcut"></button>
           </div>
           <button type="button" class="tool" id="openPicker">
-            <span class="dots" aria-hidden="true"></span>
+            <svg class="icon dots" viewBox="0 0 16 16" aria-hidden="true">
+              <path
+                d="M2.5 4.5h0M6.17 4.5h0M9.83 4.5h0M13.5 4.5h0M2.5 8h0M6.17 8h0M9.83 8h0M13.5 8h0M2.5 11.5h0M6.17 11.5h0M9.83 11.5h0M13.5 11.5h0"
+              />
+            </svg>
             <span>Pick on a sketch</span>
           </button>
         </div>
       </header>
       <main>
+        <section id="customSection" aria-labelledby="customHeading" hidden>
+          <div class="log-head">
+            <h2 id="customHeading" class="label">Removed</h2>
+            <button type="button" id="bringAllBack">Bring all back</button>
+          </div>
+          <ul class="custom-list" id="customList"></ul>
+        </section>
+
         <section id="focusSection" aria-labelledby="focusHeading" hidden>
           <h2 id="focusHeading" class="label">Focus mode</h2>
           <label class="row">
             <span class="row-label"
-              >Focus this tab<small class="feature-hint" id="focusHint"></small
+              >Focus this tab <kbd class="key-hint" id="focusKey"></kbd
+              ><small class="feature-hint" id="focusHint"></small
             ></span>
             <input type="checkbox" class="uh-switch" id="focusToggle" />
           </label>
           <div class="row">
             <span class="row-label" id="memoryLabel"
-              >Remember focus<small class="feature-hint" id="memoryHint"></small
+              >Remember<small class="feature-hint" id="memoryHint"></small
             ></span>
             <span class="choices" role="group" aria-labelledby="memoryLabel">
               <button type="button" data-memory="tab">This tab</button>
               <button type="button" data-memory="global">All tabs</button>
             </span>
           </div>
-          <div id="xFocusSettings" hidden>
-            <div class="row slider-row">
-              <label class="row-label" for="xWidth"
-                >Timeline width<small class="feature-hint"
-                  >Used while the timeline is centered.</small
-                ></label
-              >
-              <output id="xWidthValue" for="xWidth">80%</output>
-              <input type="range" id="xWidth" min="30" max="100" step="5" />
-            </div>
-            <label class="row">
-              <span class="row-label"
-                >Custom text size<small class="feature-hint"
-                  >Resize posts while focused.</small
-                ></span
-              >
-              <input type="checkbox" class="uh-switch" id="xCustomFont" />
-            </label>
-            <div class="row slider-row" id="xFontRow">
-              <label class="row-label" for="xFont">Text size</label>
-              <output id="xFontValue" for="xFont">15px</output>
-              <input type="range" id="xFont" min="13" max="22" step="1" />
-            </div>
-            <div id="xFocusControls"></div>
-          </div>
-          <p class="shortcut-line" id="shortcutLine"></p>
         </section>
 
         <section id="controlsSection" aria-labelledby="controlsHeading">
@@ -277,6 +276,34 @@
           <div class="sections" id="socialControls" hidden></div>
         </section>
 
+        <section id="xLayoutSection" aria-labelledby="xLayoutHeading" hidden>
+          <h2 id="xLayoutHeading" class="label">Layout</h2>
+          <label class="row">
+            <span class="row-label"
+              >Center timeline<small class="feature-hint"
+                >Centered in the space beside the navigation.</small
+              ></span
+            >
+            <input type="checkbox" class="uh-switch" id="xCenter" />
+          </label>
+          <div class="row slider-row" id="xWidthRow">
+            <label class="row-label" for="xWidth">Timeline width</label>
+            <output id="xWidthValue" for="xWidth">80%</output>
+            <input type="range" id="xWidth" min="30" max="100" step="5" />
+          </div>
+          <label class="row">
+            <span class="row-label"
+              >Custom text size<small class="feature-hint">Resize the text in posts.</small></span
+            >
+            <input type="checkbox" class="uh-switch" id="xCustomFont" />
+          </label>
+          <div class="row slider-row" id="xFontRow">
+            <label class="row-label" for="xFont">Text size</label>
+            <output id="xFontValue" for="xFont">15px</output>
+            <input type="range" id="xFont" min="13" max="22" step="1" />
+          </div>
+        </section>
+
         <section id="skipSection" aria-labelledby="skipHeading" hidden>
           <h2 id="skipHeading" class="label">Stronger</h2>
           <label class="row">
@@ -333,18 +360,20 @@
           </div>
           <ol class="link-log" id="twitchLogList" aria-labelledby="logHeading"></ol>
         </section>
-        <section id="customSection" aria-labelledby="customHeading" hidden>
-          <h2 id="customHeading" class="label">Removed with the wand</h2>
-          <ul class="custom-list" id="customList"></ul>
-        </section>
       </main>
       <footer class="foot">
         <p id="saveStatus" role="status" aria-live="polite">Loading your choices…</p>
         <p id="hint" class="hint" aria-hidden="true"></p>
+        <button type="button" id="undo" hidden>Undo</button>
         <button type="button" id="resetAll">Reset site</button>
       </footer>
     </div>
 
+    <template id="undoIcon">
+      <svg class="icon" viewBox="0 0 16 16" aria-hidden="true">
+        <path d="M5.5 3.5l-3 3 3 3M2.5 6.5h7.25a3.25 3.25 0 0 1 0 6.5H7" />
+      </svg>
+    </template>
     <script type="module" src="popup.ts"></script>
   </body>
 </html>

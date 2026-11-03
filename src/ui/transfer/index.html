@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Move settings · Unhooked</title>
+    <link rel="stylesheet" href="../shared/theme.css" />
+    <link rel="stylesheet" href="transfer.css" />
+  </head>
+  <body>
+    <header class="top">
+      <p class="brand">unhooked <span class="crumb">/ move settings</span></p>
+      <p class="label" id="status" role="status" aria-live="polite"></p>
+    </header>
+
+    <main>
+      <h1>Take your settings to another browser</h1>
+      <p class="lead">
+        Copy them here and paste them into Unhooked there. No account, and nothing leaves your
+        computer except through your own clipboard or file.
+      </p>
+
+      <div class="steps">
+        <section aria-labelledby="fromHeading">
+          <h2 id="fromHeading" class="label">From this browser</h2>
+          <p class="found" id="mine">Reading your choices</p>
+          <div class="actions">
+            <button type="button" class="action" id="copy">Copy settings</button>
+            <button type="button" class="action" id="save">Save as a file</button>
+          </div>
+        </section>
+
+        <section aria-labelledby="intoHeading">
+          <h2 id="intoHeading" class="label">Into this browser</h2>
+          <label class="visually-hidden" for="incoming">Settings to import</label>
+          <textarea
+            id="incoming"
+            spellcheck="false"
+            autocomplete="off"
+            placeholder="Paste copied settings here, or drop a settings file"
+          ></textarea>
+          <p class="found" id="found" aria-live="polite"></p>
+          <div class="actions">
+            <button type="button" class="action" id="import" disabled>Import</button>
+            <label class="action file">
+              Choose a file
+              <input type="file" id="file" accept=".json,application/json" />
+            </label>
+            <button type="button" class="text-button" id="undo" hidden>Undo</button>
+          </div>
+        </section>
+      </div>
+
+      <p class="note">
+        Removals you made here stay when you import; the file's other choices replace this
+        browser's. These stay behind: Pause all, focus on or off, the Twitch link log, and account
+        names Unhooked read from the sites.
+      </p>
+    </main>
+
+    <script type="module" src="transfer.ts"></script>
+  </body>
+</html>

@@ -196,7 +196,7 @@ export const SKETCHES: Record<ControlSiteId, readonly View[]> = {
       height: 900,
       basis: "structure",
       parts: [
-        { label: "Navigation", box: [88, 0, 270, 900], texture: "list" },
+        { label: "Navigation", box: [88, 0, 270, 900], feature: "hideNavigation", texture: "list" },
         { label: "For you, Following", box: [358, 0, 600, 53], texture: "bar" },
         { label: "Post composer", box: [358, 53, 600, 110], texture: "text" },
         {
@@ -208,10 +208,13 @@ export const SKETCHES: Record<ControlSiteId, readonly View[]> = {
         { label: "Search", box: [1004, 4, 350, 44], texture: "bar" },
         {
           label: "Premium, trends, who to follow",
-          box: [1004, 64, 350, 760],
+          box: [1004, 64, 350, 660],
           feature: "hideRecommendations",
           texture: "list",
         },
+        // Measured signed in: two 55px buttons, floating 20px from the window's corner.
+        { label: "Grok", box: [1365, 767, 55, 55], feature: "hideGrok", texture: "text" },
+        { label: "Chat", box: [1365, 834, 55, 55], feature: "hideChat", texture: "text" },
       ],
     },
     {
@@ -221,7 +224,7 @@ export const SKETCHES: Record<ControlSiteId, readonly View[]> = {
       height: 900,
       basis: "structure",
       parts: [
-        { label: "Navigation", box: [88, 0, 270, 900], texture: "list" },
+        { label: "Navigation", box: [88, 0, 270, 900], feature: "hideNavigation", texture: "list" },
         { label: "Search", box: [358, 0, 600, 53], texture: "bar" },
         { label: "For You, Trending, News", box: [358, 53, 600, 53], texture: "bar" },
         { label: "Explore", box: [358, 106, 600, 794], feature: "hideExplore", texture: "grid" },
@@ -230,6 +233,12 @@ export const SKETCHES: Record<ControlSiteId, readonly View[]> = {
           box: [1004, 12, 350, 520],
           feature: "hideRecommendations",
           texture: "list",
+        },
+        {
+          label: "Right sidebar",
+          box: [1004, 544, 350, 200],
+          feature: "hideSidebar",
+          texture: "text",
         },
       ],
     },

@@ -8,11 +8,21 @@ export const fixtures = [
     detail: "/someone/status/123",
     search: "/search?q=focus",
     messages: "/messages",
-    html: `<div data-testid="primaryColumn"><section role="region" aria-label="Timeline: Your Home Timeline"><div data-testid="cellInnerDiv"><article id="feed">A recommended post</article></div></section></div><div data-testid="sidebarColumn"><div><div><div><div><div><div id="sidebar-search"><form role="search">Search</form></div><div><div data-testid="news_sidebar" id="news">Today's News</div></div><div><section><div data-testid="trend" id="trends">Trending</div></section></div><div id="scores">Live sports scores</div><div><aside id="suggestions">Who to follow</aside></div></div></div></div></div></div></div>`,
+    html: `<header role="banner"><nav id="nav"><a href="/home" id="nav-home">Home</a><a href="/i/grok" id="nav-grok">Grok</a><a href="/i/chat" id="nav-chat">Chat</a></nav></header><div data-testid="GrokDrawer" id="grok">Grok</div><div data-testid="chat-drawer-root" id="chat">Chat</div><div data-testid="primaryColumn"><button id="pill"><span data-testid="pillLabel">posted</span></button><section role="region" aria-label="Timeline: Your Home Timeline"><div data-testid="cellInnerDiv"><article id="feed">A recommended post</article></div></section></div><div data-testid="sidebarColumn" id="whole-sidebar"><div><div><div><div><div><div id="sidebar-search"><form role="search">Search</form></div><div><div data-testid="news_sidebar" id="news">Today's News</div></div><div><section><div data-testid="trend" id="trends">Trending</div></section></div><div id="scores">Live sports scores</div><div><aside id="suggestions">Who to follow</aside></div></div></div></div></div></div></div>`,
     sidebarAnywhere: "hideRecommendations",
     // The sidebar's nesting is X's (sidebarColumn > 5 divs > modules); the search box stays.
-    features: { hideRecommendations: ["suggestions", "trends", "news", "scores"] },
-    keeps: { hideRecommendations: ["sidebar-search"] },
+    features: {
+      hideRecommendations: ["suggestions", "trends", "news", "scores"],
+      hideSidebar: ["whole-sidebar"],
+      hideGrok: ["grok", "nav-grok"],
+      hideChat: ["chat"],
+      hideNavigation: ["nav"],
+    },
+    keeps: {
+      hideRecommendations: ["sidebar-search"],
+      hideGrok: ["nav-home", "nav-chat"],
+      hideChat: ["nav-chat", "grok"],
+    },
   },
   {
     id: "reddit",

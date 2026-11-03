@@ -16,6 +16,7 @@ const ALL = [
   "picker",
   "wand",
   "skip",
+  "transfer",
   "twitter",
   "twitch",
   "twitch-cards",

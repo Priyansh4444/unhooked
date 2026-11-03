@@ -91,6 +91,7 @@ export function createManifest(target: Target, extraContentScripts: object[] = [
         ? { scripts: ["background.js"] }
         : { service_worker: "background.js" },
     [mv2 ? "browser_action" : "action"]: action,
+    options_ui: { page: "ui/transfer/index.html", open_in_tab: true },
     commands: {
       "toggle-youtube-style": {
         suggested_key: shortcut("Shift+Y"),

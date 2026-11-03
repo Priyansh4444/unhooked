@@ -1,52 +1,41 @@
 import { startFocusSite } from "../../focus/runtime.ts";
 import { ext } from "../../shared/ext-api.ts";
 import { isTwitterToggleShortcut } from "../../shared/keys.ts";
-import { DEFAULTS, STORAGE_KEYS, type TwitterFocusControls } from "../../shared/settings.ts";
+import { isPaused, preferenceKey } from "../../shared/preferences.ts";
+import { DEFAULTS, STORAGE_KEYS } from "../../shared/settings.ts";
 
-// The look lives in style.css, gated on classes set here on <html>. This script turns the user's
-// settings into those classes and keeps a toggle button in X's header.
+// The look lives in style.css, gated on classes set here on <html>. Centering and text size are
+// switches of their own; focus mode (Ctrl+B) is every switch at once, in this tab, for now.
 
 const ACTIVE_CLASS = "uh-focus-x";
 const BUTTON_ID = "uh-focus-x-toggle";
-const SETTING_KEYS = [
+const CENTER_CLASS = "uh-x-center";
+const FONT_CLASS = "uh-x-font";
+const SITE_ENABLED = preferenceKey("x", "enabled");
+const LAYOUT_KEYS = [
+  STORAGE_KEYS.TWITTER_CENTER_TIMELINE,
   STORAGE_KEYS.TWITTER_WIDTH,
   STORAGE_KEYS.TWITTER_FONT_SIZE,
   STORAGE_KEYS.TWITTER_USE_DEFAULT_FONT,
-  STORAGE_KEYS.TWITTER_FOCUS_CONTROLS,
+  STORAGE_KEYS.PAUSED,
+  STORAGE_KEYS.LEGACY_YOUTUBE_OPTIONS,
+  SITE_ENABLED,
 ];
-
-/** <html> class -> which focus control turns it on. The header hides with the centred timeline. */
-const CONTROL_CLASSES: [string, keyof TwitterFocusControls][] = [
-  ["uh-focus-x-hide-sidebar", "hideSidebarColumn"],
-  ["uh-focus-x-hide-chat", "hideChatDrawer"],
-  ["uh-focus-x-hide-grok", "hideGrokDrawer"],
-  ["uh-focus-x-hide-header", "centerTimeline"],
-  ["uh-focus-x-center-timeline", "centerTimeline"],
-];
-const FONT_CLASS = "uh-focus-x-custom-font";
-const VARIABLES = ["--twitter-width", "--twitter-font-size", "--twitter-icon-scale"];
 
 const root = document.documentElement;
 
 const numberOr = (value: unknown, fallback: number): number =>
   Number.isFinite(Number(value)) ? Number(value) : fallback;
 
-async function applySettings(): Promise<void> {
-  const raw = await ext.storage.local.get(SETTING_KEYS);
-  const stored = raw[STORAGE_KEYS.TWITTER_FOCUS_CONTROLS];
-  const controls: TwitterFocusControls = {
-    ...DEFAULTS.TWITTER_FOCUS_CONTROLS,
-    ...(stored && typeof stored === "object" ? stored : {}),
-  };
-  for (const [className, control] of CONTROL_CLASSES) {
-    root.classList.toggle(className, Boolean(controls[control]));
-  }
-
+async function applyLayout(): Promise<void> {
+  const raw = await ext.storage.local.get(LAYOUT_KEYS);
+  const on = !isPaused(raw) && raw[SITE_ENABLED] !== false;
+  root.classList.toggle(CENTER_CLASS, on && raw[STORAGE_KEYS.TWITTER_CENTER_TIMELINE] === true);
   root.style.setProperty(
     "--twitter-width",
     `${numberOr(raw[STORAGE_KEYS.TWITTER_WIDTH], DEFAULTS.TWITTER_WIDTH)}%`,
   );
-  const customFont = raw[STORAGE_KEYS.TWITTER_USE_DEFAULT_FONT] === false;
+  const customFont = on && raw[STORAGE_KEYS.TWITTER_USE_DEFAULT_FONT] === false;
   root.classList.toggle(FONT_CLASS, customFont);
   if (customFont) {
     const size = numberOr(raw[STORAGE_KEYS.TWITTER_FONT_SIZE], DEFAULTS.TWITTER_FONT_SIZE);
@@ -58,10 +47,10 @@ async function applySettings(): Promise<void> {
   }
 }
 
-function clearSettings(): void {
-  root.classList.remove(FONT_CLASS, ...CONTROL_CLASSES.map(([className]) => className));
-  for (const variable of VARIABLES) root.style.removeProperty(variable);
-}
+void applyLayout();
+ext.storage.onChanged.addListener((changes, area) => {
+  if (area === "local" && LAYOUT_KEYS.some((key) => changes[key])) void applyLayout();
+});
 
 // ---- toggle button in the header ---------------------------------------------------------------
 
@@ -135,10 +124,7 @@ const focus = startFocusSite({
   site: "x",
   isShortcut: isTwitterToggleShortcut,
   watchUrlChanges: true,
-  settingKeys: SETTING_KEYS,
-  async apply(enabled) {
-    if (enabled) await applySettings();
-    else clearSettings();
+  apply(enabled) {
     root.classList.toggle(ACTIVE_CLASS, enabled);
     document.getElementById(BUTTON_ID)?.setAttribute("aria-pressed", String(enabled));
     placeButton();

@@ -45,6 +45,7 @@ body {
 .site-list a {
   display: flex;
   justify-content: space-between;
+  gap: 10px;
   padding: 6px 10px;
   color: var(--stone);
   text-decoration: none;
@@ -364,5 +365,9 @@ button.part[aria-pressed="true"] .gone {
     display: flex;
     flex-wrap: wrap;
     gap: 4px;
+  }
+  /* It points across the frame's corner, which isn't where the frame is at this width. */
+  .hand-note {
+    display: none;
   }
 }

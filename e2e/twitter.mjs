@@ -6,11 +6,11 @@ const { check, finish } = createChecker();
 
 const reply = '<div role="group"><button aria-label="Reply">r</button></div>';
 const PAGE = `<!doctype html><html><body>
-<header>hdr</header><main><div data-testid="primaryColumn">
+<header role="banner">hdr</header><main role="main"><div><div data-testid="primaryColumn">
   <nav style="display:flex"><div data-testid="ScrollSnap-SwipeableList">tabs</div></nav>
   <div data-testid="cellInnerDiv"><article>tweet ${reply}</article></div>
   <div data-testid="cellInnerDiv"><article>tweet 2 ${reply}</article></div>
-</div><div data-testid="sidebarColumn">side</div></main>
+</div><div data-testid="sidebarColumn">side</div></div></main>
 <script>setTimeout(()=>{history.pushState({}, "", "/home2"); document.body.appendChild(document.createElement("div"))}, 6000)</script>
 </body></html>`;
 
@@ -44,21 +44,52 @@ await sleep(1000);
 check("button disables", !(await on(page)));
 check("sidebar back", (await display(page, '[data-testid="sidebarColumn"]')) !== "none");
 
+// The layout switches act on their own, without focus.
+check("focus is off before the switches", !(await on(page)));
+const html = (name) =>
+  page.evaluate((name) => document.documentElement.classList.contains(name), name);
+const rule = (selector, property) =>
+  page.evaluate((s, p) => getComputedStyle(document.querySelector(s))[p], selector, property);
+await ext.set({ twitter_center_timeline: true, twitter_width: 60 });
+await sleep(300);
+check("Center timeline works without focus", await html("uh-x-center"));
+check(
+  "it centers the column",
+  (await rule('div:has(> [data-testid="primaryColumn"])', "justifyContent")) === "center",
+);
+check(
+  "it uses the chosen width",
+  (await rule('[data-testid="primaryColumn"]', "maxWidth")) === "60%",
+);
+check(
+  "centering leaves the navigation alone",
+  (await display(page, 'header[role="banner"]')) !== "none",
+);
+await ext.set({ twitter_use_default_font: false, twitter_font_size: 20 });
+await sleep(300);
+check("Custom text size works without focus", await html("uh-x-font"));
+await ext.set({ "unhooked.paused": true });
+await sleep(300);
+check("Pause all takes the layout off", !(await html("uh-x-center")) && !(await html("uh-x-font")));
+await ext.set({ "unhooked.paused": false });
+await sleep(300);
+check("Resume puts it back", (await html("uh-x-center")) && (await html("uh-x-font")));
+await ext.set({ "unhooked.site.x.enabled": false });
+await sleep(300);
+check("the site's switch takes the layout off too", !(await html("uh-x-center")));
+await ext.set({
+  "unhooked.site.x.enabled": true,
+  twitter_center_timeline: false,
+  twitter_use_default_font: true,
+});
+await sleep(300);
+check("turning them off restores the page", !(await html("uh-x-center")));
+
 await press(page, "Control+b");
 await sleep(1000);
-await ext.set({
-  twitter_focus_controls: {
-    hideSidebarColumn: false,
-    hideChatDrawer: true,
-    hideGrokDrawer: true,
-    hideHeader: true,
-    centerTimeline: true,
-  },
-});
-await sleep(1000);
 check(
-  "settings change re-applies live",
-  (await display(page, '[data-testid="sidebarColumn"]')) !== "none",
+  "Ctrl+B still hides the sidebar",
+  (await display(page, '[data-testid="sidebarColumn"]')) === "none",
 );
 
 await sleep(5500);

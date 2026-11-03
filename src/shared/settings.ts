@@ -7,14 +7,6 @@ export interface ToggleState {
   enabled: boolean;
 }
 
-export interface TwitterFocusControls {
-  hideSidebarColumn: boolean;
-  hideChatDrawer: boolean;
-  hideGrokDrawer: boolean;
-  hideHeader: boolean;
-  centerTimeline: boolean;
-}
-
 export const STORAGE_KEYS = Object.freeze({
   /** Global pause: every page change the extension makes stops until resumed. */
   PAUSED: "unhooked.paused",
@@ -31,7 +23,7 @@ export const STORAGE_KEYS = Object.freeze({
   TWITTER_WIDTH: "twitter_width",
   TWITTER_FONT_SIZE: "twitter_font_size",
   TWITTER_USE_DEFAULT_FONT: "twitter_use_default_font",
-  TWITTER_FOCUS_CONTROLS: "twitter_focus_controls",
+  TWITTER_CENTER_TIMELINE: "twitter_center_timeline",
   TWITCH_LINK_PILLS: "twitch_link_pills",
   TWITCH_URL_LOG_ENABLED: "twitch_url_log_enabled",
   TWITCH_URL_LOG: "twitch_url_log",
@@ -48,13 +40,7 @@ export const DEFAULTS = Object.freeze({
   TWITTER_WIDTH: 80,
   TWITTER_FONT_SIZE: 15,
   TWITTER_USE_DEFAULT_FONT: true,
-  TWITTER_FOCUS_CONTROLS: {
-    hideSidebarColumn: true,
-    hideChatDrawer: true,
-    hideGrokDrawer: true,
-    hideHeader: true,
-    centerTimeline: true,
-  } as TwitterFocusControls,
+  TWITTER_CENTER_TIMELINE: false,
   TWITCH_LINK_PILLS: true,
   TWITCH_URL_LOG_ENABLED: true,
   TWITCH_HOVER_DELAY_MS: 180,

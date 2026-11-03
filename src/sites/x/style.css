@@ -1,6 +1,4 @@
-/* Unhooked Twitter Styles
- * All layout changes scoped under .uh-focus-x on <html>
- */
+/* Unhooked's X layout. Everything is gated on classes that sites/x/content.ts sets on <html>. */
 
 /* ============================================================================
  * Base Transitions (always applied for smooth enable/disable)
@@ -10,7 +8,7 @@
 [data-testid="sidebarColumn"],
 [data-testid="chat-drawer-root"],
 [data-testid="GrokDrawer"],
-header,
+header[role="banner"],
 article {
   transition:
     opacity 200ms ease,
@@ -20,119 +18,81 @@ article {
 }
 
 /* ============================================================================
- * Active State: Hide Right Sidebar Only (not left nav)
+ * Focus mode: only the timeline. (The same parts have their own switches in the registry.)
  * ============================================================================ */
 
-html.uh-focus-x.uh-focus-x-hide-sidebar
-  [data-testid="primaryColumn"]
-  ~ [data-testid="sidebarColumn"] {
-  display: none !important;
-}
-
-html.uh-focus-x.uh-focus-x-hide-sidebar [data-testid="searchColumn"] {
-  display: none !important;
-}
-
-html.uh-focus-x.uh-focus-x-hide-sidebar [data-testid="sidebarColumn"]:not(:first-of-type) {
-  display: none !important;
-}
-
-html.uh-focus-x.uh-focus-x-hide-chat [data-testid="chat-drawer-root"] {
-  display: none !important;
-}
-
-html.uh-focus-x.uh-focus-x-hide-grok [data-testid="GrokDrawer"] {
-  display: none !important;
-}
-
-/* Header hides with center timeline (tied together) */
-html.uh-focus-x.uh-focus-x-hide-header header {
+html.uh-focus-x [data-testid="primaryColumn"] ~ [data-testid="sidebarColumn"],
+html.uh-focus-x [data-testid="chat-drawer-root"],
+html.uh-focus-x [data-testid="GrokDrawer"],
+html.uh-focus-x header[role="banner"] {
   display: none !important;
 }
 
 /* ============================================================================
- * Active State: Center Primary Column
+ * Center the timeline in the space beside the navigation. X sizes this chain for its
+ * nav + 600px + sidebar layout, so each level gives that up. The column shrinks to leave the
+ * sidebar room when there is one.
  * ============================================================================ */
 
-html.uh-focus-x.uh-focus-x-center-timeline div:has([data-testid="primaryColumn"]) {
-  position: relative !important;
-  width: 95vw !important;
-  display: flex !important;
+html:is(.uh-x-center, .uh-focus-x) header[role="banner"] {
+  flex: 0 0 auto !important;
+}
+
+html:is(.uh-x-center, .uh-focus-x) main[role="main"] {
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  width: auto !important;
+}
+
+html:is(.uh-x-center, .uh-focus-x) main[role="main"] div:has([data-testid="primaryColumn"]) {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+html:is(.uh-x-center, .uh-focus-x) div:has(> [data-testid="primaryColumn"]) {
   justify-content: center !important;
 }
 
-html.uh-focus-x.uh-focus-x-center-timeline [data-testid="primaryColumn"] {
+html:is(.uh-x-center, .uh-focus-x) [data-testid="primaryColumn"] {
+  flex: 0 1 var(--twitter-width, 80%) !important;
+  min-width: 0 !important;
   width: var(--twitter-width, 80%) !important;
   max-width: var(--twitter-width, 80%) !important;
-  position: absolute !important;
-
-  .r-1ye8kvj {
-    max-width: none !important;
-    width: 100% !important;
-  }
 }
 
-html.uh-focus-x:not(.uh-focus-x-center-timeline) [data-testid="primaryColumn"] {
-  width: var(--twitter-width, 80%) !important;
-  max-width: var(--twitter-width, 80%) !important;
-  margin-left: 0 !important;
-  margin-right: auto !important;
-}
-
-html.uh-focus-x.uh-focus-x-center-timeline article {
+/* r-1ye8kvj is X's atomic class for its 600px content width. */
+html:is(.uh-x-center, .uh-focus-x) [data-testid="primaryColumn"] .r-1ye8kvj {
   width: 100% !important;
+  max-width: none !important;
 }
 
 /* ============================================================================
  * Font size + tweet scale (custom font only)
  * ============================================================================ */
 
-html.uh-focus-x.uh-focus-x-custom-font [data-testid="primaryColumn"] [data-testid="tweetText"],
-html.uh-focus-x.uh-focus-x-custom-font [data-testid="primaryColumn"] [data-testid="tweetText"] span,
-html.uh-focus-x.uh-focus-x-custom-font [data-testid="primaryColumn"] article div[lang] {
+html.uh-x-font [data-testid="primaryColumn"] [data-testid="tweetText"],
+html.uh-x-font [data-testid="primaryColumn"] [data-testid="tweetText"] span,
+html.uh-x-font [data-testid="primaryColumn"] article div[lang] {
   font-size: var(--twitter-font-size, 15px) !important;
 }
 
-html.uh-focus-x.uh-focus-x-custom-font
-  [data-testid="primaryColumn"]
-  article
-  [data-testid="User-Name"],
-html.uh-focus-x.uh-focus-x-custom-font
-  [data-testid="primaryColumn"]
-  article
-  [data-testid="User-Name"]
-  *,
-html.uh-focus-x.uh-focus-x-custom-font
-  [data-testid="primaryColumn"]
-  article
-  [data-testid="User-Name"]
-  ~ *
-  *,
-html.uh-focus-x.uh-focus-x-custom-font [data-testid="primaryColumn"] article [role="group"] span {
+html.uh-x-font [data-testid="primaryColumn"] article [data-testid="User-Name"],
+html.uh-x-font [data-testid="primaryColumn"] article [data-testid="User-Name"] *,
+html.uh-x-font [data-testid="primaryColumn"] article [data-testid="User-Name"] ~ * *,
+html.uh-x-font [data-testid="primaryColumn"] article [role="group"] span {
   font-size: var(--twitter-font-size, 15px) !important;
 }
 
-html.uh-focus-x.uh-focus-x-custom-font [data-testid="primaryColumn"] [data-testid="icon-verified"],
-html.uh-focus-x.uh-focus-x-custom-font [data-testid="primaryColumn"] article button svg,
-html.uh-focus-x.uh-focus-x-custom-font [data-testid="primaryColumn"] article [role="group"] svg,
-html.uh-focus-x.uh-focus-x-custom-font
-  [data-testid="primaryColumn"]
-  article
-  [data-testid="tweetText"]
-  img.r-4qtqp9,
-html.uh-focus-x.uh-focus-x-custom-font
-  [data-testid="primaryColumn"]
-  article
-  [data-testid="User-Name"]
-  img.r-4qtqp9 {
+html.uh-x-font [data-testid="primaryColumn"] [data-testid="icon-verified"],
+html.uh-x-font [data-testid="primaryColumn"] article button svg,
+html.uh-x-font [data-testid="primaryColumn"] article [role="group"] svg,
+html.uh-x-font [data-testid="primaryColumn"] article [data-testid="tweetText"] img.r-4qtqp9,
+html.uh-x-font [data-testid="primaryColumn"] article [data-testid="User-Name"] img.r-4qtqp9 {
   transform: scale(var(--twitter-icon-scale, 1));
   transform-origin: center;
 }
 
-html.uh-focus-x.uh-focus-x-custom-font
-  [data-testid="primaryColumn"]
-  article
-  [data-testid="Tweet-User-Avatar"] {
+html.uh-x-font [data-testid="primaryColumn"] article [data-testid="Tweet-User-Avatar"] {
   transform: none !important;
 }
 

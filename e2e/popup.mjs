@@ -40,23 +40,44 @@ await until(
 );
 await popup.click('[data-preset="focused"]');
 await until(
-  "Focus preset turns X's controls on",
-  async () => (await text(popup, "#meta-x")) === "3",
+  "Focus preset turns every X control on",
+  async () => (await text(popup, "#meta-x")) === "7",
 );
 check(
-  "one matching preset is marked (Balanced and Focus coincide on X)",
+  "one matching preset is marked",
   JSON.stringify(
     await popup.$$eval("#presets [data-preset]", (b) =>
       b.map((x) => x.getAttribute("aria-pressed")),
     ),
-  ) === '["true","false","false"]',
+  ) === '["false","true","false"]',
 );
 await popup.click("label.row:has(#social-hideExplore)");
 await until(
   "a custom choice updates the count and clears the preset mark",
   async () =>
-    (await text(popup, "#meta-x")) === "2" &&
+    (await text(popup, "#meta-x")) === "6" &&
     (await popup.$$("#presets [aria-pressed=true]")).length === 0,
+);
+
+// X's layout switches act on their own, so they live outside focus mode.
+check(
+  "X has a Layout section, separate from focus",
+  await popup.$eval(
+    "#xLayoutSection",
+    (el) => !el.hidden && !document.querySelector("#focusSection #xCenter"),
+  ),
+);
+check("the width only shows once centered", await popup.$eval("#xWidthRow", (el) => el.hidden));
+await popup.click("label.row:has(#xCenter)");
+await until(
+  "Center timeline is saved",
+  async () => (await ext.get("twitter_center_timeline")).twitter_center_timeline === true,
+);
+check("the width shows", await popup.$eval("#xWidthRow", (el) => !el.hidden));
+await popup.click("label.row:has(#xCenter)");
+await until(
+  "and it turns off again",
+  async () => (await ext.get("twitter_center_timeline")).twitter_center_timeline === false,
 );
 
 await popup.click("#btnPower");
@@ -206,8 +227,9 @@ check(
   "the wand is available on the tab's site",
   await onReddit.$eval("#openWand", (el) => !el.disabled),
 );
-await until("wand removals are listed with what they were", async () =>
-  (await onReddit.$eval("#customList", (el) => el.textContent)).includes("aside.promo"),
+await until(
+  "wand removals are listed by name",
+  async () => (await onReddit.$eval("#customList .rule-name", (el) => el.value)) === "Promo",
 );
 await onReddit.hover("label.row:has(#social-hideHomeFeed)");
 await until(
@@ -312,6 +334,54 @@ await until(
   async () => (await savedRule())?.label === "Promo",
 );
 
+// Bringing things back: the list comes first, everything can come back at once, and Undo is there.
+const saved = (await ext.get("unhooked.custom.reddit"))["unhooked.custom.reddit"];
+await ext.set({
+  "unhooked.custom.reddit": [...saved, { selector: "aside.other", label: "Other", at: 2 }],
+});
+await until("the heading counts the removals", async () =>
+  (await text(again, "#customHeading")).endsWith("· 2"),
+);
+check(
+  "removals come first in the pane",
+  await again.$eval("main", (main) => main.firstElementChild.id === "customSection"),
+);
+const removals = async () =>
+  ((await ext.get("unhooked.custom.reddit"))["unhooked.custom.reddit"] ?? []).length;
+await again.click("#bringAllBack");
+await until("Bring all back removes every removal", async () => (await removals()) === 0);
+check(
+  "the section goes away with nothing left to bring back",
+  await again.$eval("#customSection", (el) => el.hidden),
+);
+await again.click("#undo");
+await until("Undo puts them all back", async () => (await removals()) === 2);
+await ext.set({ "unhooked.site.reddit.hideHomeFeed": true, "unhooked.site.reddit.redirect": true });
+await until("the site has a control on", async () => (await text(again, "#meta-reddit")) !== "0");
+await again.click("#resetAll");
+await until(
+  "Reset site brings back controls, skipped feeds and removals",
+  async () =>
+    (await removals()) === 0 &&
+    (await ext.get("unhooked.site.reddit.hideHomeFeed"))["unhooked.site.reddit.hideHomeFeed"] ===
+      false &&
+    (await ext.get("unhooked.site.reddit.redirect"))["unhooked.site.reddit.redirect"] === false,
+);
+await again.click("#undo");
+await until(
+  "Undo takes a reset back",
+  async () =>
+    (await removals()) === 2 &&
+    (await ext.get("unhooked.site.reddit.hideHomeFeed"))["unhooked.site.reddit.hideHomeFeed"] ===
+      true,
+);
+await ext.set({
+  "unhooked.custom.reddit": [],
+  "unhooked.site.reddit.hideHomeFeed": false,
+  "unhooked.site.reddit.redirect": false,
+});
+await ext.set({ "unhooked.custom.reddit": saved });
+
 // Skip the feeds: the stronger option, with a page of the site's own to go to instead.
 const skip = (key) =>
   ext.get(`unhooked.site.reddit.${key}`).then((r) => r[`unhooked.site.reddit.${key}`]);
@@ -370,8 +440,11 @@ check(
       document.querySelector("#siteEnabled").hidden,
   ),
 );
-await until("its removals are listed", async () =>
-  (await onOther.$eval("#customList", (el) => el.textContent)).includes(".banner"),
+await until(
+  "its removals are listed by name, without their selectors",
+  async () =>
+    (await onOther.$eval("#customList .rule-name", (el) => el.value)) === "Banner" &&
+    !(await onOther.$eval("#customList", (el) => el.textContent)).includes(".banner"),
 );
 await onOther.click("#resetAll");
 await until(

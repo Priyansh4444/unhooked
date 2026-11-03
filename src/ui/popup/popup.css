@@ -86,12 +86,25 @@ body {
   margin-top: auto;
   padding: 0 10px;
 }
+/* Icons share one 16px grid and draw in the text's colour. */
+.icon {
+  display: block;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
 .pause {
   display: flex;
   align-items: center;
   gap: 8px;
   width: 100%;
   padding: 6px 9px;
+  line-height: 16px;
   border: 1px solid var(--rule-strong);
   background: transparent;
   color: var(--parchment);
@@ -107,31 +120,20 @@ body {
 .pause:active {
   transform: scale(0.98);
 }
-.icon-power {
-  position: relative;
-  width: 11px;
-  height: 11px;
-  border: 1.5px solid currentColor;
-  border-radius: 50%;
-}
-.icon-power:after {
-  content: "";
-  position: absolute;
-  top: -4px;
-  left: 3px;
-  width: 1.5px;
-  height: 6px;
-  background: currentColor;
-  box-shadow: 0 0 0 2px var(--panel);
-}
-.pause[aria-pressed="true"] .icon-power:after {
-  box-shadow: 0 0 0 2px var(--red);
-}
 .rail-links {
+  display: grid;
+  justify-items: start;
+  gap: 4px;
   padding: 0 4px;
   font-size: 11px;
 }
-.rail-links a {
+.rail-links button {
+  padding: 0;
+  border: 0;
+  background: none;
+}
+.rail-links a,
+.rail-links button {
   color: var(--stone);
   text-decoration: underline;
   text-decoration-color: var(--rule-strong);
@@ -226,11 +228,12 @@ h1 {
   align-items: center;
   gap: 7px;
   min-width: 0;
-  padding: 7px 8px;
+  padding: 6px 8px;
   border: 1px solid var(--rule);
   background: var(--panel);
   color: var(--parchment);
   font-size: 11.5px;
+  line-height: 16px;
   text-align: left;
   white-space: nowrap;
   transition: transform 160ms var(--ease-out);
@@ -272,44 +275,19 @@ h1 {
 .tool:not(:disabled):active {
   transform: scale(0.98);
 }
-.tool .dots {
-  flex-shrink: 0;
-  width: 16px;
-  height: 12px;
-  border: 1px dotted var(--amber);
-  background: radial-gradient(var(--amber) 0.7px, transparent 1px) 0 0 / 4px 4px;
-  opacity: 0.8;
+.dots {
+  stroke: var(--amber);
 }
-/* A wand: a stick with a red spark at its tip. */
-.wand-mark {
-  position: relative;
-  flex-shrink: 0;
-  width: 14px;
-  height: 14px;
+.tool:disabled .dots {
+  stroke: var(--dim);
 }
-.wand-mark:before {
-  content: "";
-  position: absolute;
-  left: 1px;
-  bottom: 1px;
-  width: 15px;
-  height: 1.5px;
-  background: currentColor;
-  transform: rotate(-45deg);
-  transform-origin: left center;
+/* The wand's stick takes the text's colour; its sparks are red. */
+.spark {
+  fill: var(--red);
+  stroke: none;
 }
-.wand-mark:after {
-  content: "";
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 5px;
-  height: 5px;
-  background: var(--red);
-  transform: rotate(45deg);
-}
-.tool:disabled .wand-mark:after {
-  background: var(--dim);
+.tool:disabled .spark {
+  fill: var(--dim);
 }
 
 main {
@@ -362,7 +340,6 @@ main h2.label {
 /* Descriptions are prose, so they are set in the serif. */
 .feature-hint,
 .feature-copy small,
-.shortcut-line,
 .log-empty {
   display: block;
   margin-top: 2px;
@@ -371,7 +348,7 @@ main h2.label {
 }
 /* Row descriptions stay for screen readers; sighted users get them in the footer on hover. */
 .feature-hint,
-.feature-copy small:not(.selector) {
+.feature-copy small {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -425,8 +402,12 @@ main h2.label {
   border-radius: 0;
   background: var(--red);
 }
-.shortcut-line {
-  margin: 2px 18px 10px;
+/* A key the row answers to, in the chrome voice rather than as a button. */
+.key-hint {
+  margin-left: 6px;
+  color: var(--dim);
+  font: 10.5px var(--mono);
+  white-space: nowrap;
 }
 
 .group-head {
@@ -482,6 +463,7 @@ main h2.label {
   padding: 0;
 }
 .log-head button,
+#undo,
 #resetAll {
   padding: 0;
   border: 0;
@@ -523,6 +505,10 @@ main h2.label {
   border-top: 1px solid var(--rule);
   font-size: 11px;
 }
+#undo {
+  color: var(--bright);
+  text-decoration-color: var(--red);
+}
 #saveStatus {
   flex: 1;
   min-width: 0;
@@ -563,6 +549,7 @@ main h2.label {
     border-color: var(--red);
   }
   .rail-links a:hover,
+  .rail-links button:hover,
   #resetAll:hover,
   .log-head button:hover,
   .link-log a:hover {
@@ -586,43 +573,48 @@ main h2.label {
   }
 }
 
-/* Wand removals: what was picked, the rule it became, and a way back. */
+/* Wand removals: first in the pane, one line each, and scrolling on their own past five. */
 .custom-list {
+  max-height: 150px;
   margin: 0;
-  padding: 0;
+  padding: 4px 0 6px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--rule-strong) transparent;
   list-style: none;
 }
-.custom-list .selector {
-  display: block;
-  overflow: hidden;
-  color: var(--dim);
-  font-size: 10.5px;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+.custom-list .row {
+  gap: 8px;
+  padding: 3px 12px 3px 18px;
+  cursor: default;
 }
 .bring-back {
-  flex-shrink: 0;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 24px;
+  height: 24px;
   padding: 0;
   border: 0;
   background: none;
-  color: var(--parchment);
-  font-size: 11px;
-  text-decoration: underline;
-  text-decoration-color: var(--rule-strong);
-  text-underline-offset: 3px;
+  color: var(--stone);
+  transition: transform 160ms var(--ease-out);
+}
+.bring-back:active {
+  transform: scale(0.9);
 }
 @media (hover: hover) and (pointer: fine) {
   .bring-back:hover {
     color: var(--bright);
-    text-decoration-color: var(--red);
   }
 }
 
 /* A removal's name is a field that reads as text until you click it. */
 .rule-name {
-  display: block;
-  width: 100%;
-  margin: -2px 0 0 -4px;
+  flex: 1;
+  min-width: 0;
+  margin-left: -5px;
   padding: 2px 4px;
   border: 1px solid transparent;
   background: none;

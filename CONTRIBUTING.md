@@ -44,6 +44,7 @@ src/
     shared/                theme.css (dark tokens, fonts, switch) and the bundled fonts with licences
     popup/                 the toolbar popup
     picker/                the click-to-hide page; sketches.ts maps each drawn part to a control
+    transfer/              moving settings between browsers (the file format is shared/transfer.ts)
 build.ts, build/manifest.ts   bundling, and the one source for every browser's manifest
 e2e/                       end-to-end tests (Chrome + Firefox)
 ```
@@ -134,7 +135,7 @@ bun e2e/run.mjs chrome social popup        # only some suites
 MINIFY=1 bun e2e/run.mjs chrome            # the minified bundle, as shipped
 ```
 
-Suites `smoke`, `social`, `youtube-controls`, `popup`, `picker`, `wand`, `skip`, `twitter` and `twitch` run against stubbed pages and need no network (`popup` and `picker` are Chrome only: Firefox won't let automation open extension pages). `twitch-cards`, `excalidraw` and the `youtube*` suites use the live sites deliberately, so they need network and can fail when a site changes.
+Suites `smoke`, `social`, `youtube-controls`, `popup`, `transfer`, `picker`, `wand`, `skip`, `twitter` and `twitch` run against stubbed pages and need no network (`popup`, `transfer` and `picker` are Chrome only: Firefox won't let automation open extension pages). `twitch-cards`, `excalidraw` and the `youtube*` suites use the live sites deliberately, so they need network and can fail when a site changes.
 
 ## Releasing
 
