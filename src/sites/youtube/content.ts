@@ -36,6 +36,21 @@ function scheduleAutoplayOff(): void {
   autoplayDeadline = setTimeout(stopAutoplay, 120_000);
 }
 
+/** What decides the video's width. The player only re-measures when the window says to. */
+let layoutOptions = "";
+
+function tellPlayerIfLayoutChanged(): void {
+  const next = options.extensionDisabled
+    ? ""
+    : [options.hideRelatedSidebar, options.hidePlaylistSidebar, options.hideLiveChat].join();
+  if (next === layoutOptions || window.top !== window) {
+    layoutOptions = next;
+    return;
+  }
+  layoutOptions = next;
+  requestAnimationFrame(() => window.dispatchEvent(new Event("resize")));
+}
+
 runPageController({
   documentEvents: ["yt-navigate-finish"],
   render(raw, html) {
@@ -44,8 +59,15 @@ runPageController({
       isMobile: location.hostname === "m.youtube.com",
       isEmbed: location.pathname.startsWith("/embed/") || html.matches("html.embed"),
     });
+    tellPlayerIfLayoutChanged();
     if (!options.extensionDisabled && options.disableAutoplay) scheduleAutoplayOff();
     else stopAutoplay();
   },
   stop: stopAutoplay,
+});
+
+// A new video's player starts at the old width too.
+document.addEventListener("yt-navigate-finish", () => {
+  if (window.top === window && !options.extensionDisabled && options.hideRelatedSidebar)
+    requestAnimationFrame(() => window.dispatchEvent(new Event("resize")));
 });

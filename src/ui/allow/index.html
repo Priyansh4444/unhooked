@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Allow screenshots · Unhooked</title>
+    <link rel="icon" href="../../../icons/icon-32.png" />
+    <link rel="stylesheet" href="../shared/theme.css" />
+    <link rel="stylesheet" href="allow.css" />
+  </head>
+  <body>
+    <main>
+      <img src="../../../icons/icon-48.png" width="28" height="28" alt="" />
+      <h1>Let film mode take screenshots?</h1>
+      <p>
+        A browser only lets an extension capture a tab with access to all sites. Your browser will
+        word it broadly. Unhooked uses it for one thing: taking the picture when you press S, which
+        stays on your computer.
+      </p>
+      <p class="fine">You can take it back in your browser's extension settings at any time.</p>
+      <div class="actions">
+        <button type="button" class="action primary" id="allow">Allow</button>
+        <button type="button" class="action" id="later">Not now</button>
+      </div>
+      <p class="status" id="status" role="status" aria-live="polite"></p>
+    </main>
+    <script type="module" src="allow.ts"></script>
+  </body>
+</html>

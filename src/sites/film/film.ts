@@ -1,7 +1,8 @@
 /**
  * Film mode: started by the popup, its shortcut, or the film button on a post.
  *
- *   S       screenshot: the window, or the framed post on its backdrop
+ *   S       copy a picture: the window, or the framed post on its backdrop
+ *   Shift+S save it as a file instead
  *   click   on X, frame a post: it moves to the centre of the screen, slightly rounded
  *   A       show or hide a framed post's buttons
  *   Esc     back to the page, then out of film mode
@@ -15,7 +16,7 @@ import { ext } from "../../shared/ext-api.ts";
 import { isEditableTarget } from "../../shared/keys.ts";
 import { Overlay } from "../../shared/overlay.ts";
 import { cropBox, fitScale, sharperImage, shotName, type Box } from "./frame.ts";
-import { FILM_CAPTURE, type CaptureReply } from "./protocol.ts";
+import { FILM_CAPTURE, FILM_SHOOT, type CaptureReply } from "./protocol.ts";
 
 export interface Film {
   stop(): void;
@@ -44,9 +45,9 @@ const IDLE_MS = 2600;
 const calm = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 const PAGE_BANNER = canFrame
-  ? `<b>Film mode</b>&nbsp; click a post to frame it &nbsp; <kbd>S</kbd> screenshot &nbsp; <kbd>Esc</kbd> done`
-  : `<b>Film mode</b>&nbsp; <kbd>S</kbd> screenshot &nbsp; <kbd>Esc</kbd> done`;
-const FRAMED_BANNER = `<b>Framed</b>&nbsp; <kbd>S</kbd> screenshot &nbsp; <kbd>A</kbd> buttons &nbsp; <kbd>Esc</kbd> back`;
+  ? `<b>Film mode</b>&nbsp; click a post to frame it &nbsp; <kbd>S</kbd> copy picture &nbsp; <kbd>⇧S</kbd> save &nbsp; <kbd>Esc</kbd> done`
+  : `<b>Film mode</b>&nbsp; <kbd>S</kbd> copy picture &nbsp; <kbd>⇧S</kbd> save &nbsp; <kbd>Esc</kbd> done`;
+const FRAMED_BANNER = `<b>Framed</b>&nbsp; <kbd>S</kbd> copy picture &nbsp; <kbd>⇧S</kbd> save &nbsp; <kbd>A</kbd> buttons &nbsp; <kbd>Esc</kbd> back`;
 
 const css = (el: HTMLElement, text: string) => {
   el.style.cssText = text;
@@ -66,8 +67,8 @@ function pageBackground(): string {
 /** A copy of the post for the camera: what it shows, without the controls around it. */
 function copyOf(post: HTMLElement): HTMLElement {
   const copy = post.cloneNode(true) as HTMLElement;
-  copy.inert = true;
-  copy.style.pointerEvents = "none";
+  copy.style.cursor = "auto";
+  copy.style.userSelect = "text";
   for (const el of copy.querySelectorAll(
     '[data-testid="caret"], [aria-label="Grok actions"], .uh-film-slot',
   ))
@@ -323,41 +324,125 @@ function start(): Film {
     void fade.finished.then(gone, gone);
   };
 
-  const shoot = async () => {
-    if (shooting) return;
-    shooting = true;
+  /** A picture of the window, or of the framed post, without the film mode toolbar in it. */
+  const takePicture = async (): Promise<Blob | "asking"> => {
     overlay.host.style.display = "none";
-    // Wait for the sharp pictures, and for any still being drawn.
-    await stage?.sharp;
-    await Promise.all(
-      [...(stage?.card.querySelectorAll("img") ?? [])].map((img) => img.decode().catch(() => {})),
-    );
-    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     let reply: CaptureReply | undefined;
     try {
+      // Wait for the sharp pictures, and for any still being drawn.
+      await stage?.sharp;
+      await Promise.all(
+        [...(stage?.card.querySelectorAll("img") ?? [])].map((img) => img.decode().catch(() => {})),
+      );
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
       reply = (await ext.runtime.sendMessage({ action: FILM_CAPTURE })) as CaptureReply;
-    } catch {}
-    overlay.host.style.display = "";
-    shooting = false;
-    if (!reply?.image)
-      return say(`<b>Not allowed yet.</b> Open Unhooked's popup on this tab, then press S.`);
-    flash();
-    const blob = await crop(reply.image, stage && stage.card.getBoundingClientRect());
-    const name = shotName(location.hostname);
+    } catch {
+    } finally {
+      overlay.host.style.display = "";
+    }
+    if (reply?.asking) return "asking";
+    if (!reply?.image) throw new Error("no picture");
+    return crop(reply.image, stage && stage.card.getBoundingClientRect());
+  };
+
+  const saveFile = (blob: Blob) => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = name;
+    link.download = shotName(location.hostname);
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 10_000);
+  };
+
+  const shoot = async (asFile = false) => {
+    if (shooting) return;
+    shooting = true;
+    const picture = takePicture();
+    // Started now, while this is still the key press: a browser only allows the clipboard for one.
+    const onlyBlob = picture.then((result) => {
+      if (result === "asking") throw new Error("asking");
+      return result;
+    });
+    const copied = asFile
+      ? Promise.resolve(false)
+      : Promise.resolve()
+          .then(() => navigator.clipboard.write([new ClipboardItem({ "image/png": onlyBlob })]))
+          .then(
+            () => true,
+            () => false,
+          );
+    const [result, didCopy] = await Promise.all([picture.catch(() => null), copied]);
+    shooting = false;
+    if (result === "asking")
+      return say(`<b>One question first.</b> Your answer is in the new window.`);
+    if (!result) return say(`<b>That didn't work.</b> Try again.`);
+    flash();
     overlay.host.dataset.shots = String(Number(overlay.host.dataset.shots ?? 0) + 1);
-    const copied = await navigator.clipboard
-      ?.write([new ClipboardItem({ "image/png": blob })])
-      .then(
-        () => true,
-        () => false,
-      );
-    say(`<b>${copied ? "Saved and copied" : "Saved"}</b>&nbsp; to your downloads`);
+    overlay.host.dataset.copied = String(didCopy);
+    if (didCopy)
+      return say(`<b>Copied.</b>&nbsp; Paste it anywhere. &nbsp; <kbd>⇧S</kbd> saves a file`);
+    saveFile(result);
+    say(
+      asFile
+        ? `<b>Saved</b>&nbsp; to your downloads`
+        : `<b>Saved to your downloads</b>&nbsp; The clipboard wasn't available.`,
+    );
+  };
+
+  /** Finds in the real post what `el` is in its copy: the copy has the same shape. */
+  const inRealPost = (el: Element, copy: Element, post: Element): HTMLElement | null => {
+    const path: number[] = [];
+    for (let node = el; node !== copy; node = node.parentElement!) {
+      path.unshift([...node.parentElement!.children].indexOf(node));
+    }
+    let real: Element | undefined = post;
+    for (const index of path) real = real?.children[index];
+    return real instanceof HTMLElement ? real : null;
+  };
+
+  /** A click inside a framed post: selecting text stays selecting, and controls do what they do. */
+  const interact = (event: MouseEvent, framed: Stage) => {
+    const target = event.target as Element;
+    const copy = framed.card.firstElementChild!;
+    const control = target.closest<HTMLElement>('button, [role="button"]');
+    if (control && copy.contains(control)) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      const real = inRealPost(control, copy, framed.post);
+      if (!real) return;
+      // These change the post where it is, so the frame stays and shows the result. Anything else
+      // opens X's own reply box or menu, which belongs to the page, so the frame gets out of the way.
+      if (/^(un)?(like)$|^(remove)?[bB]ookmark$/.test(control.dataset.testid ?? "")) {
+        real.click();
+        setTimeout(() => refreshActions(framed), 350);
+      } else {
+        unframe();
+        real.click();
+      }
+      return;
+    }
+    // Links open in a new tab, leaving the frame where it is.
+    const link = target.closest<HTMLAnchorElement>("a[href]");
+    if (link) {
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      event.stopImmediatePropagation();
+      return;
+    }
+    // Text, pictures and so on: nothing to do but let the browser select.
+    event.stopImmediatePropagation();
+  };
+
+  const refreshActions = (framed: Stage) => {
+    if (stage !== framed) return;
+    const shown = framed.card.querySelector<HTMLElement>('article [role="group"]');
+    const real = framed.post.querySelector('[role="group"]');
+    if (!shown || !real) return;
+    const fresh = real.cloneNode(true) as HTMLElement;
+    fresh.style.display = shown.style.display;
+    for (const el of fresh.querySelectorAll<HTMLElement>(".uh-film-slot"))
+      el.style.display = "none";
+    shown.replaceWith(fresh);
   };
 
   const postAt = (event: { clientX: number; clientY: number }) =>
@@ -381,16 +466,20 @@ function start(): Film {
   };
 
   const onClick = (event: MouseEvent) => {
-    const inside = stage?.root.contains(event.target as Node);
-    const post = inside ? null : postAt(event);
-    if (!inside && !post) return; // the rest of the page keeps working
+    const target = event.target as Node;
+    if (stage?.root.contains(target)) {
+      if (stage.card.contains(target)) return interact(event, stage);
+      // The backdrop: back to the page.
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      return unframe();
+    }
+    const post = postAt(event);
+    if (!post) return; // the rest of the page keeps working
     event.preventDefault();
     event.stopImmediatePropagation();
-    if (inside) unframe();
-    else if (post) {
-      hovered = null;
-      frame(post);
-    }
+    hovered = null;
+    frame(post);
   };
 
   const onKey = (event: KeyboardEvent) => {
@@ -400,19 +489,25 @@ function start(): Film {
     if (key === "escape") {
       if (stage) unframe();
       else stop();
-    } else if (key === "s") void shoot();
+    } else if (key === "s") void shoot(event.shiftKey);
     else if (key === "a" && stage) toggleButtons();
     else return;
     event.preventDefault();
     event.stopImmediatePropagation();
   };
 
+  const onMessage = (message: { action?: string }) => {
+    // Just allowed from the other window, so this isn't a key press the clipboard would accept.
+    if (message?.action === FILM_SHOOT) void shoot();
+  };
+  ext.runtime.onMessage.addListener(onMessage);
   addEventListener("pointermove", onMove, { capture: true, passive: true });
   addEventListener("scroll", onScroll, { capture: true, passive: true });
   addEventListener("click", onClick, true);
   addEventListener("keydown", onKey, true);
 
   function stop() {
+    ext.runtime.onMessage.removeListener(onMessage);
     removeEventListener("pointermove", onMove, { capture: true });
     removeEventListener("scroll", onScroll, { capture: true });
     removeEventListener("click", onClick, true);

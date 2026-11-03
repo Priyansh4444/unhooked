@@ -43,6 +43,7 @@ await ext.set({ "unhooked.paused": false, "unhooked.custom.reddit": [] });
 const page = await open();
 
 // Preview: what a control covers, drawn on the page while the popup row is hovered.
+await ext.inject("reddit.com", "sites/preview/content.js");
 const reply = await ext.send("reddit.com", {
   action: "uh/preview",
   feature: "hideHomeFeed",

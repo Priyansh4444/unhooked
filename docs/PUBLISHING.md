@@ -31,7 +31,9 @@ Permission justifications must match the manifest:
 - `tabs`: opening the popup on the current site, and the time tracker knowing which site is in front.
 - `alarms`, `idle`: the time tracker counting while a site is in use, and stopping when the user steps away. What it records stays in the browser and is listed in the README's privacy section; store listings must disclose it.
 - `activeTab`: film mode's screenshots, of a tab where the user started it.
-- `scripting`: starting the wand and film mode when the user asks.
+- `scripting`: starting the wand, film mode and hover previews when the user asks.
+- `favicon` (Chromium): icons beside sites on the time page, from the browser's own cache.
+- Optional host access: one site for the wand there, or all sites for film mode's screenshots, each requested only when first needed.
 - Host access: exactly the supported sites (to apply local CSS) and the Twitch link lookup hosts listed in the README. The lookups only run for links in Twitch chat while link pills are on.
 
 There is no remote service, telemetry or account. Keep these statements accurate if behaviour changes, and list new permissions or lookup hosts in the release notes.

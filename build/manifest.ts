@@ -26,6 +26,7 @@ export const BUNDLES = {
   // Injected by the popup on demand, never listed in content_scripts.
   wand: [],
   film: [],
+  preview: [],
 } as const;
 
 export const ICONS = {
@@ -79,10 +80,21 @@ export function createManifest(target: Target, extraContentScripts: object[] = [
     }),
     permissions: mv2
       ? ["alarms", "idle", "storage", "tabs", ...hostPatterns]
-      : ["activeTab", "alarms", "idle", "scripting", "storage", "tabs"],
+      : [
+          "activeTab",
+          "alarms",
+          "idle",
+          "scripting",
+          "storage",
+          "tabs",
+          ...(firefox ? [] : ["favicon"]),
+        ],
     ...(!mv2 && { host_permissions: hostPatterns }),
-    // Any other site, one at a time and only when asked: the wand on a page Unhooked doesn't cover.
-    ...(mv2 ? { optional_permissions: ["*://*/*"] } : { optional_host_permissions: ["*://*/*"] }),
+    // Only when asked: one site for the wand on a page Unhooked doesn't cover, or all of them for
+    // film mode's screenshots, the first time they're needed.
+    ...(mv2
+      ? { optional_permissions: ["<all_urls>"] }
+      : { optional_host_permissions: ["<all_urls>"] }),
     background: mv2
       ? { scripts: ["background.js"], persistent: false }
       : firefox

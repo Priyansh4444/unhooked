@@ -381,6 +381,32 @@ main {
 .sites.has-selection .site-row:not([aria-pressed="true"]) {
   opacity: 0.5;
 }
+.site-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.site-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  overflow: hidden;
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+}
+.site-icon img {
+  display: block;
+  width: 16px;
+  height: 16px;
+}
+.site-icon.is-letter {
+  background: var(--raised);
+  color: var(--stone);
+  font-size: 10px;
+  line-height: 1;
+}
 .site-name {
   overflow: hidden;
   white-space: nowrap;

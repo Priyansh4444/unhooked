@@ -21,10 +21,12 @@ import {
   allDays,
   eraseAll,
   forgetHost,
+  getIcons,
   getTracker,
   putDays,
   restoreHost,
   type DayRecord,
+  type SiteIcons,
 } from "../../time/store.ts";
 import { MIN_SESSION_SECONDS, formatDuration, type Session } from "../../time/tracker.ts";
 import { cardFonts, drawCard, postText } from "./card.ts";
@@ -44,6 +46,9 @@ let site: string | null = null;
 let view: View = computeView([], range, site, Date.now());
 /** Visits still going, which count too, and move as they grow. */
 let openSessions: Session[] = [];
+let icons: SiteIcons = {};
+/** Whether the background answered: without it, nothing is being counted whatever this shows. */
+let counting = true;
 let allRows = false;
 let tracking = true;
 let ignored: string[] = [];
@@ -241,6 +246,33 @@ function renderSessions(): void {
   );
 }
 
+// ---- site icons: the real one when it's known, its first letter until then -------------------
+
+function siteIcon(host: string): HTMLElement {
+  const slot = document.createElement("span");
+  slot.className = "site-icon";
+  refreshIcon(slot, host);
+  return slot;
+}
+
+function refreshIcon(slot: HTMLElement, host: string): void {
+  const src = icons[host]?.src;
+  if (slot.dataset.src === (src ?? "") && slot.childNodes.length) return;
+  slot.dataset.src = src ?? "";
+  const letter = () => {
+    slot.classList.add("is-letter");
+    slot.textContent = host.charAt(0).toUpperCase();
+  };
+  if (!src) return letter();
+  slot.classList.remove("is-letter");
+  const image = document.createElement("img");
+  image.alt = "";
+  image.width = image.height = 16;
+  image.addEventListener("error", letter, { once: true });
+  image.src = src;
+  slot.replaceChildren(image);
+}
+
 // ---- where it went ---------------------------------------------------------------------------
 
 function renderSites(): void {
@@ -268,23 +300,28 @@ function renderSites(): void {
       button.className = "site-row";
       const name = document.createElement("span");
       name.className = "site-name";
+      const iconSlot = document.createElement("span");
+      iconSlot.className = "site-label";
       const time = document.createElement("span");
       time.className = "site-time";
       const bar = document.createElement("span");
       bar.className = "site-bar";
       bar.append(document.createElement("span"));
-      button.append(name, time, bar);
+      iconSlot.append(siteIcon(row.host), name);
+      button.append(iconSlot, time, bar);
       li.append(button);
     }
     const button = li.firstElementChild as HTMLElement;
-    const [name, time, bar] = [...button.children] as HTMLElement[];
-    name!.textContent = row.host;
-    const label = formatDuration(row.seconds);
-    time!.textContent = `${label} · ${Math.round(row.share * 100)}%`;
+    const [label, time] = [...button.children] as HTMLElement[];
+    const name = label!.querySelector<HTMLElement>(".site-name")!;
+    name.textContent = row.host;
+    refreshIcon(label!.firstElementChild as HTMLElement, row.host);
+    const spent = formatDuration(row.seconds);
+    time!.textContent = `${spent} · ${Math.round(row.share * 100)}%`;
     button.setAttribute("aria-pressed", String(site === row.host));
     button.setAttribute(
       "aria-label",
-      `${row.host}: ${label}, ${Math.round(row.share * 100)}%. Show only this site`,
+      `${row.host}: ${spent}, ${Math.round(row.share * 100)}%. Show only this site`,
     );
     li.dataset.width = String(Math.max(row.seconds / most, 0.01));
     return li;
@@ -456,10 +493,24 @@ function render(): void {
 function renderNotices(): void {
   const notice = $("notice");
   const nothingEver = days.length === 0;
-  notice.hidden = tracking && !nothingEver;
-  notice.textContent = !tracking
-    ? "Counting is off, so nothing new is being added."
-    : "Nothing yet. Unhooked counts the site in front while you're using it, so browse a little and come back: this page keeps itself up to date.";
+  const stuck = tracking && !counting;
+  notice.hidden = tracking && !nothingEver && !stuck;
+  notice.replaceChildren(
+    stuck
+      ? "Nothing is being counted: this copy of Unhooked's background is out of date, which can happen after an update. "
+      : !tracking
+        ? "Counting is off, so nothing new is being added."
+        : "Nothing yet. Unhooked counts the site in front while you're using it, so browse a little and come back: this page keeps itself up to date.",
+  );
+  if (stuck) {
+    const restart = document.createElement("button");
+    restart.type = "button";
+    restart.className = "text-button";
+    restart.id = "restartTracker";
+    restart.textContent = "Restart Unhooked";
+    restart.addEventListener("click", () => ext.runtime.reload());
+    notice.append(restart);
+  }
   $<HTMLInputElement>("trackSwitch").checked = tracking;
   const line = $("ignored");
   line.hidden = ignored.length === 0;
@@ -496,8 +547,10 @@ function status(message: string, undo?: () => Promise<void>): void {
 }
 
 async function reload(): Promise<void> {
-  await ext.runtime.sendMessage({ action: TIME_FLUSH }).catch(() => {});
+  const answer = await ext.runtime.sendMessage({ action: TIME_FLUSH }).catch(() => undefined);
+  counting = answer === true;
   days = await allDays();
+  icons = await getIcons();
   openSessions = Object.values((await getTracker()).open).filter(
     (session) => session.seconds >= MIN_SESSION_SECONDS,
   );
@@ -515,10 +568,32 @@ async function loadSettings(): Promise<void> {
 
 let iconImage: HTMLImageElement | null = null;
 
+const cardIcons = new Map<string, HTMLImageElement>();
+
+/** Only icons held as data: one from another site would stop the card being saved. */
+async function loadCardIcons(): Promise<void> {
+  await Promise.all(
+    view.sites.slice(0, 5).map(async ({ host }) => {
+      const src = icons[host]?.src;
+      if (!src?.startsWith("data:") || cardIcons.has(host)) return;
+      const image = new Image();
+      image.src = src;
+      await image.decode().then(
+        () => cardIcons.set(host, image),
+        () => {},
+      );
+    }),
+  );
+}
+
 const showNames = () => $<HTMLInputElement>("showNames").checked;
 
 function drawShare(): void {
-  drawCard($<HTMLCanvasElement>("card"), view, { names: showNames(), icon: iconImage });
+  drawCard($<HTMLCanvasElement>("card"), view, {
+    names: showNames(),
+    icon: iconImage,
+    siteIcons: cardIcons,
+  });
 }
 
 const cardBlob = () =>
@@ -616,6 +691,7 @@ function bind(): void {
   const dialog = $<HTMLDialogElement>("shareDialog");
   $("openShare").addEventListener("click", async () => {
     await cardFonts();
+    await loadCardIcons();
     $("shareStatus").textContent = "";
     drawShare();
     dialog.showModal();

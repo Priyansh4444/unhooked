@@ -79,5 +79,51 @@ check(
   (await embed.evaluate(() => document.documentElement.getAttribute("class"))) === null,
 );
 
+// The video takes the width of an empty side column, and never hides one that's in use.
+const WATCH = (attrs = "") =>
+  fixturePage(`<ytd-app is-watch-page><ytd-watch-flexy ${attrs}><div id="columns"><div id="primary"><div id="player">video</div><div id="below">below</div></div>
+    <div id="secondary"><div id="related">recommended</div></div></div></ytd-watch-flexy></ytd-app>`);
+const watch = await newPage();
+let watchHtml = WATCH();
+await watch.setRequestInterception(true);
+watch.on("request", (request) => {
+  const hit = request.url().startsWith("https://www.youtube.com/watch");
+  void (
+    hit
+      ? request.respond({ status: 200, contentType: "text/html", body: watchHtml })
+      : request.continue()
+  ).catch(() => {});
+});
+await ext.set({
+  unhookedOptions: {},
+  "unhooked.site.youtube.hideRelatedSidebar": true,
+  "unhooked.site.youtube.hidePlaylistSidebar": false,
+  "unhooked.paused": false,
+});
+const openWatch = async (attrs) => {
+  watchHtml = WATCH(attrs);
+  await watch.goto("https://www.youtube.com/watch?v=abc", { waitUntil: "load" });
+  await watch.bringToFront();
+  await sleep(500);
+  return visible(watch, "#secondary");
+};
+check("an empty side column goes", (await openWatch("")) === false);
+check("a playlist keeps it", (await openWatch("playlist")) === true);
+check("live chat keeps it", (await openWatch("should-stamp-chat")) === true);
+check("expanded live chat keeps it", (await openWatch("live-chat-present-and-expanded")) === true);
+check("an open panel keeps it", (await openWatch("panel-expanded")) === true);
+check("theater mode isn't touched", (await openWatch("theater")) === true);
+await ext.set({ "unhooked.site.youtube.hidePlaylistSidebar": true });
+check(
+  "a playlist that's hidden doesn't keep it",
+  (await openWatch("playlist playlist-panel-expanded panel-expanded")) === false,
+);
+check("but another open panel still does", (await openWatch("playlist panel-expanded")) === true);
+await ext.set({
+  "unhooked.site.youtube.hideRelatedSidebar": false,
+  "unhooked.site.youtube.hidePlaylistSidebar": false,
+});
+check("with recommendations showing, it stays", (await openWatch("")) === true);
+
 await close();
 finish();

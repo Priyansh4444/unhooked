@@ -40,6 +40,8 @@ html.uh-x-center main[role="main"] div:has([data-testid="primaryColumn"]) {
 
 html.uh-x-center div:has(> [data-testid="primaryColumn"]) {
   justify-content: center !important;
+  /* X gets this gap from the free space between the columns, which centering takes away. */
+  column-gap: 31px;
 }
 
 html.uh-x-center [data-testid="primaryColumn"] {
@@ -85,38 +87,42 @@ html.uh-x-font [data-testid="primaryColumn"] article [data-testid="Tweet-User-Av
   transform: none !important;
 }
 
-/* The film button, sized and coloured like the actions beside it. */
+/* The film button: its icon sized and coloured from its neighbours (see content.ts), 12px from
+   Share as X's right-hand icons are, with its hover circle hanging past the edges. */
 .uh-film-slot {
-  display: flex;
+  --uh-film-size: 18.75px;
+  position: relative;
   flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-}
-.uh-film-slot.uh-film-share {
-  flex: 1 1 0;
-  justify-content: flex-start;
-  min-width: 0;
-}
-/* X's icons sit at the left of their share, with the hover circle hanging past the edge. */
-.uh-film-share .uh-film-btn {
-  margin-left: -5.5px;
+  align-self: stretch;
+  width: var(--uh-film-size);
+  min-height: 34.75px;
+  margin-right: 12px;
 }
 .uh-film-btn {
+  position: absolute;
+  top: 50%;
+  left: calc(var(--uh-film-size) / 2);
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 34.75px;
-  height: 34.75px;
+  width: calc(var(--uh-film-size) * 1.85);
+  height: calc(var(--uh-film-size) * 1.85);
   padding: 0;
   border: 0;
   border-radius: 50%;
   background: transparent;
-  color: rgb(113, 118, 123);
+  color: inherit;
   cursor: pointer;
+  transform: translate(-50%, -50%);
   transition:
     background-color 200ms ease,
     color 200ms ease,
     transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.uh-film-btn svg {
+  display: block;
+  width: var(--uh-film-size);
+  height: var(--uh-film-size);
 }
 .uh-film-btn:hover,
 .uh-film-btn:focus-visible {
@@ -124,5 +130,5 @@ html.uh-x-font [data-testid="primaryColumn"] article [data-testid="Tweet-User-Av
   color: #e3170c;
 }
 .uh-film-btn:active {
-  transform: scale(0.9);
+  transform: translate(-50%, -50%) scale(0.9);
 }

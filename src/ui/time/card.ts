@@ -38,7 +38,11 @@ function fit(ctx: CanvasRenderingContext2D, text: string, width: number): string
 export function drawCard(
   canvas: HTMLCanvasElement,
   view: View,
-  { names, icon }: { names: boolean; icon: CanvasImageSource | null },
+  {
+    names,
+    icon,
+    siteIcons,
+  }: { names: boolean; icon: CanvasImageSource | null; siteIcons?: Map<string, CanvasImageSource> },
 ): void {
   const ctx = canvas.getContext("2d")!;
   ctx.setTransform(canvas.width / WIDTH, 0, 0, canvas.height / HEIGHT, 0, 0);
@@ -107,7 +111,11 @@ export function drawCard(
     const time = formatDuration(row.seconds);
     const timeWidth = ctx.measureText(time).width;
     const name = names ? row.host : `Site ${i + 1}`;
-    ctx.fillText(fit(ctx, name, left.width - timeWidth - 16), left.x, y);
+    // A site's icon says which site it is, so it goes with its name.
+    const mark = names ? siteIcons?.get(row.host) : undefined;
+    if (mark) ctx.drawImage(mark, left.x, y - 15, 20, 20);
+    const nameX = left.x + (mark ? 28 : 0);
+    ctx.fillText(fit(ctx, name, left.width - timeWidth - 16 - (mark ? 28 : 0)), nameX, y);
     ctx.textAlign = "right";
     ctx.fillStyle = STONE;
     ctx.fillText(time, left.x + left.width, y);

@@ -23,6 +23,7 @@ src/
     custom/content.ts      on every site: applies wand removals, draws hover previews
     wand/content.ts        the magic wand, injected by the popup on demand
     film/                  film mode, injected on demand; frame.ts is the framing arithmetic
+    preview/content.ts     the hover preview, injected the first time something is hovered
     youtube/               content.ts (controls in every frame), options.ts + controls.css
     x/                     X's Layout switches: content.ts + style.css
     excalidraw/            the site's switch: content.ts + style.css
@@ -43,7 +44,9 @@ src/
     popup/                 the toolbar popup
     picker/                the click-to-hide page; sketches.ts maps each drawn part to a control
     transfer/              moving settings between browsers (the file format is shared/transfer.ts)
-    time/                  your time: the charts (time.ts) and the share card (card.ts)
+    time/                  your time: the page (time.ts), its line chart (line.ts, curve.ts), the
+                           share card (card.ts)
+    allow/                 asks for the access film mode's screenshots need
 build.ts, build/manifest.ts   bundling, and the one source for every browser's manifest
 e2e/                       end-to-end tests (Chrome + Firefox)
 ```
@@ -105,7 +108,9 @@ A framed post is a copy on a stage above the page. X rebuilds its timeline as yo
 
 ## How the time tracker works
 
-Every browser event ends in `step` (`time/background.ts`): credit the time since the last step to the site being counted, then look at what's in front now. Steps run one at a time and the current site is stored, so the browser stopping the background loses nothing; a minute's alarm wakes it, and `MAX_GAP_MS` keeps a sleeping computer from counting as time on a site.
+Every browser event ends in `step` (`time/background.ts`): credit the time since the last step to the site being counted, then look at what's in front now. Steps run one at a time and the current site is stored, so the browser stopping the background loses nothing. A minute's alarm wakes it only while something is being counted, and `MAX_GAP_MS` keeps a sleeping computer from counting as time on a site.
+
+After rebuilding, press **Reload** on the unpacked extension. Pages come from disk, but Chromium keeps the old service worker until then, so a stale background counts nothing; the time page detects that and offers a restart.
 
 History lives in IndexedDB, not `storage.local`. Every content script reads and listens to `storage.local`, and a year of browsing shouldn't reach every page, or wake every tab each minute.
 
@@ -134,8 +139,12 @@ bun e2e/run.mjs chrome social popup        # only some suites
 MINIFY=1 bun e2e/run.mjs chrome            # the minified bundle, as shipped
 ```
 
-Suites `smoke`, `social`, `youtube-controls`, `popup`, `transfer`, `film`, `time`, `picker`, `wand`, `skip`, `twitter` and `twitch` run against stubbed pages and need no network (`popup`, `transfer` and `picker` are Chrome only: Firefox won't let automation open extension pages). `twitch-cards`, `excalidraw` and the `youtube*` suites use the live sites deliberately, so they need network and can fail when a site changes.
+Suites `smoke`, `social`, `youtube-controls`, `popup`, `transfer`, `film`, `film-access`, `time`, `picker`, `wand`, `skip`, `twitter` and `twitch` run against stubbed pages and need no network (`popup`, `transfer`, `film-access` and `picker` are Chrome only: Firefox won't let automation open extension pages). `twitch-cards`, `excalidraw` and the `youtube*` suites use the live sites deliberately, so they need network and can fail when a site changes.
 
 ## Releasing
 
 Bump `version` in `package.json` (the manifests read it). `bun run package` builds every browser and writes reproducible ZIPs to `dist/`; `bun run package:firefox:review` includes the source for add-on review. See [docs/PUBLISHING.md](docs/PUBLISHING.md).
+
+## Performance
+
+Measure before adding anything that runs on every page: see [docs/PERFORMANCE.md](docs/PERFORMANCE.md).

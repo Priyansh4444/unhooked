@@ -183,6 +183,23 @@ export const hourLabel = (hour: number): string => {
 /** Monday first, whatever the locale's calendar: the shape of a working week reads best that way. */
 const weekdayIndex = (date: string): number => (dayStart(date).getDay() + 6) % 7;
 
+/** One name per site, whatever older records called it, so no site is listed twice. */
+function mergedDays(days: DayRecord[]): DayRecord[] {
+  return days.map((record) => {
+    const hosts: DayRecord["hosts"] = {};
+    for (const [name, hours] of Object.entries(record.hosts)) {
+      const merged = (hosts[siteKey(name)] ??= {});
+      for (const [hour, seconds] of Object.entries(hours))
+        merged[Number(hour)] = (merged[Number(hour)] ?? 0) + seconds;
+    }
+    return {
+      ...record,
+      hosts,
+      sessions: record.sessions?.map((session) => ({ ...session, host: siteKey(session.host) })),
+    };
+  });
+}
+
 export function computeView(
   days: DayRecord[],
   range: Range,
@@ -191,7 +208,7 @@ export function computeView(
   openSessions: Session[] = [],
 ): View {
   const today = dateKey(now);
-  const byDate = new Map(days.map((record) => [record.date, record]));
+  const byDate = new Map(mergedDays(days).map((record) => [record.date, record]));
   const dates = [...byDate.keys()].sort();
   const earliest = dates[0] ?? today;
 

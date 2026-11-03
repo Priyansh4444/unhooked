@@ -25,7 +25,11 @@ const post = (
   <article data-testid="tweet" id="${id}" style="padding:12px;color:#fff">
     <a href="/post/${id}" id="${id}-link">A post worth keeping, ${id}</a>
     <button data-testid="caret" id="${id}-caret">…</button>
-    <div role="group" id="${id}-actions">reply repost like</div>
+    <div data-testid="tweetText" id="${id}-text">Some words to select and keep</div>
+    <div role="group" id="${id}-actions">
+      <div><button data-testid="reply" id="${id}-reply" onclick="window.replied='${id}'">reply</button></div>
+      <div><button data-testid="like" id="${id}-like" onclick="this.dataset.testid='unlike';this.textContent='liked';window.liked=(window.liked||0)+1">like</button></div>
+    </div>
   </article></div>`;
 const X_PAGE = `<!doctype html><html><body style="margin:0;background:rgb(0,0,0)"><main style="position:relative;margin-left:300px">
   ${post("one", 40)}${post("two", 200)}</main><a href="#elsewhere" id="elsewhere" style="position:fixed;left:10px;top:10px;color:#fff">elsewhere</a></body></html>`;
@@ -90,6 +94,24 @@ await until("Resume brings it back", async () => (await slots()) === 2);
 
 await ext.inject("x.com", "sites/film/content.js");
 await until("film mode starts on the page", async () => (await overlay()) !== null);
+
+// It keeps one place, even if the site draws the bookmark after everything else.
+await page.evaluate(() => {
+  const row = document.querySelector("#two-actions");
+  for (const name of ["bookmark", "share"]) {
+    const item = document.createElement("div");
+    item.id = `two-${name}`;
+    item.innerHTML =
+      name === "bookmark" ? '<button data-testid="bookmark">b</button>' : "<button>s</button>";
+    row.append(item);
+  }
+});
+const beforeShare = () =>
+  page.$eval("#two-share", (el) => el.previousElementSibling?.classList.contains("uh-film-slot"));
+await until("the button moves to just left of Share when that appears", beforeShare);
+await sleep(600);
+check("and stays there", await beforeShare());
+check("with one button still", (await slots()) === 2);
 
 // Framing.
 const [x, y] = await center("#one");
@@ -166,6 +188,61 @@ check(
     (el) => getComputedStyle(el).display === "none",
   ),
 );
+// It's a real post to use, not a picture of one.
+const copyBox = await page.$eval('#uh-film-stage [data-testid="tweetText"]', (el) => {
+  const r = el.getBoundingClientRect();
+  return [r.left, r.top, r.width, r.height];
+});
+await page.mouse.move(copyBox[0] + 2, copyBox[1] + copyBox[3] / 2);
+await page.mouse.down();
+await page.mouse.move(copyBox[0] + 400, copyBox[1] + copyBox[3] / 2, { steps: 6 });
+await page.mouse.up();
+await until("its text can be selected", () =>
+  page.evaluate(() => getSelection().toString().includes("words")),
+);
+check("and selecting doesn't close the frame", (await stage()) !== null);
+await page.evaluate(() => getSelection().removeAllRanges());
+
+const clickIn = async (selector) => {
+  const [x, y] = await page.$eval(selector, (el) => {
+    const r = el.getBoundingClientRect();
+    return [r.left + r.width / 2, r.top + r.height / 2];
+  });
+  await page.mouse.click(x, y);
+};
+await clickIn('#uh-film-stage [data-testid="like"]');
+await until("Like works, on the real post", () => page.evaluate(() => window.liked === 1));
+check("without closing the frame", (await stage()) !== null);
+await until("and the frame shows the result", async () =>
+  (await page.$eval('#uh-film-stage [role="group"]', (el) => el.textContent)).includes("liked"),
+);
+const linkOpens = browser.waitForTarget((t) => t.url().includes("/post/one"), { timeout: 5000 });
+await clickIn("#uh-film-stage a");
+const opened = await linkOpens;
+check("a link opens in a new tab", Boolean(opened));
+check(
+  "leaving the frame up",
+  page.url().startsWith("https://x.com/home") && (await stage()) !== null,
+);
+await (await opened.asPage().catch(() => null))?.close();
+await page.bringToFront();
+await page.mouse.click(30, 300);
+await until("the backdrop closes it", async () => (await stage()) === null);
+await page.evaluate(() => {
+  window.replied = null;
+});
+await page.mouse.move(x, y);
+await page.mouse.click(x, y);
+await until("framed again", async () => (await stage()) !== null);
+await sleep(600);
+await clickIn('#uh-film-stage [data-testid="reply"]');
+await until("Reply closes the frame for X's own box", async () => (await stage()) === null);
+check("and reaches the real post", await page.evaluate(() => window.replied === "one"));
+await page.mouse.move(x, y);
+await page.mouse.click(x, y);
+await until("framed once more", async () => (await stage()) !== null);
+await sleep(600);
+
 await page.keyboard.press("a");
 check(
   "A hides its buttons",
@@ -223,11 +300,50 @@ if (BROWSER === "chrome") {
       .sort()
       .at(-1);
   };
+  await browser
+    .defaultBrowserContext()
+    .overridePermissions("https://x.com", [
+      "clipboard-read",
+      "clipboard-write",
+      "clipboard-sanitized-write",
+    ]);
+  const shots = () =>
+    page.$eval("unhooked-overlay[data-film]", (el) => Number(el.dataset.shots ?? 0));
+  await page.bringToFront();
+  // Opening and closing a tab above can drop the emulated window size pictures are measured by.
+  await page.setViewport({ width: 1200, height: 800 });
+  await sleep(300);
   await page.keyboard.press("s");
+  await until("S takes the picture", async () => (await shots()) === 1, 8000);
+  check(
+    "and copies it",
+    (await page.$eval("unhooked-overlay[data-film]", (el) => el.dataset.copied)) === "true",
+  );
+  const clipboard = await page.evaluate(async () => {
+    const [item] = await navigator.clipboard.read();
+    const blob = await item.getType("image/png");
+    return { types: item.types, size: blob.size };
+  });
+  check(
+    "what's on the clipboard is the picture",
+    clipboard.types.includes("image/png") && clipboard.size > 1000,
+    JSON.stringify(clipboard),
+  );
+  check(
+    "with no file saved as well",
+    readdirSync(folder).filter((f) => f.endsWith(".png")).length === 0,
+  );
+  await sleep(1100);
+  const saveFile = async () => {
+    await page.keyboard.down("Shift");
+    await page.keyboard.press("s");
+    await page.keyboard.up("Shift");
+  };
+  await saveFile();
   const whole = await newest(1);
   check("the file is named for the site", whole?.startsWith("x.com-"), whole);
   const wholeSize = pngSize(whole);
-  check("S saves a PNG", wholeSize.signature === "PNG");
+  check("Shift+S saves a PNG", wholeSize.signature === "PNG");
   check(
     "of the whole window",
     wholeSize.width === 1200 && wholeSize.height === 800,
@@ -245,7 +361,7 @@ if (BROWSER === "chrome") {
   await page.mouse.click(a, b);
   await until("a second post frames", async () => (await stage()) !== null);
   await sleep(600);
-  await page.keyboard.press("s");
+  await saveFile();
   const framed = await newest(2);
   const framedSize = pngSize(framed);
   check(

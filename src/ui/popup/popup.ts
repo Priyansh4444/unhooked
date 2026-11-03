@@ -6,6 +6,7 @@
 import { formatShortcut, shortcutFromEvent, wandShortcut } from "../../shared/shortcut.ts";
 import { ext } from "../../shared/ext-api.ts";
 import { injectScript } from "../../shared/inject.ts";
+import { previewOnTab } from "../../shared/preview-tab.ts";
 import {
   PRESETS,
   customKey,
@@ -531,7 +532,7 @@ function preview(target: Omit<PreviewRequest, "action"> | null): void {
   const message: PreviewRequest = target
     ? { action: PREVIEW_ACTION, ...target }
     : { action: PREVIEW_ACTION, clear: true };
-  ext.tabs.sendMessage(activeTab.id, message).catch(() => {});
+  void previewOnTab(activeTab.id, message).catch(() => {});
 }
 
 function previewTarget(row: Element): Omit<PreviewRequest, "action"> | null {

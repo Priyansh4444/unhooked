@@ -16,6 +16,8 @@ export interface BuildOptions {
   minify: boolean;
   /** Test-only extras (see e2e/extension): a bridge content script and a background wrapper. */
   e2e?: boolean;
+  /** Leave film mode's screenshots to what a real install has, for testing how they're allowed. */
+  noCaptureAccess?: boolean;
 }
 
 const SITES = Object.keys(BUNDLES) as (keyof typeof BUNDLES)[];
@@ -33,7 +35,13 @@ const minifyCss = (css: string): string =>
     .replace(/;}/g, "}")
     .trim();
 
-export async function buildExtension({ target, outdir, minify, e2e = false }: BuildOptions) {
+export async function buildExtension({
+  target,
+  outdir,
+  minify,
+  e2e = false,
+  noCaptureAccess = false,
+}: BuildOptions) {
   await rm(outdir, { recursive: true, force: true });
   await mkdir(outdir, { recursive: true });
 
@@ -83,6 +91,7 @@ export async function buildExtension({ target, outdir, minify, e2e = false }: Bu
       "src/ui/picker/index.html",
       "src/ui/transfer/index.html",
       "src/ui/time/index.html",
+      "src/ui/allow/index.html",
     ],
     "src/ui",
     join(outdir, "ui"),
@@ -93,7 +102,7 @@ export async function buildExtension({ target, outdir, minify, e2e = false }: Bu
   await cp("src/ui/shared/fonts", join(outdir, "ui", "fonts"), { recursive: true });
   if (minify) {
     // Comments and indentation only: a newline still separates elements, so inline spacing is kept.
-    for (const page of ["popup", "picker", "transfer", "time"]) {
+    for (const page of ["popup", "picker", "transfer", "time", "allow"]) {
       const file = join(outdir, "ui", page, "index.html");
       const html = await readFile(file, "utf8");
       await writeFile(file, html.replace(/<!--[\s\S]*?-->/g, "").replace(/\n\s+/g, "\n"));
@@ -110,7 +119,11 @@ export async function buildExtension({ target, outdir, minify, e2e = false }: Bu
   // Tests can't click the browser's permission prompt, so the test build arrives already allowed
   // on one ordinary site, as if the user had said yes to the wand there.
   // Likewise for screenshots, which a real browser allows once the user invokes Unhooked on a tab.
-  if (e2e) manifest.host_permissions?.push("*://example.org/*", "<all_urls>");
+  if (e2e)
+    manifest.host_permissions?.push(
+      "*://example.org/*",
+      ...(noCaptureAccess ? [] : ["<all_urls>"]),
+    );
   await writeFile(join(outdir, "manifest.json"), JSON.stringify(manifest, null, 2));
 
   // Firefox add-on review wants the real source next to the (minified) bundle

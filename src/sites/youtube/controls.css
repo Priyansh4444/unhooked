@@ -326,3 +326,30 @@ html:not(.uh-extension-disabled).uh-fill-theater
   height: 100vh !important;
   width: 100% !important;
 }
+
+/* With the recommendations hidden and nothing else in the side column, the video takes the width.
+   YouTube marks a playlist, live chat or open panel on ytd-watch-flexy itself, and those attributes
+   are read here rather than with :has(), which cost about 400ms of style work per page. The
+   player's own script sizes the video from the window, so content.ts tells it the layout changed. */
+html:not(.uh-extension-disabled).uh-hide-related-sidebar:not(.uh-mobile)
+  ytd-watch-flexy:not(
+    [theater],
+    [fullscreen],
+    [should-stamp-chat],
+    [live-chat-present-and-expanded],
+    [panel-expanded]:not([playlist-panel-expanded])
+  ):is(:not([playlist]), html.uh-hide-playlist-sidebar *) {
+  #secondary {
+    display: none !important;
+  }
+  #primary {
+    max-width: none !important;
+    margin-inline: auto;
+  }
+  #player,
+  #below {
+    width: 100% !important;
+    max-width: var(--ytd-watch-flexy-max-player-width) !important;
+    margin-inline: auto;
+  }
+}

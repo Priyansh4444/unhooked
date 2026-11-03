@@ -15,6 +15,7 @@ import { STORAGE_KEYS } from "../../shared/settings.ts";
 import { CONTROL_SITES, controlSiteById, type ControlSite } from "../../sites/registry.ts";
 import { siteForUrl } from "../../sites/hosts.ts";
 import { PREVIEW_ACTION, type PreviewRequest } from "../../sites/custom/protocol.ts";
+import { previewOnTab } from "../../shared/preview-tab.ts";
 import { SKETCH_WIDTH, SKETCHES, type Part } from "./sketches.ts";
 
 const HINT_KEY = "unhooked.picker.hinted";
@@ -215,7 +216,7 @@ async function previewOnTabs(feature: string | null, label = ""): Promise<void> 
   const tabs = await ext.tabs.query({}).catch(() => []);
   for (const tab of tabs)
     if (typeof tab.id === "number" && siteForUrl(tab.url) === site.id)
-      ext.tabs.sendMessage(tab.id, message).catch(() => {});
+      void previewOnTab(tab.id, message).catch(() => {});
 }
 
 function bind(): void {

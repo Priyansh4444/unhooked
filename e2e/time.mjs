@@ -96,6 +96,75 @@ await other.bringToFront();
 await ext.timeDays();
 check("looking away doesn't end it", (await ext.timeState()).open["x.com"]?.start === live.start);
 
+// The real step, with signals that can't be staged in a test: focus, idle, a sleeping computer.
+const countedOn = async (host = "x.com") => {
+  const { days } = await ext.timeRead();
+  return days.reduce(
+    (sum, day) =>
+      sum + Object.values(day.hosts[host] ?? {}).reduce((all, seconds) => all + seconds, 0),
+    0,
+  );
+};
+const scene = async (signals, ms = 1000) => {
+  await ext.timeSeed([]);
+  await x.bringToFront();
+  await ext.timeStep(signals);
+  await sleep(ms);
+  await ext.timeStep(signals);
+  return countedOn();
+};
+const inUse = { focused: true, idle: "active", audible: false, incognito: false };
+
+check("time passes while in use", (await scene(inUse)) >= 0.9);
+check("none while another app has the focus", (await scene({ ...inUse, focused: false })) === 0);
+check("none in a private window", (await scene({ ...inUse, incognito: true })) === 0);
+check(
+  "none with the screen locked",
+  (await scene({ ...inUse, idle: "locked", audible: true })) === 0,
+);
+check("none once you've stepped away", (await scene({ ...inUse, idle: "idle" })) === 0);
+check(
+  "but a video playing keeps counting",
+  (await scene({ ...inUse, idle: "idle", audible: true })) >= 0.9,
+);
+
+await scene(inUse);
+const beforeAway = await countedOn();
+check("about to step away, time has been counted", beforeAway >= 0.9, String(beforeAway));
+await ext.timeStep({ ...inUse, idle: "idle" });
+check(
+  "stepping away takes back the idle stretch",
+  (await countedOn()) < 0.01,
+  String(await countedOn()),
+);
+check("and stops counting", (await ext.timeRead()).state.watch === null);
+
+await scene(inUse);
+const beforeSleep = await countedOn();
+await ext.timeRewind(8 * 3_600_000);
+await ext.timeStep(inUse);
+check(
+  "a night asleep adds nothing",
+  (await countedOn()) === beforeSleep,
+  String(await countedOn()),
+);
+
+// Its icon, kept so showing it never touches the network.
+const dot =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
+const iconPage = await newPage();
+await stub(iconPage, [
+  ["https://icon.example/", `<!doctype html><link rel="icon" href="${dot}"><title>icon</title>`],
+]);
+await iconPage.goto("https://icon.example/", { waitUntil: "load" });
+await iconPage.bringToFront();
+await until(
+  "a site's icon is kept",
+  async () => (await ext.timeIcons())["icon.example"]?.src.startsWith("data:") === true,
+  8000,
+);
+await iconPage.close();
+
 // A page reading everything mustn't be handed a year of browsing.
 const keys = await other.evaluate(() => Object.keys(localStorage));
 check("nothing is left in the page", keys.length === 0);
@@ -163,6 +232,15 @@ check(
   await app.$eval("#sites li:last-child .site-name", (el) => el.children.length === 0),
 );
 check("the tiles agree", (await text("#tileSites")) === "4");
+check(
+  "a site with no icon yet shows its first letter",
+  (await app.$eval('#sites li[data-host="example.org"] .site-icon', (el) => el.textContent)) ===
+    "E",
+);
+await ext.timeSetIcon("x.com", dot);
+await until("and its icon once there is one", () =>
+  app.$eval('#sites li[data-host="x.com"] .site-icon img', (el) => el.src.startsWith("data:")),
+);
 
 // Sessions, worked out by hand from what was seeded: 3600, 900, 300, 45 and 1800 seconds.
 await until("sessions are counted", async () => (await text("#sessionCount")) === "5");
@@ -382,6 +460,26 @@ check(
 
 await ext.set({ "unhooked.time.enabled": true }); // the page is in front, which never counts
 await sleep(200);
+// If the background doesn't answer, say so rather than quietly showing nothing.
+await app.evaluate(() => {
+  window.realSend = chrome.runtime.sendMessage;
+  chrome.runtime.sendMessage = async () => undefined;
+});
+await until(
+  "a background that isn't counting is reported",
+  async () => (await text("#notice")).includes("out of date"),
+  8000,
+);
+check("with a way to fix it", (await app.$("#restartTracker")) !== null);
+await app.evaluate(() => {
+  chrome.runtime.sendMessage = window.realSend;
+});
+await until(
+  "and the report goes once it answers",
+  async () => !(await app.$("#restartTracker")),
+  8000,
+);
+
 await app.click("#eraseAll");
 await until("Erase everything empties it", async () => (await rows()).length === 0);
 check("and explains the empty page", (await text("#notice")).startsWith("Nothing yet"));

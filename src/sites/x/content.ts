@@ -3,9 +3,10 @@
  * style.css, gated on classes set here on <html>; the things X's other switches hide come from the
  * control registry.
  */
-import { filmMode } from "../film/film.ts";
+import { ext } from "../../shared/ext-api.ts";
+import { FILM_START } from "../film/protocol.ts";
 import { runPageController } from "../../shared/page-runtime.ts";
-import { isPaused, siteSwitchOn } from "../../shared/preferences.ts";
+import { isPaused, siteSwitchOn } from "../../shared/switches.ts";
 import { DEFAULTS, STORAGE_KEYS } from "../../shared/settings.ts";
 
 const numberOr = (value: unknown, fallback: number): number =>
@@ -22,8 +23,19 @@ function setVariable(html: HTMLElement, name: string, value: string | null): voi
 
 const SLOT = "uh-film-slot";
 const CHECK_EVERY_MS = 250;
+// Drawn on X's own 24-unit grid and stroke, and sized from the icons beside it when it's placed.
 const FILM_ICON =
-  '<svg viewBox="0 0 16 16" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.75 5.25h10.5a.75.75 0 0 1 .75.75v6.5a.75.75 0 0 1-.75.75H2.75a.75.75 0 0 1-.75-.75V6a.75.75 0 0 1 .75-.75z"/><path d="M2.2 5.2 12.9 2.4l.6 2.2M5.4 4.4l.8 1M8.6 3.6l.8 1"/></svg>';
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.2 8.5h15.6c.7 0 1.2.5 1.2 1.2v9.1c0 .7-.5 1.2-1.2 1.2H4.2c-.7 0-1.2-.5-1.2-1.2V9.7c0-.7.5-1.2 1.2-1.2z"/><path d="M3.4 8.4 19.6 4l.9 3.4M8.4 7l1.4 1.5M13.4 5.7l1.4 1.5"/></svg>';
+
+const film = globalThis as {
+  __unhookedFilm?: { frame(post: HTMLElement, alone: boolean): void };
+};
+
+/** Film mode is only loaded when it's wanted, not on every visit to X. */
+async function framePost(post: HTMLElement): Promise<void> {
+  if (!film.__unhookedFilm) await ext.runtime.sendMessage({ action: FILM_START });
+  film.__unhookedFilm?.frame(post, true);
+}
 
 function filmSlot(post: HTMLElement): HTMLElement {
   const slot = document.createElement("div");
@@ -38,26 +50,36 @@ function filmSlot(post: HTMLElement): HTMLElement {
     // A click anywhere else on a post opens it.
     event.preventDefault();
     event.stopPropagation();
-    filmMode().frame(post, true);
+    void framePost(post);
   });
   slot.append(button);
   return slot;
+}
+
+/**
+ * Directly left of the last action, Share, on every post and every layout, so the rest of the row
+ * keeps X's own rhythm. X can draw actions after the rest, so this is checked again every time.
+ */
+function placeSlot(row: HTMLElement, slot: HTMLElement): void {
+  const share = [...row.children].filter((child) => child !== slot).at(-1) ?? null;
+  if (slot.parentElement === row && slot.nextElementSibling === share) return;
+  // X's icons change size between the timeline and a post's own page, so copy them, not a number.
+  const neighbour = share?.querySelector("svg") ?? row.querySelector("svg");
+  if (neighbour) {
+    slot.style.setProperty("--uh-film-size", `${neighbour.getBoundingClientRect().width}px`);
+    slot.style.color = getComputedStyle(neighbour).color;
+  }
+  row.insertBefore(slot, share);
 }
 
 function addFilmButtons(): void {
   for (const row of document.querySelectorAll<HTMLElement>(
     'article[data-testid="tweet"] [role="group"]',
   )) {
-    if (row.querySelector(`:scope > .${SLOT}`)) continue;
-    const post = row.closest<HTMLElement>("article")!;
-    // Beside bookmark and share, where the actions on a post itself live.
-    const before = [...row.children].find((child) =>
-      child.querySelector('[data-testid="bookmark"], [data-testid="removeBookmark"]'),
-    );
-    const slot = filmSlot(post);
-    // On a post's own page each action takes an equal share of the row, so this one does too.
-    if (before && getComputedStyle(before).flexGrow !== "0") slot.classList.add("uh-film-share");
-    row.insertBefore(slot, before ?? null);
+    const slot =
+      row.querySelector<HTMLElement>(`:scope > .${SLOT}`) ??
+      filmSlot(row.closest<HTMLElement>("article")!);
+    placeSlot(row, slot);
   }
 }
 

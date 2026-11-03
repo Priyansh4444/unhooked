@@ -49,6 +49,40 @@ describe("which site time counts under", () => {
   });
 });
 
+describe("one name per site", () => {
+  it.each([
+    ["www.example.org", "example.org"],
+    ["www2.example.org", "example.org"],
+    ["m.example.org", "example.org"],
+    ["mobile.example.org", "example.org"],
+    ["amp.example.org", "example.org"],
+    ["GitHub.com", "github.com"],
+    ["gist.github.com", "gist.github.com"],
+    ["calendar.google.com", "calendar.google.com"],
+    ["m.co", "m.co"],
+  ])("%s counts as %s", (host, name) => expect(siteKey(host)).toBe(name));
+
+  it("merges what older records called the same site", () => {
+    const now = new Date(2026, 2, 11, 15).getTime();
+    const date = dateKey(now);
+    const session: Session = { host: "www.example.org", start: now, end: now, seconds: 60 };
+    const view = computeView(
+      [
+        {
+          date,
+          hosts: { "www.example.org": { 9: 100 }, "example.org": { 9: 50, 10: 25 } },
+          sessions: [session],
+        },
+      ],
+      "today",
+      null,
+      now,
+    );
+    expect(view.sites.map((row) => [row.host, row.seconds])).toEqual([["example.org", 175]]);
+    expect(view.bySite["example.org"]!.count).toBe(1);
+  });
+});
+
 describe("what counts right now", () => {
   const tab: FrontTab = {
     url: "https://x.com/home",
@@ -225,13 +259,13 @@ describe("sessions", () => {
     expect(state.open["x.com"]!.seconds).toBe(50);
   });
   it("don't include what idle took back", () => {
-    const { state } = play([
+    const { closed } = play([
       [0, "x.com"],
       [100, "x.com"],
       [100, null, true],
     ]);
-    expect(state.open["x.com"]!.seconds).toBe(200 - IDLE_SECONDS);
-    expect(state.open["x.com"]!.end).toBe(at(2026, 3, 2, 9) + (200 - IDLE_SECONDS) * 1000);
+    expect(closed[0]!.seconds).toBe(200 - IDLE_SECONDS);
+    expect(closed[0]!.end).toBe(at(2026, 3, 2, 9) + (200 - IDLE_SECONDS) * 1000);
   });
   it("leave out passing through a tab", () => {
     const gone = SESSION_GAP_MS / 1000 + 1;

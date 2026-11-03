@@ -44,8 +44,11 @@ export const MAX_GAP_MS = 150_000;
 export const SESSION_GAP_MS = 60_000;
 /** Shorter than this is passing through a tab. It counts as time, but not as a session. */
 export const MIN_SESSION_SECONDS = 5;
-/** The browser reports idle this long after the last input. */
-export const IDLE_SECONDS = 60;
+/**
+ * Stepping away: no input for this long, and nothing playing. Long enough for reading a page or a
+ * pull request without touching anything; the time is taken back once it passes.
+ */
+export const IDLE_SECONDS = 180;
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
@@ -63,13 +66,14 @@ export const dayStart = (date: string): Date => {
 
 /**
  * The name time is counted under. A supported site is one thing however it's reached (x.com and
- * twitter.com); anything else is its host without www, so music.youtube.com stays itself.
+ * twitter.com). Anything else is its host without the prefixes that only mean "the same site"
+ * (www, m), while a real subdomain stays itself: gmail and Google Calendar aren't one habit.
  */
 export function siteKey(hostname: string): string {
   const host = hostname.toLowerCase();
   const site = siteForHost(host);
   const name = site ? SITE_HOSTS[site][0] : host;
-  return name.replace(/^www\./, "");
+  return name.replace(/^(www\d?|m|mobile|amp)\.(?=.+\.)/, "");
 }
 
 /** The site of a tab's address, or null for anything that isn't a web page. */
@@ -114,7 +118,7 @@ export interface Advance {
 /**
  * One step: credit what has passed to the site being counted, then take in what's in front now.
  * `wentIdle` says the site stopped being counted because the browser reported idle, which it does
- * a minute after the last input, so that last minute wasn't anyone using the site.
+ * IDLE_SECONDS after the last input, so that stretch wasn't anyone using the site.
  */
 export function advance(
   state: TrackerState,
@@ -172,6 +176,7 @@ export function advance(
 /** What counts right now, from what the browser says about the front tab. */
 export interface FrontTab {
   url?: string;
+  favIconUrl?: string;
   /** The window has the system's focus. */
   focused: boolean;
   incognito: boolean;

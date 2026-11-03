@@ -7,12 +7,13 @@ import puppeteer from "puppeteer-core";
 import { resolve } from "node:path";
 
 export const BROWSER = process.env.BROWSER === "firefox" ? "firefox" : "chrome";
-export const EXT = resolve(process.env.EXT ?? `dist-e2e-${BROWSER}`);
+const EXT_DEFAULT = `dist-e2e-${BROWSER}`;
+const extPath = () => resolve(process.env.EXT ?? EXT_DEFAULT);
 const BINARY = BROWSER === "firefox" ? process.env.FIREFOX_PATH : process.env.CHROME_PATH;
 
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-export async function launch(attempt = 1) {
+export async function launch({ attempt = 1, debugExtensions = false } = {}) {
   if (!BINARY) {
     throw new Error(
       BROWSER === "firefox"
@@ -35,7 +36,7 @@ export async function launch(attempt = 1) {
       executablePath: BINARY,
       headless: true,
     });
-    await browser.installExtension(EXT);
+    await browser.installExtension(extPath());
     // Let the add-on finish installing before the harness opens its page.
     await sleep(3000);
   } else {
@@ -43,10 +44,10 @@ export async function launch(attempt = 1) {
       executablePath: BINARY,
       headless: process.env.HEADED !== "1",
       pipe: true,
-      enableExtensions: [EXT],
+      enableExtensions: [extPath()],
       // LIVE_PROFILE: a profile you have logged in to the sites with (scripts/live-login.ts).
       ...(process.env.LIVE_PROFILE && { userDataDir: process.env.LIVE_PROFILE }),
-      args: ["--disable-gpu"],
+      args: ["--disable-gpu", ...(debugExtensions ? ["--enable-unsafe-extension-debugging"] : [])],
       defaultViewport: { width: 1400, height: 900 },
     });
     // Sites that serve bot checks to a "HeadlessChrome" user agent get the normal one.
@@ -114,8 +115,16 @@ export async function launch(attempt = 1) {
     timeSeed: (days) => call({ op: "timeSeed", args: days }),
     /** Credit the time so far, and read the tracker's history. */
     timeDays: () => call({ op: "timeDays", args: null }),
+    /** One tracker step with the browser's signals overridden (idle, focused, audible). */
+    timeStep: (signals) => call({ op: "timeStep", args: signals }),
+    /** Move what's being counted back in time, as if the computer had slept. */
+    timeRewind: (ms) => call({ op: "timeRewind", args: ms }),
+    timeIcons: () => call({ op: "timeIcons", args: null }),
+    timeSetIcon: (host, src) => call({ op: "timeSetIcon", args: { host, src } }),
     /** Credit the time so far, and read the history and what's being counted together. */
     timeSnapshot: () => call({ op: "timeSnapshot", args: null }),
+    /** Read the history and what's being counted, without crediting anything. */
+    timeRead: () => call({ op: "timeRead", args: null }),
     /** Credit the time so far, and read what's being counted. */
     timeState: () => call({ op: "timeState", args: null }),
     /** Id of the first tab whose URL contains `urlPart`. */
@@ -145,7 +154,7 @@ export async function launch(attempt = 1) {
     server.stop(true);
     // Now and then a cold CI runner starts Chromium without the extension's worker. A new browser
     // is the honest retry: a real bug would fail the same way twice.
-    if (attempt < 2) return launch(attempt + 1);
+    if (attempt < 2) return launch({ attempt: attempt + 1, debugExtensions });
     throw new Error("the extension did not answer the test bridge within 60s, twice");
   }
   // Close any extension page a fresh profile opened, so tests start from the harness page.
