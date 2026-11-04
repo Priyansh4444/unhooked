@@ -1,6 +1,8 @@
 /** Pure link-label contract: kind, pill label and enrichment inputs. No network. */
 import { describe, expect, test } from "bun:test";
 import {
+  twitterProfileHandle,
+  isPublicHost,
   classifyLink,
   enrichedPillLabelFromMeta,
   extractTwitterStatusId,
@@ -39,6 +41,25 @@ describe("github pills keep the number", () => {
   });
 });
 
+describe("an X profile's pill", () => {
+  const profile = (url: string): LinkMeta => ({
+    kind: "twitter",
+    url,
+    title: "@jack",
+    description: "no state is the best state",
+  });
+  test("has the bio", () => {
+    expect(enrichedPillLabelFromMeta(profile("https://x.com/jack"))).toBe(
+      "@jack · no state is the best state",
+    );
+  });
+  test("has it on a profile's tabs too", () => {
+    expect(enrichedPillLabelFromMeta(profile("https://x.com/jack/media"))).toBe(
+      "@jack · no state is the best state",
+    );
+  });
+});
+
 describe("twitter parsing", () => {
   test("status id survives query params", () => {
     const url = tryParseUrl("https://x.com/notpronsh/status/2079836828107165938?s=20");
@@ -48,7 +69,7 @@ describe("twitter parsing", () => {
     );
   });
   test("reserved routes are not handles", () => {
-    expect(kindLabel("https://x.com/home")).toBe("twitter|X");
+    expect(kindLabel("https://x.com/home")).toBe("twitter|Home on X");
   });
 });
 
@@ -111,7 +132,32 @@ describe("pills are specific", () => {
     ],
     ["https://x.com/i/status/1900000000000000000", "twitter|Post on X"],
     ["https://x.com/hashtag/javascript", "twitter|#javascript"],
-    ["https://x.com/search?q=bun", "twitter|X search: bun"],
+    ["https://x.com/search?q=bun", "twitter|Search: bun"],
+    ["https://x.com/search", "twitter|Search on X"],
+    ["https://x.com/i/web/status/1900000000000000000", "twitter|Post on X"],
+    ["https://x.com/jack/status/20/photo/1", "twitter|@jack"],
+    ["https://x.com/jack/status/20/video/1", "twitter|@jack"],
+    ["https://twitter.com/jack/status/20", "twitter|@jack"],
+    ["https://mobile.twitter.com/jack/status/20", "twitter|@jack"],
+    ["https://fxtwitter.com/jack/status/20", "twitter|@jack"],
+    ["https://vxtwitter.com/jack/status/20", "twitter|@jack"],
+    ["https://fixupx.com/jack/status/20", "twitter|@jack"],
+    ["https://x.com/jack/article/1900000000000000000", "twitter|Article on X"],
+    ["https://x.com/i/article/1900000000000000000", "twitter|Article on X"],
+    ["https://x.com/jack/media", "twitter|@jack"],
+    ["https://x.com/jack/with_replies", "twitter|@jack"],
+    ["https://x.com/jack/followers", "twitter|@jack"],
+    ["https://x.com/intent/follow?screen_name=jack", "twitter|@jack"],
+    ["https://x.com/intent/post?text=hello", "twitter|Draft: hello"],
+    ["https://x.com/i/lists/1234", "twitter|List on X"],
+    ["https://x.com/jack/lists", "twitter|List on X"],
+    ["https://x.com/i/spaces/1YqJDgNRgRzGV", "twitter|Space on X"],
+    ["https://x.com/i/broadcasts/1YqJDgNRgRzGV", "twitter|Broadcast on X"],
+    ["https://x.com/i/communities/1493446837214187523", "twitter|Community on X"],
+    ["https://x.com/i/events/1234", "twitter|Event on X"],
+    ["https://x.com/i/topics/1234", "twitter|Topic on X"],
+    ["https://x.com/i/grok/share/abc", "twitter|Grok on X"],
+    ["https://x.com/explore", "twitter|Explore on X"],
     ["https://x.com/t3dotgg/likes", "twitter|@t3dotgg"],
     ["https://redd.it/abc123", "reddit|Reddit post"],
     ["https://github.com/oven-sh/bun/blob/main/src/cli.zig", "github|oven-sh/bun · cli.zig"],
@@ -167,7 +213,39 @@ describe("lookups upgrade vague pills", () => {
     const url = "https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQC";
     expect(classifyLink(url)?.enrichable).toBe(true);
     expect(enrichedPillLabelFromMeta(meta(url, "spotify", "Never Gonna Give You Up"))).toBe(
-      "Spotify · Never Gonna Give You Up",
+      "Never Gonna Give You Up",
     );
+  });
+});
+
+describe("which addresses a preview may read", () => {
+  test.each([
+    ["claude.ai", true],
+    ["example.com", true],
+    ["8.8.8.8", true],
+    ["localhost", false],
+    ["localhost.", false],
+    ["printer.local", false],
+    ["printer.local.", false],
+    ["router.lan", false],
+    ["192.168.1.1", false],
+    ["10.0.0.5", false],
+    ["172.20.1.1", false],
+    ["127.0.0.1", false],
+    ["169.254.169.254", false],
+    ["[::1]", false],
+    ["intranet", false],
+  ])("%s: %s", (host, expected) => {
+    expect(isPublicHost(host)).toBe(expected);
+  });
+});
+
+describe("an X address that isn't an account", () => {
+  test.each([
+    ["https://x.com/robots.txt"],
+    ["https://x.com/intent/follow?screen_name=../../evil"],
+    ["https://x.com/waytoolongtobeanxhandle"],
+  ])("%s", (href) => {
+    expect(twitterProfileHandle(new URL(href))).toBeUndefined();
   });
 });

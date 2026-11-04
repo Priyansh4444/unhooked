@@ -6,7 +6,7 @@ import {
   type ClassifiedLink,
   type LinkMeta,
 } from "../links.ts";
-import { iconForKind } from "./icons.ts";
+import { fillGlyph } from "./site-glyph.ts";
 import { resolveLinkMeta } from "./resolve-client.ts";
 
 export const PILL_CLASS = "uh-link-pill";
@@ -34,11 +34,9 @@ function setLabel(anchor: HTMLAnchorElement, label: string): void {
   anchor.setAttribute("aria-label", `Link: ${label}`);
 }
 
-/** Show what a lookup learned: a better label, and the full text as the tooltip. */
+/** Show what a lookup learned, as a better label. The hover card has the rest. */
 export function applyMetaToPill(anchor: HTMLAnchorElement, meta: LinkMeta): void {
   setLabel(anchor, enrichedPillLabelFromMeta(meta));
-  const handle = meta.authorHandle ? `@${meta.authorHandle}` : null;
-  anchor.title = [handle, meta.title, meta.url].filter(Boolean).join("\n");
 }
 
 // Newest chat lines first, a few lookups at a time.
@@ -77,13 +75,14 @@ function makePill(anchor: HTMLAnchorElement, link: ClassifiedLink): void {
   anchor.classList.add(PILL_CLASS, `${PILL_CLASS}--${link.kind}`);
   anchor.setAttribute(KIND_ATTR, link.kind);
   anchor.setAttribute(URL_ATTR, link.url);
-  anchor.title = link.url;
+  // No tooltip: the browser's own would sit on top of the hover card.
+  anchor.removeAttribute("title");
   anchor.rel ||= "noopener noreferrer";
 
   const icon = document.createElement("span");
   icon.className = "uh-link-pill__icon";
   icon.setAttribute("aria-hidden", "true");
-  icon.innerHTML = iconForKind(link.kind);
+  fillGlyph(icon, link.kind, link.hostname);
   const label = document.createElement("span");
   label.className = "uh-link-pill__label";
   anchor.replaceChildren(icon, label);

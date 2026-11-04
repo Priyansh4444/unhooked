@@ -47,7 +47,12 @@ export async function launch({ attempt = 1, debugExtensions = false } = {}) {
       enableExtensions: [extPath()],
       // LIVE_PROFILE: a profile you have logged in to the sites with (scripts/live-login.ts).
       ...(process.env.LIVE_PROFILE && { userDataDir: process.env.LIVE_PROFILE }),
-      args: ["--disable-gpu", ...(debugExtensions ? ["--enable-unsafe-extension-debugging"] : [])],
+      args: [
+        "--disable-gpu",
+        // The extension's own lookups come from its background, which setUserAgent below can't reach.
+        "--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36",
+        ...(debugExtensions ? ["--enable-unsafe-extension-debugging"] : []),
+      ],
       defaultViewport: { width: 1400, height: 900 },
     });
     // Sites that serve bot checks to a "HeadlessChrome" user agent get the normal one.
@@ -279,4 +284,25 @@ export async function gotoYT(page, url) {
     await sleep(500);
   }
   await sleep(2500);
+}
+
+/** The middle of an element inside a closed shadow root, which only the debugger can see into. */
+export async function closedShadowCenter(page, className) {
+  const cdp = await page.createCDPSession();
+  const { root } = await cdp.send("DOM.getDocument", { depth: -1, pierce: true });
+  const find = (node) => {
+    const classes = node.attributes?.[node.attributes.indexOf("class") + 1];
+    if (node.attributes?.includes("class") && classes?.split(" ").includes(className)) return node;
+    for (const next of [...(node.children ?? []), ...(node.shadowRoots ?? [])]) {
+      const found = find(next);
+      if (found) return found;
+    }
+    return null;
+  };
+  const node = find(root);
+  if (!node) return null;
+  const { model } = await cdp.send("DOM.getBoxModel", { nodeId: node.nodeId });
+  const [x1, y1, , , x2, y2] = model.content;
+  await cdp.detach();
+  return { x: (x1 + x2) / 2, y: (y1 + y2) / 2 };
 }

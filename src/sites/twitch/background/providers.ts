@@ -7,15 +7,22 @@
  */
 
 import {
+  classifyLink,
   compactNumber,
   extractTwitterUsername,
+  fallbackMeta,
   imgurImageUrl,
+  isPublicHost,
+  twitterPageName,
+  twitterProfileHandle,
   tryParseUrl,
   youtubePage,
   type ClassifiedLink,
   type LinkKind,
   type LinkMeta,
 } from "../links.ts";
+import { ext } from "../../../shared/ext-api.ts";
+import { STORAGE_KEYS } from "../../../shared/settings.ts";
 import { LOOKUP_HOSTS, SITE_HOSTS } from "../../hosts.ts";
 import { fetchHtml, fetchJson, fetchStatus } from "./http.ts";
 import { decodeEntities, parseOpenGraph } from "./og.ts";
@@ -33,10 +40,20 @@ const PAGE_HOSTS = new Set<string>([...Object.values(SITE_HOSTS).flat(), ...LOOK
 const canReadPage = (host: string): boolean =>
   PAGE_HOSTS.has(host) || host.endsWith(".lakebed.app");
 
+const mayRead = async (host: string): Promise<boolean> => {
+  if (canReadPage(host)) return true;
+  const key = STORAGE_KEYS.TWITCH_LINK_PREVIEWS;
+  if ((await ext.storage.local.get(key))[key] !== true) return false;
+  return (
+    (await ext.permissions?.contains({ origins: [`*://${host}/*`] }).catch(() => false)) ?? false
+  );
+};
+
 /** Title / description / image from the page's own <meta og:*> tags. */
 const openGraph: Provider = async (link, base) => {
-  if (!canReadPage(link.hostname)) return base;
-  const html = await fetchHtml(link.url);
+  if (!isPublicHost(link.hostname)) return base;
+  if (!(await mayRead(link.hostname))) return { ...base, canAsk: true };
+  const html = await fetchHtml(link.url, isPublicHost);
   if (!html) return base;
   const og = parseOpenGraph(html, link.url);
   return {
@@ -45,6 +62,7 @@ const openGraph: Provider = async (link, base) => {
     description: og.description || base.description,
     image: og.image || base.image,
     siteName: og.siteName || base.siteName,
+    accent: og.themeColor,
   };
 };
 
@@ -105,9 +123,152 @@ const reddit = oembed("https://www.reddit.com/oembed?url=");
 const spotify = oembed("https://open.spotify.com/oembed?url=", { siteName: "Spotify" });
 const vimeo = oembed("https://vimeo.com/api/oembed.json?url=");
 
-// ---- X / Twitter (official oEmbed, like YouTube/Reddit/Vimeo) ----------------------------------
-// publish.x.com answers logged-out requests with the author's name and the post's HTML; the
-// mirrors are gone. Only posts have an official lookup: profiles keep their URL-derived card.
+// ---- X / Twitter -----------------------------------------------------------------------------
+// Posts come from the service X's own embeds read, which needs no account and carries the media
+// and quoted post; publish.x.com's oEmbed is the fallback. Profiles carry public tags on their page.
+// Nothing public describes Spaces, lists or communities, so those keep the card their address gives.
+
+interface XUser {
+  name?: string;
+  screen_name?: string;
+  profile_image_url_https?: string;
+}
+
+interface XVariant {
+  type?: string;
+  content_type?: string;
+  bitrate?: number;
+  src?: string;
+  url?: string;
+}
+
+interface XMedia {
+  type?: string;
+  media_url_https?: string;
+  video_info?: { variants?: XVariant[] };
+}
+
+export interface XTweet {
+  __typename?: string;
+  text?: string;
+  display_text_range?: [number, number];
+  entities?: { urls?: { url?: string; display_url?: string }[] };
+  user?: XUser;
+  favorite_count?: number;
+  conversation_count?: number;
+  created_at?: string;
+  in_reply_to_screen_name?: string;
+  mediaDetails?: XMedia[];
+  photos?: { url?: string }[];
+  video?: { poster?: string; variants?: XVariant[] };
+  quoted_tweet?: XTweet;
+  note_tweet?: unknown;
+  article?: {
+    title?: string;
+    preview_text?: string;
+    cover_media?: { media_info?: { original_img_url?: string } };
+  };
+  card?: { binding_values?: Record<string, { string_value?: string }> };
+}
+
+/** The value X's own embed code sends with a request for a post. */
+export const tweetToken = (id: string): string =>
+  ((Number(id) / 1e15) * Math.PI).toString(36).replace(/(0+|\.)/g, "");
+
+const sharperAvatar = (src?: string): string | undefined => src?.replace("_normal.", "_bigger.");
+
+/** The words someone wrote: without the trailing media link, and with links spelled out. */
+function tweetText(tweet: XTweet): string {
+  const [from, to] = tweet.display_text_range ?? [0, Infinity];
+  let text = Array.from(tweet.text ?? "")
+    .slice(from, to)
+    .join("");
+  for (const link of tweet.entities?.urls ?? [])
+    if (link.url && link.display_url) text = text.replaceAll(link.url, link.display_url);
+  return decodeEntities(text).trim();
+}
+
+function tweetVideo(tweet: XTweet): LinkMeta["video"] {
+  const media = tweet.mediaDetails?.find((m) => m.type === "video" || m.type === "animated_gif");
+  const variants = media?.video_info?.variants ?? tweet.video?.variants ?? [];
+  const best = variants
+    .filter((v) => (v.content_type ?? v.type) === "video/mp4")
+    .sort((a, b) => (b.bitrate ?? 0) - (a.bitrate ?? 0))[0];
+  const src = best?.url ?? best?.src;
+  const poster = media?.media_url_https ?? tweet.video?.poster;
+  return src && poster ? { poster, src } : undefined;
+}
+
+function tweetPoll(tweet: XTweet): string | undefined {
+  const values = tweet.card?.binding_values;
+  if (!values?.choice1_label) return undefined;
+  const choices: string[] = [];
+  for (let i = 1; i <= 4; i++) {
+    const label = values[`choice${i}_label`]?.string_value;
+    if (label) choices.push(label);
+  }
+  return choices.length ? `Poll: ${choices.join(" · ")}` : undefined;
+}
+
+/** A post as a card. Null when there's nothing to show: gone, private, or age-restricted. */
+export function metaFromTweet(tweet: XTweet | null, base: LinkMeta): LinkMeta | null {
+  if (!tweet || tweet.__typename === "TweetTombstone" || !tweet.user?.screen_name) return null;
+  const article = tweet.article;
+  const written = tweetText(tweet);
+  const text = article?.title ?? written;
+  const video = tweetVideo(tweet);
+  const photos = video
+    ? undefined
+    : (tweet.photos ?? [])
+        .map((photo) => photo.url)
+        .filter((url): url is string => !!url)
+        .slice(0, 4);
+  const quoted = tweet.quoted_tweet?.user?.screen_name ? tweet.quoted_tweet : undefined;
+  const cover = article?.cover_media?.media_info?.original_img_url;
+  const when = tweet.created_at ? new Date(tweet.created_at) : null;
+  return {
+    ...base,
+    title: text.slice(0, 160) || `A post by @${tweet.user.screen_name}`,
+    siteName: "X",
+    textSnippet: text,
+    description: article?.preview_text ?? tweetPoll(tweet),
+    authorName: tweet.user.name || tweet.user.screen_name,
+    authorHandle: tweet.user.screen_name,
+    authorAvatar: sharperAvatar(tweet.user.profile_image_url_https),
+    replyTo: tweet.in_reply_to_screen_name,
+    video,
+    photos: cover ? [cover] : photos?.length ? photos : undefined,
+    quote: quoted && {
+      name: quoted.user?.name || quoted.user!.screen_name!,
+      handle: quoted.user!.screen_name!,
+      avatar: sharperAvatar(quoted.user?.profile_image_url_https),
+      text: tweetText(quoted),
+    },
+    chips: [
+      tweet.favorite_count ? `♥ ${compactNumber(tweet.favorite_count)}` : "",
+      tweet.conversation_count ? `↩ ${compactNumber(tweet.conversation_count)}` : "",
+      when && !Number.isNaN(when.getTime())
+        ? when.toLocaleDateString("en", { month: "short", day: "numeric", year: "numeric" })
+        : "",
+      tweet.note_tweet ? "Long post" : "",
+    ].filter(Boolean),
+  };
+}
+
+async function twitterProfile(handle: string, base: LinkMeta): Promise<LinkMeta> {
+  const html = await fetchHtml(`https://x.com/${handle}`);
+  const og = html ? parseOpenGraph(html, "https://x.com/") : null;
+  const name = og?.title?.match(/^(.*?) \(@/)?.[1];
+  return {
+    ...base,
+    title: `@${handle}`,
+    siteName: "X",
+    authorName: name || undefined,
+    authorHandle: handle,
+    authorAvatar: og?.image,
+    description: name ? og?.description : undefined,
+  };
+}
 
 interface XOEmbed {
   author_name?: string;
@@ -115,14 +276,32 @@ interface XOEmbed {
 }
 
 const twitter: Provider = async (link, base) => {
-  if (!link.twitterStatusId) return base;
+  const url = tryParseUrl(link.url);
+  if (!link.twitterStatusId) {
+    const page = url && twitterPageName(url);
+    if (page) {
+      return {
+        ...base,
+        title: page,
+        siteName: "X",
+        description: "X doesn't share more about this publicly.",
+      };
+    }
+    const profile = url && twitterProfileHandle(url);
+    return profile ? twitterProfile(profile, base) : base;
+  }
+  const id = link.twitterStatusId;
+  const post = await fetchJson<XTweet>(
+    `https://cdn.syndication.twimg.com/tweet-result?id=${id}&lang=en&token=${tweetToken(id)}`,
+  );
+  const card = metaFromTweet(post, base);
+  if (card) return card;
   const endpoint = `https://publish.x.com/oembed?url=${encodeURIComponent(link.url)}`;
   const data = await fetchJson<XOEmbed>(endpoint);
   const paragraph = data?.html?.match(/<p\b[^>]*>([\s\S]*?)<\/p>/i)?.[1] ?? "";
   const text = decodeEntities(paragraph.replace(/<[^>]*>/g, ""))
     .replace(/\s+/g, " ")
     .trim();
-  const url = tryParseUrl(link.url);
   const handle = (url && extractTwitterUsername(url)) || undefined;
   if (text) {
     return {
@@ -309,24 +488,22 @@ const PROVIDERS: Partial<Record<LinkKind, Provider>> = {
   imgur,
 };
 
+/** Where a page's refresh tag sends a browser. Any other `url=` on a page is just part of it. */
+export const refreshTarget = (html: string): string | undefined =>
+  html
+    .match(/<meta\b[^>]*\bhttp-equiv=["']?refresh\b[^>]*>/i)?.[0]
+    .match(/\burl=([^"'>\s]+)/i)?.[1];
+
+/** X's link shortener says where it goes in the page it returns to a browser. */
+async function unshorten(url: string): Promise<ClassifiedLink | null> {
+  const html = await fetchHtml(url, isPublicHost);
+  const target = html && refreshTarget(html);
+  return target ? classifyLink(decodeEntities(target)) : null;
+}
+
 /** Look a link up. Kinds without a provider fall back to Open Graph (where permitted). */
-export const lookUp = (link: ClassifiedLink, base: LinkMeta): Promise<LinkMeta> =>
-  (PROVIDERS[link.kind] ?? openGraph)(link, base);
-
-/** The field each lookup always fills when it worked; missing means it failed (offline, rate-limited). */
-const FILLED_ON_SUCCESS: Partial<Record<LinkKind, keyof LinkMeta>> = {
-  youtube: "textSnippet",
-  twitter: "authorName",
-  reddit: "textSnippet",
-  vimeo: "textSnippet",
-  spotify: "textSnippet",
-  github: "chips",
-};
-
-/** A failed lookup is cached briefly so it gets retried (see resolve.ts). */
-export const isEmptyLookup = (meta: LinkMeta): boolean => {
-  const field = FILLED_ON_SUCCESS[meta.kind];
-  if (!field) return false;
-  const value = meta[field];
-  return Array.isArray(value) ? value.length === 0 : !value;
-};
+export async function lookUp(link: ClassifiedLink, base: LinkMeta): Promise<LinkMeta> {
+  const target = link.hostname === "t.co" ? await unshorten(link.url) : null;
+  if (target) return lookUp(target, fallbackMeta(target));
+  return (PROVIDERS[link.kind] ?? openGraph)(link, base);
+}

@@ -1,5 +1,5 @@
-import { classifyLink, fallbackMeta, type LinkMeta } from "../links.ts";
-import { isEmptyLookup, lookUp } from "./providers.ts";
+import { classifyLink, fallbackMeta, isEmptyLookup, type LinkMeta } from "../links.ts";
+import { lookUp } from "./providers.ts";
 
 const TTL_MS = 60 * 60 * 1000;
 /** An empty answer (offline, rate-limited) is retried soon, not after an hour. */
@@ -22,7 +22,10 @@ export async function resolveLink(url: string): Promise<LinkMeta> {
     .catch(() => fallbackMeta(link))
     .then((meta) => {
       if (cache.size >= CACHE_MAX) cache.delete(cache.keys().next().value!);
-      cache.set(url, { meta, expires: Date.now() + (isEmptyLookup(meta) ? EMPTY_TTL_MS : TTL_MS) });
+      cache.set(url, {
+        meta,
+        expires: Date.now() + (isEmptyLookup(meta) || meta.canAsk ? EMPTY_TTL_MS : TTL_MS),
+      });
       return meta;
     })
     .finally(() => inflight.delete(url));
@@ -30,3 +33,6 @@ export async function resolveLink(url: string): Promise<LinkMeta> {
   inflight.set(url, work);
   return work;
 }
+
+/** New access means what couldn't be read before can be now. */
+export const forgetLookups = (): void => cache.clear();

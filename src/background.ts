@@ -1,3 +1,4 @@
+import { TWITCH_ACTIONS } from "./sites/twitch/protocol.ts";
 import { ext } from "./shared/ext-api.ts";
 import { injectScript } from "./shared/inject.ts";
 import { siteSwitchPatch } from "./shared/preferences.ts";
@@ -31,10 +32,14 @@ ext.runtime.onInstalled.addListener(async ({ reason }) => {
   }
 });
 
-async function askForScreenshots(tabId: number | undefined): Promise<void> {
-  const url = ext.runtime.getURL(`ui/allow/index.html?tab=${tabId ?? ""}`);
+async function askForAccess(tabId: number | undefined, purpose = ""): Promise<void> {
+  const url = ext.runtime.getURL(
+    `ui/allow/index.html?tab=${tabId ?? ""}${purpose && `&for=${purpose}`}`,
+  );
   const [open] = await ext.tabs.query({ url: ext.runtime.getURL("ui/allow/index.html*") });
   if (open?.windowId !== undefined) {
+    // It may be asking about something else, or for another tab.
+    if (open.id !== undefined && open.url !== url) await ext.tabs.update(open.id, { url });
     await ext.windows.update(open.windowId, { focused: true });
     return;
   }
@@ -44,6 +49,10 @@ async function askForScreenshots(tabId: number | undefined): Promise<void> {
 ext.runtime.onMessage.addListener(
   (message: { action?: string }, sender, sendResponse: (reply: CaptureReply) => void) => {
     const tab = sender.tab;
+    if (message?.action === TWITCH_ACTIONS.ASK_PREVIEWS) {
+      void askForAccess(tab?.id, "previews");
+      return false;
+    }
     // The wand shortcut, pressed on a page the wand may run on: start or stop it in that tab.
     if (message?.action === WAND_ACTION && typeof tab?.id === "number") {
       injectScript(tab.id, "sites/wand/content.js").catch(() => {});
@@ -65,7 +74,7 @@ ext.runtime.onMessage.addListener(
         async () => {
           const allowed = await ext.permissions.contains(SCREENSHOT_ACCESS).catch(() => false);
           if (allowed) return sendResponse({ error: "capture failed" });
-          await askForScreenshots(tab.id);
+          await askForAccess(tab.id);
           sendResponse({ asking: true });
         },
       );

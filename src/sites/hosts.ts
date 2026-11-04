@@ -36,6 +36,8 @@ export const hostBelongsTo = (site: SiteId, url: string): boolean => siteForUrl(
 export const LOOKUP_HOSTS = [
   "www.youtube.com",
   "publish.x.com",
+  "cdn.syndication.twimg.com",
+  "t.co",
   "www.reddit.com",
   "vimeo.com",
   "open.spotify.com",

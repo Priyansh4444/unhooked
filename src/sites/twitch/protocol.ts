@@ -7,6 +7,7 @@ export const TWITCH_ACTIONS = Object.freeze({
   RESOLVE_LINK: "twitch-resolve-link",
   GET_URL_LOG: "twitch-get-url-log",
   CLEAR_URL_LOG: "twitch-clear-url-log",
+  ASK_PREVIEWS: "twitch-ask-previews",
 } as const);
 
 export interface ChatUrlEntry {

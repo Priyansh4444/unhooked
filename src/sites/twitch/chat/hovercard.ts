@@ -3,19 +3,23 @@
  * What's inside it comes from card-views.ts.
  */
 
-import { classifyLink } from "../links.ts";
+import { classifyLink, type LinkMeta } from "../links.ts";
 import { renderLink, renderSkeleton } from "./card-views.ts";
 import { PILL_CLASS, applyMetaToPill, pillUrl } from "./pill.ts";
-import { resolveLinkMeta } from "./resolve-client.ts";
+import { knownLinkMeta, resolveLinkMeta } from "./resolve-client.ts";
 
 const CARD_ID = "uh-twitch-hovercard";
-const CLOSE_GRACE_MS = 100;
+/** Long enough to cross from a pill to its card without it closing. */
+const CLOSE_GRACE_MS = 180;
+const GAP_PX = 6;
+const EDGE_PX = 8;
+/** The most a card takes up, and so how much room below a pill is plenty. */
+const TALLEST_PX = 640;
 
 let hoverDelayMs = 180;
 let openTimer: ReturnType<typeof setTimeout> | undefined;
 let closeTimer: ReturnType<typeof setTimeout> | undefined;
 let card: HTMLElement | null = null;
-let resizeWatch: ResizeObserver | null = null;
 let activePill: HTMLElement | null = null;
 let bound = false;
 /** Pill under the pointer whose open delay is running. */
@@ -40,12 +44,6 @@ function ensureCard(): HTMLElement {
   el.innerHTML = '<div class="uh-hovercard__inner"></div>';
   document.documentElement.appendChild(el);
 
-  // Embeds and images change the card's height after it opened: keep it on screen.
-  resizeWatch = new ResizeObserver(() => {
-    if (activePill && !el.hidden) position(activePill, el);
-  });
-  resizeWatch.observe(el);
-
   card = el;
   return el;
 }
@@ -64,18 +62,30 @@ function hide(): void {
   inner().replaceChildren(); // also stops any playing video / embed
 }
 
-/** Below the pill, flipped above if it would be cut off, kept inside the viewport. */
-function position(pill: HTMLElement, el: HTMLElement): void {
-  const pillBox = pill.getBoundingClientRect();
-  const box = el.getBoundingClientRect();
-  const margin = 8;
-  let top = pillBox.bottom + margin;
-  if (top + box.height > innerHeight - margin && pillBox.top > box.height + margin) {
-    top = pillBox.top - box.height - margin;
-  }
-  const left = Math.max(margin, Math.min(pillBox.left, innerWidth - box.width - margin));
-  el.style.top = `${Math.round(top)}px`;
-  el.style.left = `${Math.round(left)}px`;
+/**
+ * Decided once, when the card opens, and held by the edge beside the pill. Whatever arrives after
+ * that grows it away from the pill, and past the room there is it scrolls inside: a card that
+ * re-measured itself would hop to the other side of the pill as its picture loaded. It stays put
+ * as chat moves too.
+ */
+function place(pill: HTMLElement, el: HTMLElement): void {
+  const box = pill.getBoundingClientRect();
+  const roomBelow = innerHeight - box.bottom - GAP_PX - EDGE_PX;
+  const roomAbove = box.top - GAP_PX - EDGE_PX;
+  const below = roomBelow >= Math.min(TALLEST_PX, roomAbove);
+  const width = el.getBoundingClientRect().width;
+  el.dataset.side = below ? "below" : "above";
+  el.style.left = `${Math.round(Math.max(EDGE_PX, Math.min(box.left, innerWidth - width - EDGE_PX)))}px`;
+  el.style.top = below ? `${Math.round(box.bottom + GAP_PX)}px` : "auto";
+  el.style.bottom = below ? "auto" : `${Math.round(innerHeight - box.top + GAP_PX)}px`;
+  inner().style.maxHeight = `${Math.round(Math.min(TALLEST_PX, below ? roomBelow : roomAbove))}px`;
+}
+
+function show(el: HTMLElement, meta: LinkMeta): void {
+  el.dataset.kind = meta.kind;
+  if (meta.accent) el.style.setProperty("--uh-accent", meta.accent);
+  else el.style.removeProperty("--uh-accent");
+  renderLink(inner(), meta);
 }
 
 async function open(pill: HTMLElement): Promise<void> {
@@ -85,17 +95,20 @@ async function open(pill: HTMLElement): Promise<void> {
   activePill = pill;
   const el = ensureCard();
   el.hidden = false;
-  const link = classifyLink(url);
-  el.dataset.kind = link?.kind ?? "generic";
+  place(pill, el);
+  const seen = knownLinkMeta(url);
+  if (seen) {
+    show(el, seen);
+    if (pill instanceof HTMLAnchorElement) applyMetaToPill(pill, seen);
+    return;
+  }
+  el.dataset.kind = classifyLink(url)?.kind ?? "generic";
   renderSkeleton(inner());
-  position(pill, el);
 
   const meta = await resolveLinkMeta(url);
   if (activePill !== pill) return; // moved on while waiting
-  el.dataset.kind = meta.kind;
-  renderLink(inner(), meta);
+  show(el, meta);
   if (pill instanceof HTMLAnchorElement) applyMetaToPill(pill, meta);
-  position(pill, el);
 }
 
 const pillOf = (event: Event): HTMLElement | null =>
@@ -146,8 +159,6 @@ export function unbindHovercard(): void {
   document.removeEventListener("pointermove", onPointerMove, { capture: true });
   document.removeEventListener("keydown", onKeyDown, true);
   hide();
-  resizeWatch?.disconnect();
-  resizeWatch = null;
   card?.remove();
   card = null;
 }

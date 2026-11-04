@@ -41,7 +41,7 @@ export function observeChat(
   const observer = new MutationObserver((records) => {
     for (const record of records) {
       record.addedNodes.forEach((node) => {
-        if (chatRoot.contains(node)) process(node);
+        if (node.isConnected) process(node);
       });
     }
   });

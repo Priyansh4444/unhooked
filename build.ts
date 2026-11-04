@@ -111,6 +111,7 @@ export async function buildExtension({
   for (const icon of Object.values(ICONS)) {
     await cp(join("icons", icon), join(outdir, icon));
   }
+  await cp("icons/sites", join(outdir, "icons", "sites"), { recursive: true });
 
   const bridge = e2e
     ? [{ matches: ["http://127.0.0.1/*"], js: ["bridge.js"], run_at: "document_start" }]

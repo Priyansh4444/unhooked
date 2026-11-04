@@ -1,82 +1,83 @@
-/* Twitch chat link pills: a neutral capsule. The site's colour lives only in the icon, so the
-   chat keeps one visual language. Every rule keeps the line box the same height as plain text
-   (see the negative block margin), and nothing here moves on hover, so the chat never jumps. */
+/* Twitch chat link pills: a sharp tag. The site's colour lives only in the icon's square, so the
+   chat keeps one visual language. It's as tall as a chat line, so a line with a pill is the same
+   height as one without, and nothing here moves on hover, so the chat never jumps. */
 
 .uh-link-pill {
-  --uh-kind: rgba(255, 255, 255, 0.7);
-  --uh-kind-hover: #fff;
+  --uh-kind: rgba(255, 255, 255, 0.72);
+  --uh-line: rgba(255, 255, 255, 0.18);
+  --uh-fill: rgba(255, 255, 255, 0.05);
+  --uh-text: rgba(255, 255, 255, 0.88);
   box-sizing: border-box;
   display: inline-flex;
-  max-width: min(100%, 16rem);
-  height: 1.55em;
-  align-items: center;
-  gap: 0.35em;
-  vertical-align: middle;
-  margin: -0.28em 0.18em;
-  padding: 0 0.6em 0 0.45em;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.05);
-  color: rgba(255, 255, 255, 0.86);
+  max-width: min(100%, 17rem);
+  /* Whole pixels and square corners, so its edges land crisply on the screen. */
+  height: 20px;
+  align-items: stretch;
+  vertical-align: top;
+  margin: 0 3px;
+  border: 1px solid var(--uh-line);
+  border-radius: 0;
+  background: var(--uh-fill);
+  color: var(--uh-text);
   font: inherit;
-  font-size: 0.9em;
+  font-size: 12px;
   font-weight: 500;
-  line-height: 1;
+  line-height: 18px;
   text-decoration: none !important;
   white-space: nowrap;
   cursor: pointer;
   transition:
-    background-color 0.15s ease,
-    border-color 0.15s ease,
-    box-shadow 0.15s ease;
+    background-color 0.12s ease,
+    border-color 0.12s ease;
+}
+
+html.tw-root--theme-light .uh-link-pill {
+  --uh-line: rgba(0, 0, 0, 0.22);
+  --uh-fill: rgba(0, 0, 0, 0.04);
+  --uh-text: rgba(0, 0, 0, 0.86);
 }
 
 .uh-link-pill:hover,
 .uh-link-pill:focus-visible {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.26);
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.05);
-  color: #fff;
+  border-color: var(--uh-kind);
+  background: color-mix(in srgb, var(--uh-kind) 14%, transparent);
+  color: var(--uh-text);
   text-decoration: none !important;
 }
 
 .uh-link-pill:active {
-  background: rgba(255, 255, 255, 0.2);
+  background: color-mix(in srgb, var(--uh-kind) 24%, transparent);
 }
 
 .uh-link-pill:focus-visible {
-  outline: 2px solid rgba(255, 255, 255, 0.6);
-  outline-offset: 2px;
+  outline: 1px solid var(--uh-kind);
+  outline-offset: 1px;
 }
 
+/* The site's colour, in a square of its own. */
 .uh-link-pill__icon {
   display: inline-flex;
-  flex-shrink: 0;
-  width: 0.95em;
-  height: 0.95em;
+  flex: 0 0 18px;
+  width: 18px;
   align-items: center;
   justify-content: center;
+  border-right: 1px solid var(--uh-line);
   color: var(--uh-kind);
-  transition: color 0.15s ease;
+  background: color-mix(in srgb, var(--uh-kind) 14%, transparent);
 }
 
-.uh-link-pill:hover .uh-link-pill__icon,
-.uh-link-pill:focus-visible .uh-link-pill__icon {
-  color: var(--uh-kind-hover, var(--uh-kind));
-}
-
-.uh-link-pill__icon svg {
-  width: 100%;
-  height: 100%;
+.uh-link-pill__icon svg,
+.uh-link-pill__icon img {
+  width: 12px;
+  height: 12px;
   display: block;
 }
 
 .uh-link-pill__label {
   min-width: 0;
+  padding: 0 6px;
   overflow: hidden;
   text-overflow: ellipsis;
-  /* Room for descenders (g, y, p) inside the clipped label box. */
-  line-height: 1.3;
 }
 
 /* Only the icon carries the site's colour. */
@@ -111,19 +112,33 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .uh-link-pill,
-  .uh-link-pill__icon {
+  .uh-link-pill {
     transition: none;
   }
 }
 
-/* Single shared hovercard: one neutral, translucent look for every site */
+/* One hover card for every site: solid and square. A blur behind it would repaint with the stream
+   under it on every frame, and text on a solid colour stays sharp. */
 .uh-hovercard {
   position: fixed;
   z-index: 2147483646;
   width: min(360px, calc(100vw - 16px));
   pointer-events: auto;
-  animation: uh-pop 0.14s ease-out;
+  animation: uh-pop 0.1s ease-out;
+}
+
+/* Bridges the gap to its pill, so the pointer can cross it without leaving the card. */
+.uh-hovercard::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  height: 6px;
+}
+.uh-hovercard[data-side="below"]::before {
+  bottom: 100%;
+}
+.uh-hovercard[data-side="above"]::before {
+  top: 100%;
 }
 
 .uh-hovercard[hidden] {
@@ -131,18 +146,50 @@
 }
 
 .uh-hovercard[data-kind="twitter"] {
-  width: min(420px, calc(100vw - 16px));
+  width: min(400px, calc(100vw - 16px));
+}
+
+/* The bar down the side, as on a Discord embed: a page's own colour if it names one. */
+.uh-hovercard {
+  --uh-accent: #5c5852;
+}
+.uh-hovercard[data-kind="youtube"] {
+  --uh-accent: #ff4e45;
+}
+.uh-hovercard[data-kind="twitter"] {
+  --uh-accent: #1d9bf0;
+}
+.uh-hovercard[data-kind="reddit"] {
+  --uh-accent: #ff6a33;
+}
+.uh-hovercard[data-kind="github"] {
+  --uh-accent: #e6edf3;
+}
+.uh-hovercard[data-kind="spotify"],
+.uh-hovercard[data-kind="soundcloud"] {
+  --uh-accent: #1ed760;
+}
+.uh-hovercard[data-kind="twitch"],
+.uh-hovercard[data-kind="kick"] {
+  --uh-accent: #a970ff;
+}
+.uh-hovercard[data-kind="imgur"] {
+  --uh-accent: #9ad13c;
+}
+.uh-hovercard[data-kind="vimeo"] {
+  --uh-accent: #54c7f0;
 }
 
 .uh-hovercard__inner {
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(18, 18, 22, 0.5);
-  -webkit-backdrop-filter: blur(20px) saturate(150%);
-  backdrop-filter: blur(20px) saturate(150%);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  overflow: hidden auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  border: 1px solid #3a3a3d;
+  border-left: 3px solid var(--uh-accent);
+  border-radius: 0;
+  background: #0e0e10;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.6);
   color: rgba(255, 255, 255, 0.92);
-  overflow: hidden;
   font-family:
     ui-sans-serif,
     system-ui,
@@ -155,16 +202,11 @@
   text-align: left;
 }
 
-/* without blur, plain translucency would make the text hard to read */
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .uh-hovercard__inner {
-    background: rgba(18, 18, 22, 0.94);
-  }
-}
-
 .uh-hovercard__media {
   position: relative;
+  flex: none;
   aspect-ratio: 1.91 / 1;
+  border: 1px solid #2a2a2d;
   background: rgba(255, 255, 255, 0.04);
   overflow: hidden;
 }
@@ -216,20 +258,15 @@
   display: grid;
   place-items: center;
   padding: 0;
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  border-radius: 50%;
-  background: rgba(0, 0, 0, 0.55);
-  -webkit-backdrop-filter: blur(6px);
-  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 0;
+  background: rgba(0, 0, 0, 0.78);
   color: #fff;
   cursor: pointer;
-  transition:
-    transform 0.12s ease,
-    background 0.12s ease;
+  transition: background 0.12s ease;
 }
 .uh-hovercard__play:hover {
-  transform: scale(1.06);
-  background: rgba(0, 0, 0, 0.7);
+  background: #000;
 }
 .uh-hovercard__play svg {
   width: 22px;
@@ -238,10 +275,59 @@
 }
 
 .uh-hovercard__body {
-  padding: 12px 14px 12px;
+  padding: 12px;
   display: flex;
   flex-direction: column;
+  gap: 8px;
+}
+
+/* An X post's attachments, inside the body as they are on X. */
+.uh-hovercard__media--post {
+  aspect-ratio: 16 / 9;
+}
+.uh-hovercard__photos {
+  display: grid;
+  flex: none;
+  gap: 2px;
+  grid-template-columns: 1fr 1fr;
+  border: 1px solid #2a2a2d;
+}
+.uh-hovercard__photos--1 {
+  grid-template-columns: 1fr;
+}
+.uh-hovercard__photo {
+  min-width: 0;
+  aspect-ratio: 16 / 10;
+  background: rgba(255, 255, 255, 0.04);
+}
+.uh-hovercard__photos--3 .uh-hovercard__photo:first-child {
+  grid-column: 1 / -1;
+}
+.uh-hovercard__photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.uh-hovercard__quote {
+  display: flex;
+  flex: none;
+  flex-direction: column;
   gap: 6px;
+  padding: 10px;
+  border: 1px solid #2a2a2d;
+}
+.uh-hovercard__quote .uh-hovercard__avatar {
+  width: 20px;
+  height: 20px;
+}
+.uh-hovercard__quote .uh-hovercard__tweet-text {
+  font-size: 13px;
+  -webkit-line-clamp: 4;
+}
+.uh-hovercard__reply {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .uh-hovercard__site {
@@ -255,11 +341,12 @@
 
 .uh-hovercard__site-icon {
   display: inline-flex;
-  width: 13px;
-  height: 13px;
-  opacity: 0.85;
+  width: 16px;
+  height: 16px;
 }
-.uh-hovercard__site-icon svg {
+.uh-hovercard__site-icon svg,
+.uh-hovercard__site-icon img {
+  display: block;
   width: 100%;
   height: 100%;
 }
@@ -269,11 +356,32 @@
   font-size: 14px;
   line-height: 1.3;
   color: #fff;
+  text-decoration: none;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   overflow-wrap: anywhere;
+}
+
+a.uh-hovercard__title:hover {
+  text-decoration: underline;
+}
+
+.uh-hovercard__ask {
+  align-self: flex-start;
+  padding: 4px 8px;
+  border: 1px solid #3a3a3d;
+  border-radius: 0;
+  background: none;
+  color: rgba(255, 255, 255, 0.85);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.uh-hovercard__ask:hover {
+  border-color: #fff;
+  color: #fff;
 }
 
 .uh-hovercard__desc {
@@ -294,7 +402,7 @@
   width: 28px;
   height: 28px;
   flex-shrink: 0;
-  border-radius: 50%;
+  border-radius: 0;
   object-fit: cover;
   background: rgba(255, 255, 255, 0.08);
 }
@@ -331,9 +439,9 @@
   gap: 6px;
 }
 .uh-chip {
-  padding: 1px 8px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.07);
+  padding: 1px 6px;
+  border: 1px solid #2a2a2d;
+  border-radius: 0;
   font-size: 11.5px;
   font-weight: 500;
   color: rgba(255, 255, 255, 0.75);
@@ -369,20 +477,12 @@
 .uh-hovercard__open:focus-visible {
   outline: 2px solid rgba(255, 255, 255, 0.7);
   outline-offset: 2px;
-  border-radius: 2px;
 }
 
-/* loading skeleton */
+/* loading skeleton: opacity only, which needs no repaint */
 .uh-skel {
-  border-radius: 6px;
-  background: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0.05),
-    rgba(255, 255, 255, 0.12),
-    rgba(255, 255, 255, 0.05)
-  );
-  background-size: 200% 100%;
-  animation: uh-shimmer 1.2s linear infinite;
+  background: rgba(255, 255, 255, 0.1);
+  animation: uh-pulse 1s ease-in-out infinite alternate;
 }
 .uh-skel--site {
   width: 80px;
@@ -397,15 +497,15 @@
   height: 12px;
 }
 
+/* Opacity only: nothing about a card moves. */
 @keyframes uh-pop {
   from {
     opacity: 0;
-    transform: translateY(4px) scale(0.98);
   }
 }
-@keyframes uh-shimmer {
+@keyframes uh-pulse {
   to {
-    background-position: -200% 0;
+    opacity: 0.45;
   }
 }
 

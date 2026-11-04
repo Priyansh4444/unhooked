@@ -91,7 +91,7 @@ export function createManifest(target: Target, extraContentScripts: object[] = [
         ],
     ...(!mv2 && { host_permissions: hostPatterns }),
     // Only when asked: one site for the wand on a page Unhooked doesn't cover, or all of them for
-    // film mode's screenshots, the first time they're needed.
+    // film mode's screenshots or chat link previews, the first time they're needed.
     ...(mv2
       ? { optional_permissions: ["<all_urls>"] }
       : { optional_host_permissions: ["<all_urls>"] }),
@@ -101,6 +101,15 @@ export function createManifest(target: Target, extraContentScripts: object[] = [
         ? { scripts: ["background.js"] }
         : { service_worker: "background.js" },
     [mv2 ? "browser_action" : "action"]: action,
+    // Site logos on Twitch's chat pills; the browser's own favicons for the rest.
+    web_accessible_resources: mv2
+      ? ["icons/sites/*"]
+      : [
+          {
+            resources: ["icons/sites/*", ...(firefox ? [] : ["_favicon/*"])],
+            matches: ["*://*.twitch.tv/*"],
+          },
+        ],
     options_ui: { page: "ui/transfer/index.html", open_in_tab: true },
     commands: {
       "toggle-site": {

@@ -26,6 +26,8 @@ export const STORAGE_KEYS = Object.freeze({
   TWITCH_URL_LOG_ENABLED: "twitch_url_log_enabled",
   TWITCH_URL_LOG: "twitch_url_log",
   TWITCH_HOVER_DELAY_MS: "twitch_hover_delay_ms",
+  /** Said yes to previews of any link. Film mode's access to all sites doesn't mean this. */
+  TWITCH_LINK_PREVIEWS: "twitch_link_previews",
 });
 
 export const DEFAULTS = Object.freeze({
