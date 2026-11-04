@@ -242,17 +242,9 @@ check(
   (await app.$eval('#sites li[data-host="example.org"] .site-icon', (el) => el.textContent)) ===
     "E",
 );
-check(
-  "a popular site has its icon without one being saved",
-  await app.$eval('#sites li[data-host="x.com"] .site-icon img', (el) =>
-    el.src.includes("/icons/sites/x.com.png"),
-  ),
-);
-await ext.timeSetIcon("example.org", dot);
-await until("and any other site its own once there is one", () =>
-  app.$eval('#sites li[data-host="example.org"] .site-icon img', (el) =>
-    el.src.startsWith("data:"),
-  ),
+await ext.timeSetIcon("x.com", dot);
+await until("and its icon once there is one", () =>
+  app.$eval('#sites li[data-host="x.com"] .site-icon img', (el) => el.src.startsWith("data:")),
 );
 
 // Sessions, worked out by hand from what was seeded: 3600, 900, 300, 45 and 1800 seconds.

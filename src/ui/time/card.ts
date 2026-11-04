@@ -114,7 +114,12 @@ export function drawCard(
     const name = names ? row.host : `Site ${i + 1}`;
     // A site's icon says which site it is, so it goes with its name.
     const mark = names ? siteIcons?.get(row.host) : undefined;
-    if (mark) ctx.drawImage(mark, left.x, y - 15, 20, 20);
+    if (mark) {
+      // A plate, because many favicons are black and this card is nearly so.
+      ctx.fillStyle = BRIGHT;
+      ctx.fillRect(left.x, y - 15, 20, 20);
+      ctx.drawImage(mark, left.x + 2, y - 15 + 2, 20 - 4, 20 - 4);
+    }
     const nameX = left.x + (mark ? 28 : 0);
     ctx.fillText(fit(ctx, name, left.width - timeWidth - 16 - (mark ? 28 : 0)), nameX, y);
     ctx.textAlign = "right";
@@ -257,7 +262,12 @@ export function drawRecapCard(
   recap.sites.forEach((row, index) => {
     const y = 330 + index * 56;
     const mark = names ? siteIcons?.get(row.host) : undefined;
-    if (mark) ctx.drawImage(mark, left.x, y - 18, 22, 22);
+    if (mark) {
+      // A plate, because many favicons are black and this card is nearly so.
+      ctx.fillStyle = BRIGHT;
+      ctx.fillRect(left.x, y - 18, 22, 22);
+      ctx.drawImage(mark, left.x + 2, y - 18 + 2, 22 - 4, 22 - 4);
+    }
     ctx.fillStyle = PARCHMENT;
     ctx.font = `21px ${MONO}`;
     const time = formatDuration(row.seconds);

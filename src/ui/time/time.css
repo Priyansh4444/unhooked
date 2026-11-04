@@ -394,12 +394,16 @@ main {
   overflow: hidden;
   width: 16px;
   height: 16px;
-  border-radius: 3px;
+}
+/* A plate, because many favicons are black and this page is nearly so. */
+.site-icon:has(img) {
+  padding: 1px;
+  background: var(--bright);
 }
 .site-icon img {
   display: block;
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
 }
 .site-icon.is-letter {
   background: var(--raised);

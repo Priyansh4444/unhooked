@@ -4,7 +4,8 @@
 
 <p align="center"><b>Take the hooks out of the sites you use.</b><br>
 Hide feeds, remove anything with a magic wand, and see where your time really goes.<br>
-No account. Nothing leaves your computer.</p>
+No account. Nothing leaves your computer.<br>
+<a href="https://unhooked.pronsh.dev">unhooked.pronsh.dev</a></p>
 
 <p align="center">YouTube · X · Reddit · Instagram · TikTok · Facebook · LinkedIn · Threads · Twitch · Excalidraw · any other site with the wand<br>
 Chrome, Brave, Edge, Helium and other Chromium browsers, and Firefox</p>
@@ -84,7 +85,7 @@ Open it from **Your time** in the popup. Pick a period, or click a site to see j
 ![Your time: the total, a smooth line of time per day, sessions, where it went and when. Sample data.](docs/screenshots/time.gif)
 
 - **What counts:** the site in front while you're using it, or while it's playing sound. Not private windows, not while another app has the focus, and not once you've stepped away: after three minutes with no input and nothing playing, those three minutes are taken back. Time the computer slept through never counts.
-- **Sessions:** one unbroken stretch, on a site or online overall. Stepping away for under a minute doesn't end one, and under five seconds is only passing through. You get the count, average, median, longest and shortest, and each site's longest stretch, with its icon. Popular sites' icons come with the extension, so they show before a visit has saved one.
+- **Sessions:** one unbroken stretch, on a site or online overall. Stepping away for under a minute doesn't end one, and under five seconds is only passing through. You get the count, average, median, longest and shortest, and each site's longest stretch, with its icon.
 - **Long stretches:** time spent ten minutes or more at a time.
 - **Recap:** your year in a few screens, from the button at the top: the total, where it went, your biggest month and day, and your longest stretch, ending in a card to share. History is kept for 400 days, so an older year says when its numbers start.
 - **It doesn't depend on hiding anything.** It's a record of where your time goes on the web, so Pause all and a site's switch don't affect it. It has its own switch on that page.
@@ -123,7 +124,7 @@ A browser only lets an extension capture a tab with access to all sites, or just
 | **LinkedIn** | Home feed, news and recommendations |
 | **Threads** | For You and Following, suggested accounts |
 | **Excalidraw** | The site's switch leaves just the canvas |
-| **Twitch** | Link pills in chat, with a hover preview and a log of the last 25 links. Cards read like Discord embeds, and popular sites and AI labs show their logos. X posts preview in full, with their pictures, video and quoted post. Profiles show their name and bio. Spaces, lists and communities only say what they are, because X doesn't publish them. |
+| **Twitch** | Link pills in chat, with a hover preview and a log of the last 25 links. Cards read like Discord embeds, with each site's icon. X posts preview in full, with their pictures, video and quoted post. Profiles show their name and bio. Spaces, lists and communities only say what they are, because X doesn't publish them. |
 
 **Balanced** only includes what has been seen working on the live site. Facebook, TikTok's suggested accounts and Threads' suggested accounts haven't been, so they're off until you turn them on. Reddit and Threads were checked signed out.
 
@@ -147,7 +148,7 @@ The numbers, and how to reproduce them, are in [docs/PERFORMANCE.md](docs/PERFOR
 
 There is no account, server or analytics. Your settings and history stay in your browser.
 
-Network use comes from one feature: **Twitch link pills** look up links that appear in chat, while pills are on (oEmbed endpoints on youtube.com, reddit.com, vimeo.com, open.spotify.com and publish.x.com, X's embed service on cdn.syndication.twimg.com, the GitHub API, and pages on x.com, github.com, imgur.com and lakebed.app; pictures load from i.ytimg.com and pbs.twimg.com, and playing a preview loads youtube-nocookie.com's player or a video from video.twimg.com). Nothing is sent to us. Turn pills off to stop them.
+Network use comes from one feature: **Twitch link pills** look up links that appear in chat, while pills are on (oEmbed endpoints on youtube.com, reddit.com, vimeo.com, open.spotify.com and publish.x.com, X's embed service on cdn.syndication.twimg.com, the GitHub API, and pages on x.com, github.com, imgur.com and lakebed.app; pictures load from i.ytimg.com and pbs.twimg.com, and each link's site icon from icons.duckduckgo.com, which gets the domain and nothing else, and playing a preview loads youtube-nocookie.com's player or a video from video.twimg.com). Nothing is sent to us. Turn pills off to stop them.
 
 | Permission | Why |
 | :-- | :-- |

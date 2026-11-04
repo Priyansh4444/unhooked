@@ -5,3 +5,4 @@ dist-*/
 e2e/shots/
 test-results/
 *.tsbuildinfo
+.wrangler/
