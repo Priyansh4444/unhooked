@@ -13,10 +13,18 @@ export interface Box {
 }
 
 const MOST_ENLARGED = 1.5;
+/** A post taller than the screen stops shrinking here, and scrolls instead of turning to dust. */
+const SMALLEST_READABLE = 0.9;
+/** Posts are laid out at this width at most, however wide the page's column is. */
+export const FRAME_WIDTH = 600;
 
 /** How much to scale a post so it fills the screen with room around it, never past readable. */
 export const fitScale = (post: Size, view: Size): number =>
-  Math.min(MOST_ENLARGED, (view.height * 0.84) / post.height, (view.width * 0.88) / post.width);
+  Math.min(
+    MOST_ENLARGED,
+    Math.max(SMALLEST_READABLE, (view.height * 0.84) / post.height),
+    (view.width * 0.88) / post.width,
+  );
 
 /** The screenshot's crop in image pixels: the box and a margin of backdrop, inside the image. */
 export function cropBox(box: Box, view: Size, imageWidth: number, margin = 56): Box {

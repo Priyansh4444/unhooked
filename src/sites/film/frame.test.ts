@@ -7,8 +7,11 @@ describe("framing a post", () => {
   it("enlarges a short post, but not without limit", () => {
     expect(fitScale({ width: 400, height: 200 }, view)).toBe(1.5);
   });
-  it("shrinks a tall post to fit the height", () => {
-    expect(fitScale({ width: 600, height: 1344 }, view)).toBeCloseTo(0.5);
+  it("shrinks a slightly tall post to fit the height", () => {
+    expect(fitScale({ width: 600, height: 700 }, view)).toBeCloseTo(0.96);
+  });
+  it("stops shrinking a long post while it can still be read", () => {
+    expect(fitScale({ width: 600, height: 5000 }, view)).toBe(0.9);
   });
   it("shrinks a wide post to fit the width", () => {
     expect(fitScale({ width: 1760, height: 100 }, view)).toBeCloseTo(0.5);

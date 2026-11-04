@@ -2,7 +2,7 @@
 import { mkdtempSync, readdirSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { BROWSER, createChecker, launch, sleep, stub } from "./lib.mjs";
+import { BROWSER, closedShadowCenter, createChecker, launch, sleep, stub } from "./lib.mjs";
 
 const { browser, newPage, ext, close } = await launch();
 const { check, finish } = createChecker();
@@ -22,7 +22,7 @@ const post = (
   id,
   y,
 ) => `<div data-testid="cellInnerDiv" style="position:absolute;width:600px;transform:translateY(${y}px)">
-  <article data-testid="tweet" id="${id}" style="padding:12px;color:#fff">
+  <article data-testid="tweet" id="${id}" style="padding:12px;color:#fff;border-bottom:1px solid #2f3336">
     <a href="/post/${id}" id="${id}-link">A post worth keeping, ${id}</a>
     <button data-testid="caret" id="${id}-caret">…</button>
     <div data-testid="tweetText" id="${id}-text">Some words to select and keep</div>
@@ -259,10 +259,36 @@ check(
   "the pointer leaves the frame when idle",
   await page.$eval("#uh-film-stage", (el) => el.style.cursor === "none"),
 );
+const bar = () => page.$eval("unhooked-overlay[data-film]", (el) => el.dataset.banner);
+check("and so does the bar", (await bar()) === "off");
 await page.mouse.move(20, 20);
 await until("and comes back when you move", () =>
   page.$eval("#uh-film-stage", (el) => el.style.cursor === ""),
 );
+check("the bar stays away for a move anywhere", (await bar()) === "off");
+await page.mouse.move(20, 790);
+await until("and returns at the bottom edge", async () => (await bar()) === "on");
+await page.mouse.move(20, 20);
+await until("then leaves again", async () => (await bar()) === "off", 4000);
+
+check(
+  "the frame has no rule along its bottom",
+  await page.$eval(
+    "#uh-film-stage article",
+    (el) => getComputedStyle(el).borderBottomWidth === "0px",
+  ),
+);
+if (BROWSER !== "firefox") {
+  await page.mouse.move(20, 790);
+  await until("the bar is back to close it with", async () => (await bar()) === "on");
+  const closeFrame = await closedShadowCenter(page, "close");
+  await page.mouse.click(closeFrame.x, closeFrame.y);
+  await until("its close button leaves the frame", async () => (await stage()) === null);
+  check("and stays in film mode", (await overlay()) !== null);
+  await page.click("#one-actions .uh-film-btn");
+  await until("frames again", async () => (await stage()) !== null);
+  await sleep(700);
+}
 
 await page.keyboard.press("Escape");
 await until("Esc returns to the page", async () => (await stage()) === null);

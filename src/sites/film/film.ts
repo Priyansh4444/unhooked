@@ -15,7 +15,7 @@
 import { ext } from "../../shared/ext-api.ts";
 import { isEditableTarget } from "../../shared/keys.ts";
 import { Overlay } from "../../shared/overlay.ts";
-import { cropBox, fitScale, sharperImage, shotName, type Box } from "./frame.ts";
+import { FRAME_WIDTH, cropBox, fitScale, sharperImage, shotName, type Box } from "./frame.ts";
 import { FILM_CAPTURE, FILM_SHOOT, type CaptureReply } from "./protocol.ts";
 
 export interface Film {
@@ -42,6 +42,8 @@ const RADIUS = 16;
 const SPRING = "cubic-bezier(.32,.72,0,1)";
 /** How long the toolbar and pointer stay after the last sign of life, so a take stays clean. */
 const IDLE_MS = 2600;
+/** How close to the bottom of the window the pointer brings the bar back. */
+const BAR_ZONE_PX = 120;
 const calm = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 const PAGE_BANNER = canFrame
@@ -167,9 +169,24 @@ function flightFrom(card: HTMLElement, from: DOMRect): string {
   return `translate(${x}px,${y}px) scale(${canZoom() ? scale : 1})`;
 }
 
+/** X's rule under each post would sit right along the frame's bottom edge. */
+function clearBottomRule(copy: HTMLElement): void {
+  const bottom = copy.getBoundingClientRect().bottom;
+  const clear = (el: HTMLElement) => {
+    if (getComputedStyle(el).borderBottomWidth !== "0px") el.style.borderBottomWidth = "0";
+    for (const child of el.children) {
+      if (child instanceof HTMLElement && child.getBoundingClientRect().bottom > bottom - 3) {
+        clear(child);
+      }
+    }
+  };
+  clear(copy);
+}
+
 function start(): Film {
   const overlay = new Overlay();
   overlay.host.dataset.film = "on";
+  overlay.closeWith(() => (stage ? unframe() : stop()));
   overlay.banner(PAGE_BANNER);
   let stage: Stage | null = null;
   let hovered: HTMLElement | null = null;
@@ -199,23 +216,30 @@ function start(): Film {
     });
     card.style.transform = "";
     setSize(card, scale);
+    // Too long for the screen even at a readable size: it scrolls from its top.
+    const tall = card.getBoundingClientRect().height > innerHeight * 0.92;
+    const root = card.parentElement;
+    if (root) {
+      root.style.overflowY = tall ? "auto" : "hidden";
+      root.style.placeItems = tall ? "start center" : "center";
+      card.style.marginBlock = tall ? `${48 / scale}px` : "";
+    }
     return scale;
   };
 
   /** With nothing going on, the toolbar and pointer leave the frame. */
   const rest = () => {
     clearTimeout(idle);
-    if (!stage) return;
     idle = setTimeout(() => {
-      if (!stage) return;
+      if (toast) return; // a message's own timer rests again when it's done
       overlay.banner(null);
-      stage.root.style.cursor = "none";
+      if (stage) stage.root.style.cursor = "none";
     }, IDLE_MS);
   };
-  const wake = () => {
-    if (!stage) return;
-    stage.root.style.cursor = "";
-    if (!toast) overlay.banner(FRAMED_BANNER);
+  /** The pointer comes back wherever it moves; the bar only near the edge it lives on, or on a key. */
+  const wake = (y?: number) => {
+    if (stage) stage.root.style.cursor = "";
+    if (!toast && (y === undefined || y > innerHeight - BAR_ZONE_PX)) overlay.banner(banner());
     rest();
   };
 
@@ -223,16 +247,17 @@ function start(): Film {
     const from = post.getBoundingClientRect();
     const root = css(
       document.createElement("div"),
-      "position:fixed;inset:0;z-index:2147483646;display:grid;place-items:center;overflow:hidden",
+      "position:fixed;inset:0;z-index:2147483646;display:grid;place-items:center;overflow:hidden;" +
+        "overscroll-behavior:contain",
     );
     root.id = "uh-film-stage";
     const backdrop = css(
       document.createElement("div"),
-      "position:absolute;inset:0;background:radial-gradient(circle at 50% 42%,#26262b,#101012 72%)",
+      "position:fixed;inset:0;background:radial-gradient(circle at 50% 42%,#26262b,#101012 72%)",
     );
     const card = css(
       document.createElement("div"),
-      `position:relative;box-sizing:border-box;width:${from.width}px;overflow:hidden;` +
+      `position:relative;box-sizing:border-box;width:${Math.min(from.width, FRAME_WIDTH)}px;overflow:hidden;` +
         `border-radius:${RADIUS}px;background:${pageBackground()};` +
         "box-shadow:0 0 0 1px rgb(255 255 255 / .1),0 28px 90px rgb(0 0 0 / .6)",
     );
@@ -241,8 +266,15 @@ function start(): Film {
     card.append(copy);
     root.append(backdrop, card);
     document.body.append(root);
+    clearBottomRule(copy);
     // Nothing scrolls behind the stage, so the post is where it started when the stage closes.
-    root.addEventListener("wheel", (event) => event.preventDefault(), { passive: false });
+    root.addEventListener(
+      "wheel",
+      (event) => {
+        if (root.scrollHeight <= root.clientHeight) event.preventDefault();
+      },
+      { passive: false },
+    );
 
     // The card is laid out at its final size, and only the flight there is a transform.
     fit(card);
@@ -265,7 +297,7 @@ function start(): Film {
     const { root, backdrop, card, post, from } = stage;
     stage = null;
     overlay.banner(PAGE_BANNER);
-    clearTimeout(idle);
+    rest();
     const duration = calm() ? 0 : 300;
     const back = card.animate(
       [{ transform: card.style.transform || "none" }, { transform: flightFrom(card, from) }],
@@ -452,7 +484,7 @@ function start(): Film {
       : null;
 
   const onMove = (event: PointerEvent) => {
-    wake();
+    wake(event.clientY);
     const post = postAt(event);
     if (post === hovered) return;
     hovered = post;
@@ -467,6 +499,7 @@ function start(): Film {
 
   const onClick = (event: MouseEvent) => {
     const target = event.target as Node;
+    if (overlay.owns(target)) return; // the bar's close button
     if (stage?.root.contains(target)) {
       if (stage.card.contains(target)) return interact(event, stage);
       // The backdrop: back to the page.
@@ -501,6 +534,7 @@ function start(): Film {
     if (message?.action === FILM_SHOOT) void shoot();
   };
   ext.runtime.onMessage.addListener(onMessage);
+  rest();
   addEventListener("pointermove", onMove, { capture: true, passive: true });
   addEventListener("scroll", onScroll, { capture: true, passive: true });
   addEventListener("click", onClick, true);
