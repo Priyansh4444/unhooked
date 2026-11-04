@@ -170,6 +170,17 @@ if (wanted("time")) {
   await sleep(600);
   const card = await page.$eval("#card", (canvas) => (canvas as HTMLCanvasElement).toDataURL());
   await writeFile(join(OUT, "time-card.png"), Buffer.from(card.split(",")[1]!, "base64"));
+  await page.click("#closeShare");
+  await sleep(300);
+  // The year's recap, drawn from the same sample.
+  await page.click("#openRecap");
+  for (let step = 0; step < 4; step++) {
+    await page.click("#recapNext");
+    await sleep(150);
+  }
+  await sleep(700);
+  const recap = await page.$eval("#recapCard", (c) => (c as HTMLCanvasElement).toDataURL());
+  await writeFile(join(OUT, "recap-card.png"), Buffer.from(recap.split(",")[1]!, "base64"));
   await page.close();
   await ext.timeSeed([]);
   await ext.set({ "unhooked.time.enabled": true });

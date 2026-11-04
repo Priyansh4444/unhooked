@@ -286,7 +286,7 @@ h1 {
   transform: scale(0.98);
 }
 .dots {
-  stroke: var(--amber);
+  stroke: var(--signal);
 }
 .tool:disabled .dots {
   stroke: var(--dim);

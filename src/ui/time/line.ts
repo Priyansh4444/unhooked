@@ -291,7 +291,7 @@ export class LineChart {
   }
 
   #setStrokeEnd(isNow: boolean): void {
-    // One amber, warming to the extension's red only in the last moment before the present.
+    // One colour, turning white only in the last moment before the present.
     const stops: [string, string][] = isNow
       ? [
           ["0", "stop-line"],

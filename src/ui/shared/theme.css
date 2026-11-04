@@ -1,6 +1,6 @@
 /*
  * Shared by the popup and the picker. Dark only. After anoma.ly's notes: ink panels with hairline
- * rules, parchment serif for prose, small mono caps for chrome, amber dot-matrix drawings, and
+ * rules, parchment serif for prose, small mono caps for chrome, signal-coloured dot-matrix drawings, and
  * one hand-written red note. Red is the only colour that means "this is acting".
  */
 @font-face {
@@ -31,7 +31,7 @@
   --bright: #f2ede4;
   --stone: #8a857c;
   --dim: #5c5852;
-  --amber: #d6a24e;
+  --signal: #ff3d22;
   --red: #e3170c;
   --mono: "Commit Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
   --serif: "Newsreader", "Iowan Old Style", Georgia, serif;

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { computeRecap, recapPeriod, recapYears } from "./recap.ts";
 import {
   comparison,
   computeView,
@@ -302,10 +303,10 @@ describe("session numbers", () => {
     expect(stats.longest!.seconds).toBe(1340);
     expect(stats.shortest!.seconds).toBe(10);
   });
-  it("counts focus as time in stretches of ten minutes or more", () => {
+  it("counts long stretches as ten minutes or more", () => {
     const stats = summarizeSessions([session(599), session(600), session(1801)]);
-    expect(stats.focused).toBe(2401);
-    expect(stats.focusedShare).toBeCloseTo(2401 / 3000);
+    expect(stats.inLongStretches).toBe(2401);
+    expect(stats.longStretchShare).toBeCloseTo(2401 / 3000);
   });
   it("sorts them into buckets with nothing lost at the edges", () => {
     const stats = summarizeSessions(
@@ -507,5 +508,101 @@ describe("axis steps", () => {
     expect(timeTicks(10_000)).toEqual([3600, 7200]);
     expect(timeTicks(1500)).toEqual([900]);
     expect(timeTicks(0)).toHaveLength(1);
+  });
+});
+
+describe("the longest sessions", () => {
+  it("lists the longest few, longest first", () => {
+    const sessions = [5, 90, 30, 400, 60, 200, 10].map((seconds, i) => ({
+      host: `site${i}.com`,
+      start: i,
+      end: i + seconds,
+      seconds,
+    }));
+    expect(summarizeSessions(sessions).top.map((s) => s.seconds)).toEqual([400, 200, 90, 60, 30]);
+  });
+  it("is empty with nothing to list", () => {
+    expect(summarizeSessions([]).top).toEqual([]);
+  });
+});
+
+describe("each site's longest session", () => {
+  const on = (host: string, seconds: number) => ({ host, start: 1, end: 1 + seconds, seconds });
+  it("lists one per site, longest first", () => {
+    const day = {
+      date: dateKey(new Date(NOW)),
+      hosts: { "a.com": { 9: 900 }, "b.com": { 10: 300 } },
+      sessions: [on("a.com", 500), on("a.com", 400), on("b.com", 300)].map((s) => ({
+        ...s,
+        start: NOW - s.seconds * 1000,
+        end: NOW,
+      })),
+    };
+    const { top } = computeView([day], "today", null, NOW).sessions;
+    expect(top.map((s) => [s.host, s.seconds])).toEqual([
+      ["a.com", 500],
+      ["b.com", 300],
+    ]);
+  });
+});
+
+describe("the year's recap", () => {
+  const day = (date: string, hosts: Record<string, Record<number, number>>, sessions = []) => ({
+    date,
+    hosts,
+    sessions,
+  });
+  const days = [
+    day("2025-12-31", { "x.com": { 9: 100 } }),
+    day("2026-01-02", { "www.x.com": { 9: 600 }, "github.com": { 10: 1800 } }, [
+      { host: "github.com", start: 1, end: 2, seconds: 1800 },
+    ] as never[]),
+    day("2026-03-04", { "x.com": { 21: 300 } }),
+    day("2026-03-05", { "x.com": { 21: 3600 } }),
+  ];
+  const recap = computeRecap(days, 2026, Date.UTC(2026, 10, 4));
+  it("adds up one year and no other", () => {
+    expect(recap.seconds).toBe(6300);
+    expect(recap.activeDays).toBe(3);
+    expect(recapYears(days)).toEqual([2026, 2025]);
+  });
+  it("names each site once, biggest first", () => {
+    expect(recap.sites).toEqual([
+      { host: "x.com", seconds: 4500 },
+      { host: "github.com", seconds: 1800 },
+    ]);
+  });
+  it("finds the busiest month, day and hour", () => {
+    expect(recap.busiestMonth).toBe(2);
+    expect(recap.busiestDay).toEqual({ date: "2026-03-05", seconds: 3600 });
+    expect(recap.busiestHour).toBe(21);
+  });
+  it("finds the longest stretch", () => {
+    expect(recap.longest?.host).toBe("github.com");
+    expect(recap.sessions).toBe(1);
+  });
+  it("knows a year that isn't over", () => {
+    expect(recap.soFar).toBe(true);
+    expect(computeRecap(days, 2025, Date.UTC(2026, 10, 4)).soFar).toBe(false);
+  });
+  it("says when a year is missing its start", () => {
+    const year = computeRecap(
+      [day("2025-10-08", { "x.com": { 9: 60 } })],
+      2025,
+      Date.UTC(2026, 10, 4),
+    );
+    expect(recapPeriod(year)).toMatch(/^2025, since /);
+    const whole = computeRecap(
+      [day("2025-01-02", { "x.com": { 9: 60 } })],
+      2025,
+      Date.UTC(2026, 10, 4),
+    );
+    expect(recapPeriod(whole)).toBe("2025");
+  });
+  it("has nothing to say about an empty year", () => {
+    const empty = computeRecap([], 2024);
+    expect(empty.seconds).toBe(0);
+    expect(empty.busiestHour).toBeNull();
+    expect(recapYears([])).toEqual([]);
   });
 });

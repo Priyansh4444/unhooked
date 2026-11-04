@@ -2,6 +2,7 @@
  * The share card: the view drawn on a canvas at twice its size, 2400 by 1350, because a timeline
  * shows 16:9 best and recompresses whatever it's given. The page's own type and colours, no chrome.
  */
+import { recapPeriod, type Recap } from "../../time/recap.ts";
 import { areaPath, smoothPath } from "./curve.ts";
 import { comparison, hourLabel, periodPhrase, type View } from "../../time/stats.ts";
 import { formatDuration } from "../../time/tracker.ts";
@@ -12,8 +13,8 @@ const PARCHMENT = "#d4cec4";
 const BRIGHT = "#f2ede4";
 const STONE = "#8a857c";
 const DIM = "#5c5852";
-const AMBER = "#d6a24e";
-const RED = "#e3170c";
+const SIGNAL = "#ff3d22";
+const NOW = "#f2ede4";
 const MONO = '"Commit Mono", ui-monospace, monospace';
 const SERIF = '"Newsreader", Georgia, serif';
 
@@ -124,7 +125,7 @@ export function drawCard(
     ctx.beginPath();
     ctx.roundRect(left.x, y + 10, left.width, 4, 2);
     ctx.fill();
-    ctx.fillStyle = view.site && row.host === view.site ? RED : AMBER;
+    ctx.fillStyle = view.site && row.host === view.site ? NOW : SIGNAL;
     ctx.beginPath();
     ctx.roundRect(left.x, y + 10, Math.max(4, (row.seconds / top) * left.width), 4, 2);
     ctx.fill();
@@ -144,7 +145,7 @@ export function drawCard(
       const strength = Math.sqrt(value / peak);
       ctx.beginPath();
       ctx.arc(cx, cy, value ? 2.5 + strength * 5.5 : 2, 0, Math.PI * 2);
-      ctx.fillStyle = value ? AMBER : RULE;
+      ctx.fillStyle = value ? SIGNAL : RULE;
       ctx.globalAlpha = value ? 0.35 + strength * 0.65 : 1;
       ctx.fill();
       ctx.globalAlpha = 1;
@@ -165,15 +166,15 @@ export function drawCard(
   const ys = plotted.map((point) => base - (point.seconds / most) * chart.height);
   if (plotted.length > 1) {
     const fade = ctx.createLinearGradient(0, chart.y, 0, base);
-    fade.addColorStop(0, "rgb(214 162 78 / 0.34)");
-    fade.addColorStop(0.55, "rgb(214 162 78 / 0.12)");
-    fade.addColorStop(1, "rgb(214 162 78 / 0)");
+    fade.addColorStop(0, "rgb(255 61 34 / 0.34)");
+    fade.addColorStop(0.55, "rgb(255 61 34 / 0.12)");
+    fade.addColorStop(1, "rgb(255 61 34 / 0)");
     ctx.fillStyle = fade;
     ctx.fill(new Path2D(areaPath(xs, ys, base)));
     const line = ctx.createLinearGradient(chart.x, 0, xs.at(-1)!, 0);
-    line.addColorStop(0, AMBER);
-    line.addColorStop(0.95, AMBER);
-    line.addColorStop(1, plotted.at(-1)!.current ? RED : AMBER);
+    line.addColorStop(0, SIGNAL);
+    line.addColorStop(0.95, SIGNAL);
+    line.addColorStop(1, plotted.at(-1)!.current ? NOW : SIGNAL);
     ctx.strokeStyle = line;
     ctx.lineWidth = 2.5;
     ctx.lineCap = "round";
@@ -183,7 +184,7 @@ export function drawCard(
   if (plotted.length) {
     ctx.beginPath();
     ctx.arc(xs.at(-1)!, ys.at(-1)!, 5, 0, Math.PI * 2);
-    ctx.fillStyle = plotted.at(-1)!.current ? RED : AMBER;
+    ctx.fillStyle = plotted.at(-1)!.current ? NOW : SIGNAL;
     ctx.strokeStyle = INK;
     ctx.lineWidth = 2;
     ctx.fill();
@@ -205,6 +206,104 @@ export function drawCard(
 }
 
 /** The words that go with the picture. */
+const MONTH_LETTERS = "JFMAMJJASOND";
+
+/** The year's card: the total, where it went, and the shape of the year. */
+export function drawRecapCard(
+  canvas: HTMLCanvasElement,
+  recap: Recap,
+  {
+    names,
+    icon,
+    siteIcons,
+  }: { names: boolean; icon: CanvasImageSource | null; siteIcons?: Map<string, CanvasImageSource> },
+): void {
+  const ctx = canvas.getContext("2d")!;
+  ctx.setTransform(canvas.width / WIDTH, 0, 0, canvas.height / HEIGHT, 0, 0);
+  ctx.fillStyle = INK;
+  ctx.fillRect(0, 0, WIDTH, HEIGHT);
+  ctx.textBaseline = "alphabetic";
+  ctx.textAlign = "left";
+  if (icon) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(PAD, PAD - 6, 36, 36, 8);
+    ctx.clip();
+    ctx.drawImage(icon, PAD, PAD - 6, 36, 36);
+    ctx.restore();
+  }
+  ctx.fillStyle = BRIGHT;
+  ctx.font = `30px ${SERIF}`;
+  ctx.fillText("unhooked", PAD + 46, PAD + 22);
+  ctx.textAlign = "right";
+  ctx.fillStyle = STONE;
+  ctx.font = `18px ${MONO}`;
+  ctx.fillText(recapPeriod(recap), WIDTH - PAD, PAD + 20);
+  ctx.textAlign = "left";
+
+  ctx.fillStyle = SIGNAL;
+  ctx.font = `500 104px ${MONO}`;
+  ctx.fillText(formatDuration(recap.seconds), PAD, 212);
+  ctx.fillStyle = PARCHMENT;
+  ctx.font = `28px ${SERIF}`;
+  ctx.fillText(
+    `in my browser, across ${recap.activeDays} ${recap.activeDays === 1 ? "day" : "days"}`,
+    PAD,
+    258,
+  );
+
+  const left = { x: PAD, width: 500 };
+  const top = recap.sites[0]?.seconds ?? 1;
+  recap.sites.forEach((row, index) => {
+    const y = 330 + index * 56;
+    const mark = names ? siteIcons?.get(row.host) : undefined;
+    if (mark) ctx.drawImage(mark, left.x, y - 18, 22, 22);
+    ctx.fillStyle = PARCHMENT;
+    ctx.font = `21px ${MONO}`;
+    const time = formatDuration(row.seconds);
+    const timeWidth = ctx.measureText(time).width;
+    const name = names ? row.host : `Site ${index + 1}`;
+    ctx.fillText(
+      fit(ctx, name, left.width - timeWidth - 16 - (mark ? 30 : 0)),
+      left.x + (mark ? 30 : 0),
+      y,
+    );
+    ctx.textAlign = "right";
+    ctx.fillStyle = STONE;
+    ctx.fillText(time, left.x + left.width, y);
+    ctx.textAlign = "left";
+    ctx.fillStyle = RULE;
+    ctx.fillRect(left.x, y + 10, left.width, 3);
+    ctx.fillStyle = SIGNAL;
+    ctx.fillRect(left.x, y + 10, Math.max(3, (row.seconds / top) * left.width), 3);
+  });
+
+  const area = { x: 640, y: 320, width: WIDTH - 640 - PAD, height: 260 };
+  const most = Math.max(...recap.months, 1);
+  const slot = area.width / 12;
+  recap.months.forEach((seconds, index) => {
+    const height = seconds ? Math.max(4, (seconds / most) * area.height) : 0;
+    ctx.fillStyle = index === recap.busiestMonth ? SIGNAL : "rgb(255 61 34 / 0.45)";
+    ctx.fillRect(area.x + index * slot, area.y + area.height - height, slot - 8, height);
+    ctx.fillStyle = STONE;
+    ctx.font = `16px ${MONO}`;
+    ctx.textAlign = "center";
+    ctx.fillText(
+      MONTH_LETTERS[index] ?? "",
+      area.x + index * slot + (slot - 8) / 2,
+      area.y + area.height + 26,
+    );
+    ctx.textAlign = "left";
+  });
+  ctx.fillStyle = RULE;
+  ctx.fillRect(area.x, area.y + area.height, area.width - 8, 1);
+  ctx.fillStyle = DIM;
+  ctx.font = `16px ${MONO}`;
+  ctx.textAlign = "right";
+  ctx.fillText("github.com/Priyansh4444/unhooked", WIDTH - PAD, HEIGHT - PAD + 18);
+  ctx.textAlign = "left";
+}
+
 export function postText(view: View, names: boolean): string {
   const time = formatDuration(view.total);
   const period = periodPhrase(view.range);

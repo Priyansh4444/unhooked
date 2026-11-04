@@ -131,6 +131,11 @@ check(
 await scene(inUse);
 const beforeAway = await countedOn();
 check("about to step away, time has been counted", beforeAway >= 0.9, String(beforeAway));
+// This is a record of where time goes, whatever the extension is hiding.
+await ext.set({ "unhooked.paused": true, "unhooked.site.x.enabled": false });
+check("Pause all and a site's switch don't stop it counting", (await scene(inUse)) >= 0.9);
+await ext.set({ "unhooked.paused": false, "unhooked.site.x.enabled": true });
+await scene(inUse);
 await ext.timeStep({ ...inUse, idle: "idle" });
 check(
   "stepping away takes back the idle stretch",
@@ -237,9 +242,17 @@ check(
   (await app.$eval('#sites li[data-host="example.org"] .site-icon', (el) => el.textContent)) ===
     "E",
 );
-await ext.timeSetIcon("x.com", dot);
-await until("and its icon once there is one", () =>
-  app.$eval('#sites li[data-host="x.com"] .site-icon img', (el) => el.src.startsWith("data:")),
+check(
+  "a popular site has its icon without one being saved",
+  await app.$eval('#sites li[data-host="x.com"] .site-icon img', (el) =>
+    el.src.includes("/icons/sites/x.com.png"),
+  ),
+);
+await ext.timeSetIcon("example.org", dot);
+await until("and any other site its own once there is one", () =>
+  app.$eval('#sites li[data-host="example.org"] .site-icon img', (el) =>
+    el.src.startsWith("data:"),
+  ),
 );
 
 // Sessions, worked out by hand from what was seeded: 3600, 900, 300, 45 and 1800 seconds.
@@ -248,9 +261,41 @@ await until("with their average", async () => (await text("#sessionAverage")) ==
 check("and median", (await text("#sessionMedian")) === "median 15m");
 await until("the longest", async () => (await text("#sessionLongest")) === "1h");
 await until("the shortest", async () => (await text("#sessionShortest")) === "45s");
-await until("and time in focus", async () => (await text("#sessionFocused")) === "1h 45m");
-check("as a share", (await text("#sessionFocusedNote")).startsWith("95%"));
+await until("and time in long stretches", async () => (await text("#sessionLong")) === "1h 45m");
+check("as a share", (await text("#sessionLongNote")).startsWith("95%"));
 check("the longest says what and when", (await text("#sessionLongestNote")).startsWith("x.com · "));
+await app.click("#openRecap");
+await until("the recap opens", () => app.$eval("#recapDialog", (el) => el.open));
+check("it starts with the year's total", /\d/.test(await text(".recap-big")));
+for (const step of [1, 2, 3, 4]) {
+  await app.click("#recapNext");
+  await until(`to screen ${step + 1}`, async () =>
+    (await text("#recapStep")).startsWith(`${step + 1} of`),
+  );
+}
+await until("it ends on a card with marks on it", () =>
+  app.$eval("#recapCard", (canvas) => {
+    const { data } = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height);
+    let marks = 0;
+    for (let i = 0; i < data.length; i += 4 * 97) if (data[i] > 180 && data[i + 1] < 110) marks++;
+    return marks > 20;
+  }),
+);
+await app.click("#closeRecap");
+await until("and closes", () => app.$eval("#recapDialog", (el) => !el.open));
+check("with the site's icon", (await app.$("#sessionLongestNote .site-icon img")) !== null);
+check(
+  "and the longest sessions are listed with their icons",
+  await app.$$eval("#longSessions li", (rows) => {
+    const first = rows[0];
+    return (
+      rows.length > 0 &&
+      rows.length <= 5 &&
+      first.textContent.includes("x.com") &&
+      first.querySelector(".site-icon img") !== null
+    );
+  }),
+);
 await until(
   "lengths are sorted into groups",
   async () =>
@@ -284,8 +329,8 @@ const fill = await app.$eval(`${chart} .line-area`, (el) => {
   return [...gradient.children].map((stop) => getComputedStyle(stop).stopColor);
 });
 check(
-  "the gradient stays on the scheme's amber",
-  fill.every((color) => color === "rgb(214, 162, 78)"),
+  "the gradient stays on the scheme's colour",
+  fill.every((color) => color === "rgb(255, 61, 34)"),
   fill.join(),
 );
 check(
@@ -403,17 +448,17 @@ check("the card is 16:9, at twice the size", size.join() === "2400,1350");
 const drawn = await app.$eval("#card", (el) => {
   const { data } = el.getContext("2d").getImageData(0, 0, el.width, el.height);
   let bright = 0;
-  let amber = 0;
+  let marks = 0;
   for (let i = 0; i < data.length; i += 400) {
     if (data[i] > 200 && data[i + 1] > 200) bright++;
-    if (data[i] > 180 && data[i + 1] > 120 && data[i + 2] < 110) amber++;
+    if (data[i] > 180 && data[i + 1] < 110 && data[i + 2] < 90) marks++;
   }
-  return { bright, amber };
+  return { bright, marks };
 });
-check("it has text and marks on it", drawn.bright > 50 && drawn.amber > 50, JSON.stringify(drawn));
+check("it has text and marks on it", drawn.bright > 50 && drawn.marks > 50, JSON.stringify(drawn));
 const picture = () => app.$eval("#card", (el) => el.toDataURL("image/png").length);
 const withNames = await picture();
-await app.click(".share-actions .foot-switch");
+await app.click("#shareDialog .share-actions .foot-switch");
 await sleep(100);
 check("site names can be left out", (await picture()) !== withNames);
 await app.evaluate(() => {

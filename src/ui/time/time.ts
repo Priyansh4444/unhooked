@@ -4,6 +4,7 @@
  * where they belong, and the next change can take over mid-flight.
  */
 import { ext } from "../../shared/ext-api.ts";
+import { ownSiteIcon, siteIcon as bundledIcon } from "../../shared/site-icons.ts";
 import { STORAGE_KEYS } from "../../shared/settings.ts";
 import { TIME_FLUSH } from "../../time/protocol.ts";
 import {
@@ -22,6 +23,7 @@ import {
   eraseAll,
   forgetHost,
   getIcons,
+  setIcon,
   getTracker,
   putDays,
   restoreHost,
@@ -31,6 +33,7 @@ import {
 import { MIN_SESSION_SECONDS, formatDuration, type Session } from "../../time/tracker.ts";
 import { cardFonts, drawCard, postText } from "./card.ts";
 import { LineChart, type LinePoint } from "./line.ts";
+import { bindRecap } from "./recap.ts";
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string): T => document.getElementById(id) as T;
 const calm = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -47,6 +50,8 @@ let view: View = computeView([], range, site, Date.now());
 /** Visits still going, which count too, and move as they grow. */
 let openSessions: Session[] = [];
 let icons: SiteIcons = {};
+/** Sites whose browser icon has been asked for, so a site without one is only asked about once. */
+const iconAsked = new Set<string>();
 /** Whether the background answered: without it, nothing is being counted whatever this shows. */
 let counting = true;
 let allRows = false;
@@ -199,10 +204,47 @@ function renderTimeline(): void {
 
 const SHORT_DAY = new Intl.DateTimeFormat("en", { month: "short", day: "numeric" });
 
-function sessionNote(session: Session | null): string {
-  if (!session) return "";
+/** Where and when: with the site's icon, unless the whole page is already about one site. */
+function setSessionNote(note: HTMLElement, session: Session | null): void {
+  if (!session) {
+    note.replaceChildren();
+    return;
+  }
   const when = SHORT_DAY.format(session.start);
-  return !site && session.host ? `${session.host} · ${when}` : when;
+  if (site || !session.host) {
+    note.textContent = when;
+    return;
+  }
+  note.replaceChildren(siteIcon(session.host), `${session.host} · ${when}`);
+}
+
+/** The longest stretches themselves: where they were, how long, and when. */
+function renderLongSessions(top: Session[]): void {
+  const list = $("longSessions");
+  const most = top[0]?.seconds ?? 1;
+  list.hidden = !top.length;
+  $("longSessionsHeading").hidden = !top.length;
+  list.replaceChildren(
+    ...top.map((session) => {
+      const row = document.createElement("li");
+      const name = document.createElement("span");
+      name.className = "site-name";
+      name.textContent = session.host;
+      const bar = document.createElement("span");
+      bar.className = "long-bar";
+      const fill = document.createElement("span");
+      fill.style.transform = `scaleX(${session.seconds / most})`;
+      bar.append(fill);
+      const time = document.createElement("span");
+      time.className = "site-time";
+      time.textContent = formatDuration(session.seconds);
+      const when = document.createElement("span");
+      when.className = "long-when";
+      when.textContent = SHORT_DAY.format(session.start);
+      row.append(siteIcon(session.host), name, bar, time, when);
+      return row;
+    }),
+  );
 }
 
 const lengths = new LineChart($("buckets"), {
@@ -227,12 +269,13 @@ function renderSessions(): void {
   countTo($("sessionAverage"), stats.average, formatDuration);
   $("sessionMedian").textContent = stats.count ? `median ${formatDuration(stats.median)}` : "";
   countTo($("sessionLongest"), stats.longest?.seconds ?? 0, formatDuration);
-  $("sessionLongestNote").textContent = sessionNote(stats.longest);
+  setSessionNote($("sessionLongestNote"), stats.longest);
   countTo($("sessionShortest"), stats.shortest?.seconds ?? 0, formatDuration);
-  $("sessionShortestNote").textContent = sessionNote(stats.shortest);
-  countTo($("sessionFocused"), stats.focused, formatDuration);
-  $("sessionFocusedNote").textContent = stats.count
-    ? `${Math.round(stats.focusedShare * 100)}% in stretches of 10m+`
+  setSessionNote($("sessionShortestNote"), stats.shortest);
+  renderLongSessions(stats.top);
+  countTo($("sessionLong"), stats.inLongStretches, formatDuration);
+  $("sessionLongNote").textContent = stats.count
+    ? `${Math.round(stats.longStretchShare * 100)}% of your time, 10m+ at once`
     : "stretches of 10m or more";
 
   lengths.update(
@@ -255,8 +298,20 @@ function siteIcon(host: string): HTMLElement {
   return slot;
 }
 
+/**
+ * A popular site's from the ones that ship with the extension, which are made to show on a dark
+ * page; then its saved icon; then the icon of the site it's part of, as docs.google.com is of Google.
+ */
+function iconSrc(host: string): string | undefined {
+  const own = ownSiteIcon(host);
+  if (own) return ext.runtime.getURL(own);
+  if (icons[host]?.src) return icons[host].src;
+  const parent = bundledIcon(host);
+  return parent && ext.runtime.getURL(parent);
+}
+
 function refreshIcon(slot: HTMLElement, host: string): void {
-  const src = icons[host]?.src;
+  const src = iconSrc(host);
   if (slot.dataset.src === (src ?? "") && slot.childNodes.length) return;
   slot.dataset.src = src ?? "";
   const letter = () => {
@@ -271,6 +326,42 @@ function refreshIcon(slot: HTMLElement, host: string): void {
   image.addEventListener("error", letter, { once: true });
   image.src = src;
   slot.replaceChildren(image);
+}
+
+/**
+ * A site with no icon yet: visited before icons were saved, or not in front since. The browser
+ * usually has it. What it returns for a site it doesn't know is one fixed picture, so that's
+ * compared against rather than shown as if it were the site's.
+ */
+async function browserIcon(host: string, generic: string | null): Promise<string | null> {
+  const url = new URL(ext.runtime.getURL("_favicon/"));
+  url.searchParams.set("pageUrl", `https://${host}/`);
+  url.searchParams.set("size", "32");
+  const response = await fetch(url);
+  if (!response.ok) return null;
+  const type = response.headers.get("content-type") ?? "image/png";
+  const data = btoa(String.fromCharCode(...new Uint8Array(await response.arrayBuffer())));
+  return data === generic ? null : `data:${type};base64,${data}`;
+}
+
+async function fillMissingIcons(): Promise<void> {
+  if (!ext.runtime.getManifest().permissions?.includes("favicon")) return;
+  const hosts = view.sites
+    .map((entry) => entry.host)
+    .filter((host) => !iconSrc(host) && !iconAsked.has(host));
+  if (!hosts.length) return;
+  for (const host of hosts) iconAsked.add(host);
+  const unknown = await browserIcon("unhooked.invalid", null).catch(() => null);
+  const generic = unknown?.split(",")[1] ?? null;
+  let found = false;
+  for (const host of hosts) {
+    const src = await browserIcon(host, generic).catch(() => null);
+    if (!src) continue;
+    icons[host] = { src, at: Date.now() };
+    await setIcon(host, src, Date.now()).catch(() => {});
+    found = true;
+  }
+  if (found) renderSites();
 }
 
 // ---- where it went ---------------------------------------------------------------------------
@@ -484,6 +575,7 @@ function render(): void {
 
   renderTimeline();
   renderSessions();
+  void fillMissingIcons();
   renderSites();
   renderHeat();
   renderNumbers();
@@ -550,6 +642,7 @@ async function reload(): Promise<void> {
   const answer = await ext.runtime.sendMessage({ action: TIME_FLUSH }).catch(() => undefined);
   counting = answer === true;
   days = await allDays();
+  document.dispatchEvent(new Event("uh-time-loaded"));
   icons = await getIcons();
   openSessions = Object.values((await getTracker()).open).filter(
     (session) => session.seconds >= MIN_SESSION_SECONDS,
@@ -570,12 +663,13 @@ let iconImage: HTMLImageElement | null = null;
 
 const cardIcons = new Map<string, HTMLImageElement>();
 
-/** Only icons held as data: one from another site would stop the card being saved. */
-async function loadCardIcons(): Promise<void> {
+/** Only pictures of its own: one from another site would stop the card being saved. */
+async function loadIcons(hosts: string[]): Promise<Map<string, HTMLImageElement>> {
   await Promise.all(
-    view.sites.slice(0, 5).map(async ({ host }) => {
-      const src = icons[host]?.src;
-      if (!src?.startsWith("data:") || cardIcons.has(host)) return;
+    hosts.map(async (host) => {
+      const src = iconSrc(host);
+      if (cardIcons.has(host) || !src) return;
+      if (!src.startsWith("data:") && !src.startsWith(ext.runtime.getURL(""))) return;
       const image = new Image();
       image.src = src;
       await image.decode().then(
@@ -584,7 +678,10 @@ async function loadCardIcons(): Promise<void> {
       );
     }),
   );
+  return cardIcons;
 }
+
+const loadCardIcons = () => loadIcons(view.sites.slice(0, 5).map(({ host }) => host));
 
 const showNames = () => $<HTMLInputElement>("showNames").checked;
 
@@ -625,6 +722,11 @@ async function saveCard(): Promise<void> {
 }
 
 function bind(): void {
+  bindRecap(() => days, {
+    siteIcon,
+    loadIcons,
+    brand: () => iconImage,
+  });
   $("ranges").addEventListener("click", (event) => {
     const button = (event.target as HTMLElement).closest<HTMLElement>("button");
     if (!button?.dataset.range) return;

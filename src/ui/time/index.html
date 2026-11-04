@@ -28,6 +28,7 @@
             Forget and stop counting
           </button>
         </div>
+        <button type="button" class="action share" id="openRecap" hidden></button>
         <button type="button" class="action share" id="openShare">
           <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
             <path
@@ -102,12 +103,19 @@
             <p class="tile-note" id="sessionShortestNote"></p>
           </div>
           <div>
-            <dt>Focused</dt>
-            <dd id="sessionFocused">0s</dd>
-            <p class="tile-note" id="sessionFocusedNote"></p>
+            <dt>Long stretches</dt>
+            <dd id="sessionLong">0s</dd>
+            <p class="tile-note" id="sessionLongNote"></p>
           </div>
         </dl>
         <div id="buckets" class="buckets"></div>
+        <h3 class="label long-heading" id="longSessionsHeading" hidden>Longest stretches</h3>
+        <ol
+          class="long-sessions"
+          id="longSessions"
+          aria-labelledby="longSessionsHeading"
+          hidden
+        ></ol>
       </section>
 
       <div class="split">
@@ -173,6 +181,33 @@
     <div class="tip" id="tip" role="tooltip" hidden>
       <strong id="tipValue"></strong><span id="tipLabel"></span>
     </div>
+
+    <dialog class="share-dialog recap-dialog" id="recapDialog" aria-labelledby="recapTitle">
+      <div class="share-head">
+        <h2 id="recapTitle">Your year</h2>
+        <select id="recapYear" aria-label="Year" hidden></select>
+        <button type="button" class="close" id="closeRecap" aria-label="Close">
+          <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+            <path d="m3.5 3.5 9 9m0-9-9 9" />
+          </svg>
+        </button>
+      </div>
+      <div class="recap-body" id="recapBody"></div>
+      <div class="share-actions">
+        <button type="button" class="action" id="recapBack">Back</button>
+        <span class="recap-step" id="recapStep"></span>
+        <p class="share-status" id="recapStatus" role="status" aria-live="polite"></p>
+        <div class="recap-share-actions" id="recapShare" hidden>
+          <label class="foot-switch">
+            <input type="checkbox" class="uh-switch" id="recapNames" checked />
+            <span>Show site names</span>
+          </label>
+          <button type="button" class="action" id="recapSave">Save PNG</button>
+          <button type="button" class="action" id="recapCopy">Copy image</button>
+        </div>
+        <button type="button" class="action primary" id="recapNext">Next</button>
+      </div>
+    </dialog>
 
     <dialog class="share-dialog" id="shareDialog" aria-labelledby="shareTitle">
       <div class="share-head">
