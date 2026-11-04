@@ -1,9 +1,15 @@
+import { TWITCH_ACTIONS } from "./sites/twitch/protocol.ts";
 import { ext } from "./shared/ext-api.ts";
 import { injectScript } from "./shared/inject.ts";
 import { siteSwitchPatch } from "./shared/preferences.ts";
 import { initWandPages } from "./sites/custom/pages.ts";
 import { WAND_ACTION } from "./sites/custom/protocol.ts";
-import { FILM_CAPTURE, type CaptureReply } from "./sites/film/protocol.ts";
+import {
+  FILM_CAPTURE,
+  FILM_START,
+  SCREENSHOT_ACCESS,
+  type CaptureReply,
+} from "./sites/film/protocol.ts";
 import { siteForUrl } from "./sites/hosts.ts";
 import { DEFAULTS, STORAGE_KEYS } from "./shared/settings.ts";
 import { initTimeTracker } from "./time/background.ts";
@@ -26,19 +32,51 @@ ext.runtime.onInstalled.addListener(async ({ reason }) => {
   }
 });
 
+async function askForAccess(tabId: number | undefined, purpose = ""): Promise<void> {
+  const url = ext.runtime.getURL(
+    `ui/allow/index.html?tab=${tabId ?? ""}${purpose && `&for=${purpose}`}`,
+  );
+  const [open] = await ext.tabs.query({ url: ext.runtime.getURL("ui/allow/index.html*") });
+  if (open?.windowId !== undefined) {
+    // It may be asking about something else, or for another tab.
+    if (open.id !== undefined && open.url !== url) await ext.tabs.update(open.id, { url });
+    await ext.windows.update(open.windowId, { focused: true });
+    return;
+  }
+  await ext.windows.create({ url, type: "popup", width: 480, height: 400 });
+}
+
 ext.runtime.onMessage.addListener(
   (message: { action?: string }, sender, sendResponse: (reply: CaptureReply) => void) => {
     const tab = sender.tab;
+    if (message?.action === TWITCH_ACTIONS.ASK_PREVIEWS) {
+      void askForAccess(tab?.id, "previews");
+      return false;
+    }
     // The wand shortcut, pressed on a page the wand may run on: start or stop it in that tab.
     if (message?.action === WAND_ACTION && typeof tab?.id === "number") {
       injectScript(tab.id, "sites/wand/content.js").catch(() => {});
       return false;
     }
-    // Film mode's screenshot. Allowed while the user has invoked Unhooked on this tab.
+    // A post's film button: film mode loads now, in the tab that asked.
+    if (message?.action === FILM_START && typeof tab?.id === "number") {
+      injectScript(tab.id, "sites/film/content.js").then(
+        () => sendResponse({}),
+        () => sendResponse({}),
+      );
+      return true;
+    }
+    // Film mode's screenshot. Works where Unhooked was just invoked on this tab, or with access to
+    // all sites. Without either, a small window asks, the first time it's needed.
     if (message?.action === FILM_CAPTURE && typeof tab?.windowId === "number") {
       ext.tabs.captureVisibleTab(tab.windowId, { format: "png" }).then(
         (image) => sendResponse({ image }),
-        (error: Error) => sendResponse({ error: error.message }),
+        async () => {
+          const allowed = await ext.permissions.contains(SCREENSHOT_ACCESS).catch(() => false);
+          if (allowed) return sendResponse({ error: "capture failed" });
+          await askForAccess(tab.id);
+          sendResponse({ asking: true });
+        },
       );
       return true;
     }

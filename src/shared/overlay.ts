@@ -28,7 +28,14 @@ const STYLE = `
   position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); padding: 8px 14px;
   border: 1px solid #3a3a3a; background: #0a0a0a; color: #d4cec4;
   font: 12px/1.4 ui-monospace, "SFMono-Regular", Consolas, monospace; white-space: nowrap;
+  animation: uh-bar 140ms ease-out;
 }
+@keyframes uh-bar { from { opacity: 0; } }
+.banner .close {
+  margin-left: 12px; padding: 0 6px; border: 1px solid #3a3a3a; background: none; color: #f2ede4;
+  font: inherit; cursor: pointer; pointer-events: auto;
+}
+.banner .close:hover, .banner .close:focus-visible { border-color: #e3170c; color: #fff; outline: none; }
 .banner kbd { color: #f2ede4; font: inherit; border: 1px solid #3a3a3a; padding: 0 4px; }
 .banner b { color: #e3170c; font-weight: 600; }
 @media (prefers-reduced-motion: reduce) { .box, .chip { transition: opacity 120ms ease; } }
@@ -48,6 +55,8 @@ const escape = (text: string) =>
 
 export class Overlay {
   readonly host: HTMLElement;
+  #onClose: (() => void) | undefined;
+  #bannerHtml: string | null = null;
   readonly #layer: HTMLElement;
   readonly #chip: HTMLElement;
   readonly #banner: HTMLElement;
@@ -60,6 +69,9 @@ export class Overlay {
     this.#layer = root.querySelector(".layer")!;
     this.#chip = root.querySelector(".chip")!;
     this.#banner = root.querySelector(".banner")!;
+    this.#banner.addEventListener("click", (event) => {
+      if ((event.target as Element).closest(".close")) this.#onClose?.();
+    });
     document.documentElement.append(this.host);
   }
 
@@ -100,7 +112,19 @@ export class Overlay {
 
   banner(html: string | null): void {
     this.#banner.hidden = html === null;
-    if (html !== null) this.#banner.innerHTML = html;
+    this.host.dataset.banner = html === null ? "off" : "on";
+    // Film mode calls this as the pointer moves: rebuilding would swap the close button mid-click.
+    if (html === null || html === this.#bannerHtml) return;
+    this.#bannerHtml = html;
+    const close = this.#onClose
+      ? `<button type="button" class="close" aria-label="Close">×</button>`
+      : "";
+    this.#banner.innerHTML = html + close;
+  }
+
+  /** Gives the bar a close button, so nothing here can only be left by a key. */
+  closeWith(close: () => void): void {
+    this.#onClose = close;
   }
 
   clear(): void {

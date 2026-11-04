@@ -4,7 +4,7 @@
  * changed, because the observer below re-runs it after every page-made change to <html>.
  */
 import { ext } from "./ext-api.ts";
-import { mergeChanges, type RawStorage } from "./preferences.ts";
+import { mergeChanges, type RawStorage } from "./switches.ts";
 
 type Changes = Record<string, { newValue?: unknown }>;
 
@@ -109,9 +109,10 @@ export function runPageController(hooks: PageHooks, env: PageEnv = browserEnv())
     win.addEventListener("popstate", navigated);
     win.addEventListener("hashchange", navigated);
     // The Navigation API reports the page's history.pushState the moment the URL changes, so
-    // route-scoped rules switch before the new route paints. Elsewhere, poll the URL cheaply.
+    // route-scoped rules switch before the new route paints. Only a browser without it needs to
+    // poll the URL, which wakes every script on the page four times a second.
     for (const name of NAVIGATION_EVENTS) win.navigation?.addEventListener(name, navigated);
-    routeTimer = win.setInterval(navigated, 250);
+    if (!win.navigation) routeTimer = win.setInterval(navigated, 250);
   };
 
   const stop = (): void => {

@@ -35,6 +35,16 @@ check(
   (await rule('[data-testid="primaryColumn"]', "maxWidth")) === "60%",
 );
 check(
+  "it keeps a gap between the timeline and the sidebar",
+  await page.evaluate(() => {
+    const timeline = document
+      .querySelector('[data-testid="primaryColumn"]')
+      .getBoundingClientRect();
+    const sidebar = document.querySelector('[data-testid="sidebarColumn"]').getBoundingClientRect();
+    return sidebar.left - timeline.right >= 30;
+  }),
+);
+check(
   "centering leaves the navigation alone",
   (await rule('header[role="banner"]', "display")) !== "none",
 );

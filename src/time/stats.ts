@@ -53,11 +53,13 @@ export interface SessionStats {
   average: number;
   median: number;
   longest: Session | null;
+  /** The longest few, longest first. */
+  top: Session[];
   shortest: Session | null;
-  /** Time spent in sessions of FOCUS_SECONDS or more. */
-  focused: number;
+  /** Time spent in sessions of LONG_STRETCH_SECONDS or more. */
+  inLongStretches: number;
   /** That, as a share of all time in sessions. */
-  focusedShare: number;
+  longStretchShare: number;
   buckets: Bucket[];
 }
 
@@ -90,8 +92,8 @@ export interface View {
   sessionsSince: string | null;
 }
 
-/** A stretch this long on one thing, without leaving for more than a minute, is focus. */
-export const FOCUS_SECONDS = 600;
+/** A stretch this long on one thing, without leaving for more than a minute, counts as long. */
+export const LONG_STRETCH_SECONDS = 600;
 const BUCKETS: [string, number][] = [
   ["<1m", 60],
   ["1–5m", 300],
@@ -101,12 +103,22 @@ const BUCKETS: [string, number][] = [
   ["1h+", Infinity],
 ];
 
+const TOP_SESSIONS = 5;
+
+/** The longest session on each site, for the sites with the longest ones. */
+function longestOnEachSite(bySite: Map<string, Session[]>): Session[] {
+  const longest = [...bySite.values()].map((list) =>
+    list.reduce((best, session) => (session.seconds > best.seconds ? session : best)),
+  );
+  return longest.sort((a, b) => b.seconds - a.seconds).slice(0, TOP_SESSIONS);
+}
+
 export function summarizeSessions(sessions: Session[]): SessionStats {
   const sorted = [...sessions].sort((a, b) => a.seconds - b.seconds);
   const total = sorted.reduce((sum, session) => sum + session.seconds, 0);
   const middle = sorted.length / 2;
-  const focused = sorted
-    .filter((session) => session.seconds >= FOCUS_SECONDS)
+  const inLongStretches = sorted
+    .filter((session) => session.seconds >= LONG_STRETCH_SECONDS)
     .reduce((sum, session) => sum + session.seconds, 0);
   return {
     count: sorted.length,
@@ -117,9 +129,10 @@ export function summarizeSessions(sessions: Session[]): SessionStats {
         ? sorted[Math.floor(middle)]!.seconds
         : (sorted[middle - 1]!.seconds + sorted[middle]!.seconds) / 2,
     longest: sorted.at(-1) ?? null,
+    top: sorted.slice(-TOP_SESSIONS).reverse(),
     shortest: sorted[0] ?? null,
-    focused,
-    focusedShare: total ? focused / total : 0,
+    inLongStretches,
+    longStretchShare: total ? inLongStretches / total : 0,
     buckets: BUCKETS.map(([label, under], i) => ({
       label,
       count: sorted.filter(
@@ -183,6 +196,23 @@ export const hourLabel = (hour: number): string => {
 /** Monday first, whatever the locale's calendar: the shape of a working week reads best that way. */
 const weekdayIndex = (date: string): number => (dayStart(date).getDay() + 6) % 7;
 
+/** One name per site, whatever older records called it, so no site is listed twice. */
+function mergedDays(days: DayRecord[]): DayRecord[] {
+  return days.map((record) => {
+    const hosts: DayRecord["hosts"] = {};
+    for (const [name, hours] of Object.entries(record.hosts)) {
+      const merged = (hosts[siteKey(name)] ??= {});
+      for (const [hour, seconds] of Object.entries(hours))
+        merged[Number(hour)] = (merged[Number(hour)] ?? 0) + seconds;
+    }
+    return {
+      ...record,
+      hosts,
+      sessions: record.sessions?.map((session) => ({ ...session, host: siteKey(session.host) })),
+    };
+  });
+}
+
 export function computeView(
   days: DayRecord[],
   range: Range,
@@ -191,7 +221,7 @@ export function computeView(
   openSessions: Session[] = [],
 ): View {
   const today = dateKey(now);
-  const byDate = new Map(days.map((record) => [record.date, record]));
+  const byDate = new Map(mergedDays(days).map((record) => [record.date, record]));
   const dates = [...byDate.keys()].sort();
   const earliest = dates[0] ?? today;
 
@@ -317,6 +347,9 @@ export function computeView(
     };
   }
   const sessions = summarizeSessions(site ? (bySiteLists.get(site) ?? []) : joinSessions(every));
+  // Joined sessions cross sites, so this view lists each site's own longest, which also says more
+  // than five rows of the same site.
+  if (!site) sessions.top = longestOnEachSite(bySiteLists);
   const firstCounted = dates.find((date) => byDate.get(date)?.sessions?.length);
   const sessionsSince =
     total > 0 && (!firstCounted || firstCounted > (dates.find((d) => inPeriod.has(d)) ?? today))

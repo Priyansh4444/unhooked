@@ -29,10 +29,16 @@ const OG_TAGS = ["og:title", "og:description", "og:image"];
 /**
  * Enough of a page to read its tags. Some pages put them deep in the body (YouTube channels:
  * ~800KB in), so read as it arrives and stop once all three went by, or at HTML_MAX.
+ * `mayEndAt` judges the host a redirect ended on: fetch can't stop at a redirect and still follow
+ * it, so this keeps what's there from being read rather than the request from being made.
  */
-export async function fetchHtml(url: string): Promise<string | null> {
+export async function fetchHtml(
+  url: string,
+  mayEndAt?: (host: string) => boolean,
+): Promise<string | null> {
   const res = await request(url, { headers: { Accept: "text/html,application/xhtml+xml" } });
   if (!res || !/html/i.test(res.headers.get("content-type") ?? "")) return null;
+  if (mayEndAt && res.url && !mayEndAt(new URL(res.url).hostname)) return null;
   const reader = res.body?.getReader();
   if (!reader) return (await res.text()).slice(0, HTML_MAX);
 

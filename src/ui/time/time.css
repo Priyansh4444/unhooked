@@ -1,6 +1,6 @@
 /*
  * Your time. Tokens, fonts and controls come from ../shared/theme.css.
- * Hairlines rather than boxes, one amber for measured time, red for "now" and "selected". Marks
+ * Hairlines rather than boxes, one bright red-orange for measured time, red for "now" and "selected". Marks
  * move with transforms only, on a shared curve, so every change can be interrupted by the next.
  */
 :root {
@@ -240,7 +240,7 @@ main {
   margin-bottom: 16px;
 }
 
-/* A smooth line, and one amber fading out under it. Red is only ever "now". */
+/* A smooth line, and the same colour fading out under it. White is only ever "now". */
 .line-chart {
   position: relative;
   outline-offset: 4px;
@@ -265,22 +265,22 @@ main {
   stroke: none;
 }
 .stop-top {
-  stop-color: var(--amber);
+  stop-color: var(--signal);
   stop-opacity: 0.34;
 }
 .stop-middle {
-  stop-color: var(--amber);
+  stop-color: var(--signal);
   stop-opacity: 0.12;
 }
 .stop-bottom {
-  stop-color: var(--amber);
+  stop-color: var(--signal);
   stop-opacity: 0;
 }
 .stop-line {
-  stop-color: var(--amber);
+  stop-color: var(--signal);
 }
 .stop-now {
-  stop-color: var(--red);
+  stop-color: var(--bright);
 }
 .line-stroke {
   fill: none;
@@ -310,7 +310,7 @@ main {
   transition: opacity 120ms ease;
 }
 .line-dot {
-  fill: var(--amber);
+  fill: var(--signal);
   stroke: var(--ink);
   stroke-width: 2;
 }
@@ -381,6 +381,32 @@ main {
 .sites.has-selection .site-row:not([aria-pressed="true"]) {
   opacity: 0.5;
 }
+.site-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.site-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  overflow: hidden;
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+}
+.site-icon img {
+  display: block;
+  width: 16px;
+  height: 16px;
+}
+.site-icon.is-letter {
+  background: var(--raised);
+  color: var(--stone);
+  font-size: 10px;
+  line-height: 1;
+}
 .site-name {
   overflow: hidden;
   white-space: nowrap;
@@ -400,7 +426,7 @@ main {
   display: block;
   height: 100%;
   border-radius: 2px;
-  background: linear-gradient(90deg, rgb(214 162 78 / 0.25), var(--amber));
+  background: linear-gradient(90deg, rgb(255 61 34 / 0.25), var(--signal));
   transform: translateX(-100%);
   transition:
     transform var(--move),
@@ -422,7 +448,7 @@ main {
   font: 16px/1.35 var(--serif);
 }
 
-/* When: a dot matrix, one amber, bigger and brighter with more time. */
+/* When: a dot matrix, one colour, bigger and brighter with more time. */
 .heat {
   display: grid;
   grid-template-columns: 30px repeat(24, minmax(0, 1fr));
@@ -460,7 +486,7 @@ main {
   transition-delay: calc(var(--i, 0) * 1ms);
 }
 .cell.has-time i {
-  background: var(--amber);
+  background: var(--signal);
 }
 .heat-key {
   display: flex;
@@ -475,7 +501,7 @@ main {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: var(--amber);
+  background: var(--signal);
   opacity: var(--s);
   transform: scale(var(--s));
 }
@@ -489,6 +515,47 @@ main {
 }
 .sessions .tiles {
   margin-top: 0;
+}
+.tile-note .site-icon {
+  display: inline-grid;
+  margin-right: 6px;
+  vertical-align: -3px;
+}
+.long-heading {
+  margin: 28px 0 0;
+}
+.long-sessions {
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--rule);
+}
+.long-sessions li {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 13rem) minmax(0, 1fr) 5rem 5.5rem;
+  gap: 12px;
+  align-items: center;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--rule);
+}
+.long-bar {
+  display: block;
+  height: 2px;
+  background: var(--rule);
+}
+.long-bar span {
+  display: block;
+  height: 100%;
+  background: var(--signal);
+  transform-origin: 0 50%;
+}
+.long-sessions .site-time {
+  text-align: right;
+}
+.long-when {
+  color: var(--stone);
+  font-size: 12px;
+  text-align: right;
 }
 .tiles.five {
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -764,4 +831,122 @@ canvas {
   .insights li {
     animation: none;
   }
+}
+
+/* ---- The year's recap ------------------------------------------------------------------ */
+.recap-body {
+  min-height: 420px;
+  display: grid;
+  align-content: center;
+}
+.recap-screen {
+  display: grid;
+  gap: 18px;
+  padding: 18px 6px;
+  animation: recap-in 220ms var(--ease-out);
+}
+@keyframes recap-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+.recap-lead {
+  margin: 0;
+  color: var(--bright);
+  font: 30px/1.25 var(--serif);
+}
+.recap-big {
+  margin: 0;
+  color: var(--signal);
+  font: 500 92px/1 var(--mono);
+  letter-spacing: -0.03em;
+}
+.recap-note {
+  margin: 0;
+  color: var(--stone);
+  font: 18px/1.4 var(--serif);
+}
+.recap-site-line {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin: 0;
+  color: var(--parchment);
+  font: 15px/1.4 var(--mono);
+}
+.recap-sites {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--rule);
+}
+.recap-sites li {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 13rem) minmax(0, 1fr) 6rem;
+  gap: 12px;
+  align-items: center;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--rule);
+}
+.recap-sites .site-time {
+  text-align: right;
+}
+.recap-months {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 6px;
+  height: 200px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.recap-months li {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 6px;
+  color: var(--stone);
+  font: 12px/1 var(--mono);
+  text-align: center;
+}
+.recap-month-bar {
+  display: flex;
+  align-items: flex-end;
+  border-bottom: 1px solid var(--rule);
+}
+.recap-month-bar span {
+  display: block;
+  width: 100%;
+  background: rgb(255 61 34 / 0.45);
+}
+.recap-month-bar span.is-top {
+  background: var(--signal);
+}
+.recap-share canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--rule);
+}
+.recap-step {
+  color: var(--stone);
+  font: 12px/1 var(--mono);
+}
+.recap-share-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.recap-share-actions[hidden] {
+  display: none;
+}
+#recapYear {
+  margin-left: auto;
+  margin-right: 8px;
+  padding: 4px 6px;
+  border: 1px solid var(--rule-strong);
+  background: var(--panel);
+  color: var(--parchment);
+  font: 12px var(--mono);
 }

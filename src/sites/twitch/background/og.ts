@@ -5,6 +5,8 @@ export interface OpenGraph {
   description?: string;
   image?: string;
   siteName?: string;
+  /** A plain hex colour, and only that: it ends up in a style. */
+  themeColor?: string;
 }
 
 const ENTITIES: Record<string, string> = {
@@ -64,5 +66,6 @@ export function parseOpenGraph(html: string, baseUrl: string): OpenGraph {
     description: get("og:description", "twitter:description", "description"),
     image: absolute(get("og:image", "og:image:url", "twitter:image", "twitter:image:src"), baseUrl),
     siteName: get("og:site_name"),
+    themeColor: get("theme-color")?.match(/^#[0-9a-f]{3,8}$/i)?.[0],
   };
 }

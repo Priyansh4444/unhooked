@@ -5,7 +5,7 @@
  */
 import { ext } from "../shared/ext-api.ts";
 import { STORAGE_KEYS } from "../shared/settings.ts";
-import { commit, getTracker, pruneOld, setTracker } from "./store.ts";
+import { commit, getIcons, getTracker, pruneOld, setIcon, setTracker } from "./store.ts";
 import { TIME_FLUSH } from "./protocol.ts";
 import { IDLE_SECONDS, advance, hostToCount, type FrontTab } from "./tracker.ts";
 
@@ -18,12 +18,42 @@ const inTurn = <T>(work: () => Promise<T>): Promise<T> => {
   return turn;
 };
 
-async function frontTab(): Promise<FrontTab | null> {
+const ICON_REFRESH_MS = 7 * 86_400_000;
+const ICON_MOST_BYTES = 24_000;
+/** Sites whose icon has been looked at since the background last started. */
+const iconChecked = new Set<string>();
+
+/** The tab's icon as data: Chromium's cache for its own, or what the browser reports otherwise. */
+async function iconOf(tabUrl: string, favIconUrl: string): Promise<string | null> {
+  if (favIconUrl.startsWith("data:")) return favIconUrl;
+  if (!ext.runtime.getManifest().permissions?.includes("favicon")) return favIconUrl;
+  const url = new URL(ext.runtime.getURL("_favicon/"));
+  url.searchParams.set("pageUrl", tabUrl);
+  url.searchParams.set("size", "32");
+  const response = await fetch(url);
+  if (!response.ok) return null;
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  if (!bytes.length || bytes.length > ICON_MOST_BYTES) return null;
+  const type = response.headers.get("content-type") ?? "image/png";
+  return `data:${type};base64,${btoa(String.fromCharCode(...bytes))}`;
+}
+
+async function rememberIcon(host: string, tab: FrontTab, now: number): Promise<void> {
+  if (iconChecked.has(host) || !tab.url || !tab.favIconUrl) return;
+  iconChecked.add(host);
+  const known = (await getIcons())[host];
+  if (known && now - known.at < ICON_REFRESH_MS) return;
+  const src = await iconOf(tab.url, tab.favIconUrl);
+  if (src) await setIcon(host, src, now);
+}
+
+export async function frontTab(): Promise<FrontTab | null> {
   const window = await ext.windows.getLastFocused({ populate: true }).catch(() => null);
   const tab = window?.tabs?.find((candidate) => candidate.active);
   if (!window || !tab) return null;
   return {
     url: tab.url,
+    favIconUrl: tab.favIconUrl,
     focused: Boolean(window.focused),
     incognito: Boolean(tab.incognito),
     audible: Boolean(tab.audible),
@@ -41,11 +71,19 @@ async function settings(): Promise<{ enabled: boolean; ignored: string[] }> {
   };
 }
 
-export const step = (): Promise<void> =>
+/** Only while there's something to count. Otherwise the background sleeps until an event wakes it. */
+async function setHeartbeat(on: boolean): Promise<void> {
+  if (!ext.alarms) return;
+  const running = await ext.alarms.get(HEARTBEAT);
+  if (on && !running) await ext.alarms.create(HEARTBEAT, { periodInMinutes: 1 });
+  if (!on && running) await ext.alarms.clear(HEARTBEAT);
+}
+
+export const step = (readFront: () => Promise<FrontTab | null> = frontTab): Promise<void> =>
   inTurn(async () => {
     const now = Date.now();
     const { enabled, ignored } = await settings();
-    const tab = await frontTab();
+    const tab = await readFront();
     const host = hostToCount(tab, enabled, ignored);
     const state = await getTracker();
     // A site just left out has its visit dropped rather than saved on its way out.
@@ -55,6 +93,9 @@ export const step = (): Promise<void> =>
     const next = advance({ ...state, open }, now, host, tab?.idle === "idle" && !tab.audible);
     await commit(next.slices, next.closed);
     await setTracker(next.state);
+    await setHeartbeat(Boolean(next.state.watch) || Object.keys(next.state.open).length > 0);
+    // Not waited for: a missing icon never holds up or fails the counting.
+    if (host && tab) void rememberIcon(host, tab, now).catch(() => {});
   });
 
 export function initTimeTracker(): void {
@@ -75,7 +116,6 @@ export function initTimeTracker(): void {
     if (alarm.name === HEARTBEAT) onEvent();
   });
   const start = () => {
-    void ext.alarms?.create(HEARTBEAT, { periodInMinutes: 1 });
     void pruneOld(Date.now()).catch(() => {});
     onEvent();
   };

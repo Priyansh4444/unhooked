@@ -24,15 +24,16 @@ const logOn = (): boolean => settings.log && !settings.paused;
 
 let observer: ChatObserver | null = null;
 let waiting: AbortController | null = null;
-let rootGone: MutationObserver | null = null;
+let rootGone: ReturnType<typeof setInterval> | undefined;
+/** How often to check the chat is still on the page. Twitch removes it when the panel closes. */
+const CHAT_CHECK_MS = 1500;
 
 const wantsChat = (): boolean => pillsOn() || logOn();
 
 function detach(): void {
   observer?.disconnect();
   observer = null;
-  rootGone?.disconnect();
-  rootGone = null;
+  clearInterval(rootGone);
   unbindHovercard();
 }
 
@@ -48,13 +49,13 @@ function attach(root: Element): void {
   observer = observeChat(root, { pillsEnabled: pillsOn(), logEnabled: logOn() });
   applyPillsSetting();
 
-  // Twitch removes the chat when the panel closes: wait for it to come back.
-  rootGone = new MutationObserver(() => {
-    if (document.contains(root)) return;
+  // Wait for it to come back after the panel closes. A timer rather than a watch on the document,
+  // which would wake on every change Twitch makes to its page.
+  rootGone = setInterval(() => {
+    if (root.isConnected) return;
     detach();
     start();
-  });
-  rootGone.observe(document.documentElement, { childList: true, subtree: true });
+  }, CHAT_CHECK_MS);
 }
 
 /** (Re)find the chat and attach to it. Safe to call whenever the page or settings change. */
@@ -87,23 +88,26 @@ function onSettingsChanged(changes: Record<string, { newValue?: unknown }>): voi
   }
 }
 
-/** Twitch is a SPA: re-check chat after every history change. */
+/**
+ * Twitch is a SPA: re-check chat after every change of address. A content script can't wrap the
+ * page's history.pushState, since it has its own copy of `history`, so this reads the address.
+ */
 function watchNavigation(): void {
-  for (const method of ["pushState", "replaceState"] as const) {
-    const original = history[method];
-    history[method] = function (...args: Parameters<History["pushState"]>) {
-      const result = original.apply(this, args);
-      queueMicrotask(() => {
-        detach();
-        start();
-      });
-      return result;
-    };
-  }
-  window.addEventListener("popstate", () => {
+  const restart = () => {
     detach();
     start();
-  });
+  };
+  const navigation = (window as { navigation?: EventTarget }).navigation;
+  if (navigation) {
+    navigation.addEventListener("navigatesuccess", restart);
+    return;
+  }
+  let address = location.href;
+  setInterval(() => {
+    if (location.href === address) return;
+    address = location.href;
+    restart();
+  }, CHAT_CHECK_MS);
 }
 
 async function init(): Promise<void> {

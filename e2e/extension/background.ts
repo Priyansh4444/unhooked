@@ -3,8 +3,17 @@
 // bridge.ts (a content script on the harness's own page) instead.
 import "../../src/background.ts";
 import { ext } from "../../src/shared/ext-api.ts";
-import { step } from "../../src/time/background.ts";
-import { allDays, eraseAll, getTracker, putDays, type DayRecord } from "../../src/time/store.ts";
+import { frontTab, step } from "../../src/time/background.ts";
+import {
+  allDays,
+  eraseAll,
+  getIcons,
+  getTracker,
+  putDays,
+  setIcon,
+  setTracker,
+  type DayRecord,
+} from "../../src/time/store.ts";
 
 type Op = {
   op:
@@ -20,6 +29,8 @@ type Op = {
   args: never;
 };
 
+import type { FrontTab } from "../../src/time/tracker.ts";
+
 async function run({ op, args }: { op: string; args: unknown }): Promise<unknown> {
   switch (op) {
     case "set":
@@ -31,6 +42,42 @@ async function run({ op, args }: { op: string; args: unknown }): Promise<unknown
       await eraseAll();
       await putDays(args as DayRecord[]);
       return {};
+    case "timeStep": {
+      // A step with the browser's signals overridden: what can't be staged for real in a test.
+      const signals = args as Partial<FrontTab>;
+      await step(async () => {
+        const tab = await frontTab();
+        return tab ? { ...tab, ...signals } : tab;
+      });
+      return {};
+    }
+    case "timeRewind": {
+      // As if the computer had slept since the last step.
+      const state = await getTracker();
+      const by = args as number;
+      await setTracker({
+        ...state,
+        watch: state.watch && {
+          ...state.watch,
+          since: state.watch.since - by,
+          stretch: state.watch.stretch - by,
+        },
+      });
+      return {};
+    }
+    case "timeIcons":
+      await step();
+      return getIcons();
+    case "timeSetIcon": {
+      const { host, src } = args as { host: string; src: string };
+      await setIcon(host, src, Date.now());
+      return {};
+    }
+    case "timeRead": {
+      // What's stored, without taking a step that would use the real signals.
+      const [days, state] = await Promise.all([allDays(), getTracker()]);
+      return { days, state };
+    }
     case "timeSnapshot": {
       // Both from the same step, with no time passing between them.
       await step();

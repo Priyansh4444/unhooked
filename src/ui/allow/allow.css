@@ -1,0 +1,57 @@
+/* A small window asking for one thing. Tokens, fonts and controls come from ../shared/theme.css. */
+body {
+  display: grid;
+  min-height: 100vh;
+  padding: 24px;
+  place-items: center;
+}
+main {
+  max-width: 420px;
+}
+img {
+  display: block;
+  margin-bottom: 14px;
+  border-radius: 6px;
+}
+h1 {
+  color: var(--bright);
+  font: 26px/1.15 var(--serif);
+  text-wrap: balance;
+}
+p {
+  margin-top: 10px;
+  color: var(--parchment);
+  font: 16px/1.35 var(--serif);
+  text-wrap: pretty;
+}
+.fine {
+  color: var(--stone);
+  font-size: 14.5px;
+}
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 18px;
+}
+.action {
+  padding: 7px 14px;
+  border: 1px solid var(--rule-strong);
+  background: var(--panel);
+  color: var(--parchment);
+  font-size: 12px;
+  line-height: 16px;
+  transition: transform 160ms var(--ease-out);
+}
+.action:active {
+  transform: scale(0.97);
+}
+.primary {
+  border-color: var(--red);
+  background: var(--red);
+  color: var(--bright);
+}
+.status {
+  min-height: 20px;
+  color: var(--stone);
+  font-size: 14.5px;
+}

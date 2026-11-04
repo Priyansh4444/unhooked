@@ -259,8 +259,13 @@ export const SKETCHES: Record<ControlSiteId, readonly View[]> = {
       basis: "measured",
       parts: [
         { label: "Header", box: [0, 0, 1440, 57], texture: "bar" },
-        { label: "Navigation", box: [0, 57, 315, 943], texture: "list" },
-        { label: "Sort", box: [342, 64, 732, 41], texture: "bar" },
+        {
+          label: "Navigation",
+          box: [0, 57, 315, 943],
+          feature: "hideLeftSidebar",
+          texture: "list",
+        },
+        { label: "Sort", box: [342, 64, 732, 41], feature: "hideHomeFeed", texture: "bar" },
         {
           label: "Home & Popular",
           box: [342, 105, 732, 895],

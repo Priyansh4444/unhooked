@@ -18,6 +18,7 @@ const ALL = [
   "skip",
   "transfer",
   "film",
+  "film-access",
   "time",
   "twitter",
   "twitch",

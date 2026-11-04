@@ -147,5 +147,55 @@ check("a redirect off the site is dropped", after["unhooked.site.x.redirectTo"] 
 check("Pause all isn't changed by a file", after["unhooked.paused"] === false);
 check("a removal that escapes its CSS rule is dropped", after["unhooked.custom.x"] === undefined);
 
+// A file with removals on sites outside the list asks for those sites, and works if refused.
+const asking = {
+  format: "unhooked-settings",
+  version: 1,
+  settings: {
+    "unhooked.site.x.hideExplore": true,
+    "unhooked.custom.web:news.example.net": [{ selector: ".top", label: "Top", at: 1 }],
+  },
+};
+const fakePrompt = (answer) =>
+  page.evaluate((answer) => {
+    window.asked = null;
+    chrome.permissions.request = async (request) => {
+      window.asked = request;
+      return answer;
+    };
+  }, answer);
+await fakePrompt(false);
+await paste(JSON.stringify(asking));
+await page.click("#import");
+await until("importing asks for exactly those sites", () =>
+  page.evaluate(() => JSON.stringify(window.asked?.origins) === '["*://news.example.net/*"]'),
+);
+await until("refusing still imports the rest, and says so", async () =>
+  (await text("#status")).includes("once you use the wand there"),
+);
+check(
+  "the choices arrived",
+  (await ext.get("unhooked.site.x.hideExplore"))["unhooked.site.x.hideExplore"] === true,
+);
+await fakePrompt(true);
+await paste(JSON.stringify(asking));
+await page.click("#import");
+await until("allowing it just imports", async () => (await text("#status")) === "Imported");
+await paste(
+  JSON.stringify({
+    format: "unhooked-settings",
+    version: 1,
+    settings: { "unhooked.site.x.hideExplore": false },
+  }),
+);
+await page.evaluate(() => {
+  window.asked = "untouched";
+});
+await page.click("#import");
+await until("a file without such sites doesn't ask", async () => {
+  const value = (await ext.get("unhooked.site.x.hideExplore"))["unhooked.site.x.hideExplore"];
+  return value === false && (await page.evaluate(() => window.asked === "untouched"));
+});
+
 await close();
 finish();

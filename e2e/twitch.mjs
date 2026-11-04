@@ -22,7 +22,7 @@ const messages = [
     "https://www.twitch.tv/4hbunger/clip/SavageFunnyAsp",
   ],
   ["plain", "no links in this one, just vibes"],
-  ["short", "hey https://x.com/jack ok"],
+  ["short", "hey https://x.com/hashtag/bun ok"],
   ["wiki", "https://en.wikipedia.org/wiki/Elephant is the answer"],
 ];
 const CHAT = twitchChatPage(messages);

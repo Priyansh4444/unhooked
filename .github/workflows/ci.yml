@@ -44,7 +44,7 @@ jobs:
       - name: End-to-end (Chromium, minified)
         env:
           MINIFY: "1"
-        run: bun e2e/run.mjs chrome smoke social youtube-controls popup transfer film time picker wand skip twitter twitch
+        run: bun e2e/run.mjs chrome smoke social youtube-controls popup transfer film film-access time picker wand skip twitter twitch
 
       - name: End-to-end (Firefox, minified)
         env:

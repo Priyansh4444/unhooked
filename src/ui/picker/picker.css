@@ -1,6 +1,6 @@
 /*
  * The picker. Tokens, fonts and controls come from ../shared/theme.css.
- * Each site is drawn as an amber dot-matrix sketch (after anoma.ly's illustrations). Parts you
+ * Each site is drawn as an signal-coloured dot-matrix sketch (after anoma.ly's illustrations). Parts you
  * can remove are buttons; hover writes a red hand-written note, and a removed part drains its
  * dots and is marked "gone".
  */
@@ -119,7 +119,7 @@ h1 {
 
 /* ---- The sketch ----------------------------------------------------------------------------------- */
 .canvas {
-  --dot: rgb(214 162 78 / 0.3);
+  --dot: rgb(255 61 34 / 0.3);
   position: relative;
   width: 100%;
 }
@@ -139,7 +139,7 @@ h1 {
   min-width: 0;
   margin: 0;
   padding: 0;
-  border: 1px dotted rgb(214 162 78 / 0.45);
+  border: 1px dotted rgb(255 61 34 / 0.45);
   background: var(--panel);
   text-align: left;
   transition:
@@ -189,7 +189,7 @@ h1 {
   overflow: hidden;
   padding: 1px 5px;
   background: var(--panel);
-  color: var(--amber);
+  color: var(--signal);
   font-size: 10.5px;
   letter-spacing: 0.6px;
   text-transform: uppercase;

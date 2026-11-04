@@ -1,8 +1,10 @@
 /** YouTube: hide controls (controls.css, gated on <html> classes) in every frame, including embeds. */
 import { runPageController } from "../../shared/page-runtime.ts";
 import { youTubeOptions } from "../../shared/preferences.ts";
+import { setFillOptions, startFill, stopFill, tabFills } from "./fill.ts";
 import { applyOptionClasses, type YouTubeOptions } from "./options.ts";
 
+const isTopFrame = window.top === window;
 let options: YouTubeOptions = youTubeOptions({});
 let autoplayTimer: ReturnType<typeof setInterval> | undefined;
 let autoplayDeadline: ReturnType<typeof setTimeout> | undefined;
@@ -36,16 +38,50 @@ function scheduleAutoplayOff(): void {
   autoplayDeadline = setTimeout(stopAutoplay, 120_000);
 }
 
+/** What decides the video's width. The player only re-measures when the window says to. */
+let layoutOptions = "";
+
+function tellPlayerIfLayoutChanged(): void {
+  const next = options.extensionDisabled
+    ? ""
+    : [options.hideRelatedSidebar, options.hidePlaylistSidebar, options.hideLiveChat].join();
+  if (next === layoutOptions || window.top !== window) {
+    layoutOptions = next;
+    return;
+  }
+  layoutOptions = next;
+  requestAnimationFrame(() => window.dispatchEvent(new Event("resize")));
+}
+
 runPageController({
   documentEvents: ["yt-navigate-finish"],
   render(raw, html) {
     options = youTubeOptions(raw);
-    applyOptionClasses(html, options, {
-      isMobile: location.hostname === "m.youtube.com",
-      isEmbed: location.pathname.startsWith("/embed/") || html.matches("html.embed"),
-    });
+    const fills = options.fillTheater || (isTopFrame && tabFills());
+    applyOptionClasses(
+      html,
+      { ...options, fillTheater: fills },
+      {
+        isMobile: location.hostname === "m.youtube.com",
+        isEmbed: location.pathname.startsWith("/embed/") || html.matches("html.embed"),
+      },
+    );
+    tellPlayerIfLayoutChanged();
+    if (isTopFrame)
+      setFillOptions({ enabled: options.fillTheater, off: options.extensionDisabled });
     if (!options.extensionDisabled && options.disableAutoplay) scheduleAutoplayOff();
     else stopAutoplay();
   },
-  stop: stopAutoplay,
+  stop() {
+    stopAutoplay();
+    stopFill();
+  },
+});
+
+if (isTopFrame) startFill();
+
+// A new video's player starts at the old width too.
+document.addEventListener("yt-navigate-finish", () => {
+  if (window.top === window && !options.extensionDisabled && options.hideRelatedSidebar)
+    requestAnimationFrame(() => window.dispatchEvent(new Event("resize")));
 });

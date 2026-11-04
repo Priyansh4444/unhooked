@@ -3,7 +3,14 @@
  * storage.local, and a year of browsing shouldn't reach every page, or wake every tab each minute.
  * One record per day, so a write touches a few hundred bytes.
  */
-import { EMPTY_STATE, dateKey, type Session, type Slice, type TrackerState } from "./tracker.ts";
+import {
+  EMPTY_STATE,
+  dateKey,
+  siteKey,
+  type Session,
+  type Slice,
+  type TrackerState,
+} from "./tracker.ts";
 
 /** Seconds per site, per hour of the day. */
 export interface DayRecord {
@@ -17,6 +24,7 @@ const KEEP_DAYS = 400;
 const DAYS = "days";
 const STATE = "state";
 const TRACKER = "tracker";
+const ICONS = "icons";
 
 let opened: Promise<IDBDatabase> | null = null;
 
@@ -86,24 +94,22 @@ export async function eraseAll(): Promise<void> {
 
 /** Removes one site's history. What was removed comes back, so it can be put back. */
 export async function forgetHost(host: string): Promise<DayRecord[]> {
+  const same = (name: string) => siteKey(name) === host;
   const records = await allDays();
   const touched = records.filter(
-    (record) => record.hosts[host] || record.sessions?.some((session) => session.host === host),
+    (record) => Object.keys(record.hosts).some(same) || record.sessions?.some((s) => same(s.host)),
   );
   const removed = touched.map((record) => ({
     date: record.date,
-    hosts: record.hosts[host] ? { [host]: record.hosts[host]! } : {},
-    sessions: record.sessions?.filter((session) => session.host === host) ?? [],
+    hosts: Object.fromEntries(Object.entries(record.hosts).filter(([name]) => same(name))),
+    sessions: record.sessions?.filter((session) => same(session.host)) ?? [],
   }));
   await putDays(
-    touched.map((record) => {
-      const { [host]: _gone, ...hosts } = record.hosts;
-      return {
-        date: record.date,
-        hosts,
-        sessions: record.sessions?.filter((session) => session.host !== host) ?? [],
-      };
-    }),
+    touched.map((record) => ({
+      date: record.date,
+      hosts: Object.fromEntries(Object.entries(record.hosts).filter(([name]) => !same(name))),
+      sessions: record.sessions?.filter((session) => !same(session.host)) ?? [],
+    })),
   );
   return removed;
 }
@@ -139,5 +145,22 @@ export async function getTracker(): Promise<TrackerState> {
 export async function setTracker(state: TrackerState): Promise<void> {
   const tx = (await open()).transaction(STATE, "readwrite");
   tx.objectStore(STATE).put(state, TRACKER);
+  await done(tx);
+}
+
+/** Each site's icon, as a small image kept here so showing it never touches the network. */
+export type SiteIcons = Record<string, { src: string; at: number }>;
+
+export async function getIcons(): Promise<SiteIcons> {
+  const db = await open();
+  return ((await read(db.transaction(STATE).objectStore(STATE).get(ICONS))) ?? {}) as SiteIcons;
+}
+
+export async function setIcon(host: string, src: string, at: number): Promise<void> {
+  const tx = (await open()).transaction(STATE, "readwrite");
+  const store = tx.objectStore(STATE);
+  const icons = ((await read(store.get(ICONS))) ?? {}) as SiteIcons;
+  icons[host] = { src, at };
+  store.put(icons, ICONS);
   await done(tx);
 }

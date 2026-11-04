@@ -49,6 +49,55 @@ export interface LinkMeta {
   authorAvatar?: string;
   /** Short facts for the hover card ("★ 1.2K", "TypeScript"). */
   chips?: string[];
+  /** An X post's own pictures, up to four. */
+  photos?: string[];
+  /** An X post's video: its still, and the file to play on a click. */
+  video?: { poster: string; src: string };
+  /** The post an X post quotes. */
+  quote?: { name: string; handle: string; avatar?: string; text: string };
+  /** The account an X post replies to. */
+  replyTo?: string;
+  /** The colour a page calls its own, for the bar down the card's side. */
+  accent?: string;
+  /** Reading this page needs access the user could give. */
+  canAsk?: boolean;
+}
+
+/** The field each lookup always fills when it worked; missing means it failed (offline, rate-limited). */
+const FILLED_ON_SUCCESS: Partial<Record<LinkKind, keyof LinkMeta>> = {
+  youtube: "textSnippet",
+  twitter: "authorName",
+  reddit: "textSnippet",
+  vimeo: "textSnippet",
+  spotify: "textSnippet",
+  github: "chips",
+};
+
+/** A failed lookup is cached briefly so it gets retried (see resolve.ts). */
+export const isEmptyLookup = (meta: LinkMeta): boolean => {
+  const field = FILLED_ON_SUCCESS[meta.kind];
+  if (!field) return false;
+  const value = meta[field];
+  return Array.isArray(value) ? value.length === 0 : !value;
+};
+
+/** Addresses on this computer or network, which a stranger's chat link has no business reaching. */
+export function isPublicHost(host: string): boolean {
+  const name = host.toLowerCase().replace(/\.$/, ""); // "localhost." is localhost
+  if (name === "localhost" || name.includes(":") || name.startsWith("[")) return false;
+  if (/\.(local|localhost|internal|lan|home|intranet)$/.test(name)) return false;
+  const ip = name.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+  if (!ip) return name.includes(".");
+  const [a, b] = [Number(ip[1]), Number(ip[2])];
+  return !(
+    a === 0 ||
+    a === 10 ||
+    a === 127 ||
+    (a === 169 && b === 254) ||
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && b === 168) ||
+    (a === 100 && b >= 64 && b <= 127)
+  );
 }
 
 // ---- small helpers ---------------------------------------------------------------------------
@@ -88,7 +137,17 @@ export const compactNumber = (n: number): string => {
 
 const KIND_HOSTS: Record<Exclude<LinkKind, "generic" | "wikipedia">, string[]> = {
   youtube: ["youtube.com", "m.youtube.com", "music.youtube.com", "youtu.be"],
-  twitter: ["twitter.com", "mobile.twitter.com", "x.com", "mobile.x.com"],
+  twitter: [
+    "twitter.com",
+    "mobile.twitter.com",
+    "x.com",
+    "mobile.x.com",
+    "fxtwitter.com",
+    "vxtwitter.com",
+    "fixupx.com",
+    "fixvx.com",
+    "twittpr.com",
+  ],
   reddit: ["reddit.com", "old.reddit.com", "new.reddit.com", "redd.it"],
   github: ["github.com", "gist.github.com"],
   tiktok: ["tiktok.com", "vm.tiktok.com"],
@@ -150,12 +209,65 @@ const extractYouTubeId = (url: URL): string | undefined => {
   return candidate && ID.test(candidate) ? candidate : undefined;
 };
 
+/** Posts, and X Articles, which are posts underneath. */
 export const extractTwitterStatusId = (url: URL): string | undefined =>
-  url.pathname.match(/\/status(?:es)?\/(\d+)/)?.[1];
+  url.pathname.match(/\/(?:status(?:es)?|article)\/(\d+)/)?.[1];
 
 const NOT_A_HANDLE = new Set(
-  "i intent share search home explore notifications messages settings compose hashtag".split(" "),
+  "i intent share search home explore notifications messages settings compose hashtag jobs tos privacy about login signup logout account download premium verified grok".split(
+    " ",
+  ),
 );
+
+/** The account a link is on, including its tabs: x.com/{user}/media, /with_replies, /followers. */
+export const twitterProfileHandle = (url: URL): string | undefined => {
+  const [user, second] = segments(url);
+  const handle = (name: string | null | undefined) =>
+    name && /^@?\w{1,15}$/.test(name) ? name.replace(/^@/, "") : undefined;
+  if (!user || NOT_A_HANDLE.has(user.toLowerCase())) {
+    return user === "intent" && second === "follow"
+      ? handle(url.searchParams.get("screen_name"))
+      : undefined;
+  }
+  return extractTwitterStatusId(url) ? undefined : handle(user);
+};
+
+/**
+ * What the links X keeps no public record of are. Their card can only say what the address says,
+ * so it says that plainly and offers the way in.
+ */
+export const twitterPageName = (url: URL): string | undefined => {
+  const [first, second, third] = segments(url);
+  if (first === "hashtag" && second) return `#${decode(second)}`;
+  if (first === "search") {
+    const query = url.searchParams.get("q");
+    return query ? `Search: ${query}` : "Search on X";
+  }
+  if (first === "explore") return "Explore on X";
+  if (first === "home") return "Home on X";
+  if (first === "notifications") return "Notifications on X";
+  if (first === "messages") return "Messages on X";
+  if (first === "compose" || (first === "intent" && (second === "post" || second === "tweet")))
+    return url.searchParams.get("text")
+      ? `Draft: ${url.searchParams.get("text")}`
+      : "New post on X";
+  if (first === "intent" && second === "user") return "Account on X";
+  if (first !== "i") return third === "lists" || second === "lists" ? "List on X" : undefined;
+  const pages: Record<string, string> = {
+    lists: "List on X",
+    spaces: "Space on X",
+    broadcasts: "Broadcast on X",
+    communities: "Community on X",
+    moments: "Moment on X",
+    events: "Event on X",
+    topics: "Topic on X",
+    grok: "Grok on X",
+    bookmarks: "Bookmarks on X",
+    chat: "Messages on X",
+    trends: "Trends on X",
+  };
+  return second ? pages[second] : undefined;
+};
 
 /** `x.com/{user}` or `x.com/{user}/status/...`; undefined for routes like /home or /search. */
 export const extractTwitterUsername = (url: URL): string | undefined => {
@@ -223,16 +335,13 @@ const LABELS: Partial<Record<LinkKind, Labeler>> = {
     const user = extractTwitterUsername(url);
     if (user) return `@${truncate(user, 16)}`;
     const [first, second] = parts;
+    if (second === "article" || (first === "i" && second === "article")) return "Article on X";
     if (extractTwitterStatusId(url)) return "Post on X"; // x.com/i/status/...
-    if (first === "hashtag" && second) return truncate(`#${decode(second)}`, 24);
-    if (first === "search") {
-      const query = url.searchParams.get("q");
-      return query ? truncate(`X search: ${query}`, 30) : "X search";
-    }
-    if (first === "i" && second === "lists") return "X list";
+    const page = twitterPageName(url);
+    if (page) return truncate(page, 30);
     // x.com/{user}/likes, /media, /with_replies ... still name the account
-    if (first && !NOT_A_HANDLE.has(first.toLowerCase())) return `@${truncate(first, 16)}`;
-    return "X";
+    const handle = twitterProfileHandle(url);
+    return handle ? `@${truncate(handle, 16)}` : "X";
   },
   reddit: (url, parts) => {
     if (hostOf(url) === "redd.it") return "Reddit post";
@@ -391,6 +500,11 @@ export const enrichedPillLabelFromMeta = (meta: LinkMeta): string => {
     !/^https?:\/\//i.test(title);
 
   if (meta.kind === "twitter") {
+    // A profile is who someone says they are, so its pill says that too.
+    const profile = url && !meta.twitterStatusId ? twitterProfileHandle(url) : undefined;
+    if (profile && meta.description) {
+      return truncate(`@${profile} · ${firstWords(meta.description, 6, 34)}`, 42);
+    }
     const user = url && extractTwitterUsername(url);
     const text =
       usable && !/^@?\w+$/.test(title) && title !== "Post on X" ? firstWords(title, 5, 34) : "";
@@ -401,12 +515,12 @@ export const enrichedPillLabelFromMeta = (meta: LinkMeta): string => {
     const page = url && youtubePage(url);
     if (page === "channel") return truncate(title, 30);
     if (page === "playlist") return truncate(`Playlist · ${firstWords(title, 5, 30)}`, 40);
-    const prefix = url?.pathname.startsWith("/shorts/") ? "Short" : "YT";
-    return truncate(`${prefix} · ${firstWords(title, 6, 36)}`, 40);
+    // The icon says it's YouTube. A Short is worth saying, since it's a different kind of thing.
+    const short = url?.pathname.startsWith("/shorts/");
+    return short ? truncate(`Short · ${firstWords(title, 6, 36)}`, 40) : firstWords(title, 6, 36);
   }
   if (usable && (meta.kind === "reddit" || meta.kind === "vimeo" || meta.kind === "spotify")) {
-    const prefix = { reddit: "Reddit", vimeo: "Vimeo", spotify: "Spotify" }[meta.kind];
-    return truncate(`${prefix} · ${firstWords(title, 5, 32)}`, 40);
+    return firstWords(title, 6, 36);
   }
   return fromUrl || meta.siteName || meta.url;
 };
@@ -422,6 +536,8 @@ export const classifyLink = (href: string, pageBase?: string): ClassifiedLink | 
   if ((host === "twitch.tv" || host === "m.twitch.tv") && url.pathname === "/") return null;
 
   const kind = kindOf(url);
+  // One address for one post, whichever mirror or old name it was shared under.
+  if (kind === "twitter") url.hostname = "x.com";
   const youtubeId = kind === "youtube" ? extractYouTubeId(url) : undefined;
   const twitterStatusId = kind === "twitter" ? extractTwitterStatusId(url) : undefined;
   // Only kinds whose label gets better with a title are looked up just for the pill.
@@ -429,7 +545,7 @@ export const classifyLink = (href: string, pageBase?: string): ClassifiedLink | 
     !SHORTENER_HOSTS.has(host) &&
     ((kind === "youtube" &&
       (!!youtubeId || url.pathname.startsWith("/channel/") || youtubePage(url) === "playlist")) ||
-      (kind === "twitter" && !!twitterStatusId) ||
+      (kind === "twitter" && (!!twitterStatusId || !!twitterProfileHandle(url))) ||
       (kind === "spotify" && pillLabelFor(url, kind) !== "Spotify") ||
       kind === "reddit" ||
       kind === "vimeo");
@@ -437,7 +553,7 @@ export const classifyLink = (href: string, pageBase?: string): ClassifiedLink | 
   return {
     url: url.href,
     kind,
-    hostname: host,
+    hostname: kind === "twitter" ? "x.com" : host,
     label: pillLabelFor(url, kind),
     youtubeId,
     twitterStatusId,
@@ -450,7 +566,7 @@ export const fallbackMeta = (link: ClassifiedLink): LinkMeta => ({
   kind: link.kind,
   url: link.url,
   title: link.label,
-  siteName: link.hostname,
+  siteName: link.kind === "twitter" ? "X" : link.hostname,
   youtubeId: link.youtubeId,
   twitterStatusId: link.twitterStatusId,
   image: link.kind === "imgur" ? imgurImageUrl(link.url) : undefined,

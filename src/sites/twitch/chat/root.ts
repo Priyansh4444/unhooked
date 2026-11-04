@@ -42,17 +42,23 @@ function findChatRoot(): Element | null {
   return null;
 }
 
-/** Calls `onFound` once chat exists (Twitch is a SPA: it may not yet). Aborting stops the wait. */
+/** How often to look for chat while it isn't there. */
+const LOOK_MS = 500;
+
+/**
+ * Calls `onFound` once chat exists (Twitch is a SPA: it may not yet). Aborting stops the wait.
+ * On a timer, not a watch on the document: Twitch changes its page constantly, and each change
+ * would mean five more searches of it, on any page without a chat, for as long as it's open.
+ */
 export function waitForChatRoot(onFound: (root: Element) => void, signal: AbortSignal): void {
   const existing = findChatRoot();
   if (existing) return onFound(existing);
 
-  const observer = new MutationObserver(() => {
+  const timer = setInterval(() => {
     const root = findChatRoot();
     if (!root) return;
-    observer.disconnect();
+    clearInterval(timer);
     onFound(root);
-  });
-  observer.observe(document.documentElement, { childList: true, subtree: true });
-  signal.addEventListener("abort", () => observer.disconnect(), { once: true });
+  }, LOOK_MS);
+  signal.addEventListener("abort", () => clearInterval(timer), { once: true });
 }

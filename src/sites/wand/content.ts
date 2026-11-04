@@ -27,6 +27,7 @@ const BANNER = `<b>Magic wand</b>&nbsp; click to hide &nbsp; <kbd>↑</kbd><kbd>
 function start(siteId: string): Wand {
   const overlay = new Overlay();
   overlay.host.dataset.wand = "on";
+  overlay.closeWith(() => stop());
   overlay.banner(BANNER);
   let target: Element | null = null;
   let pointed: Element | null = null;

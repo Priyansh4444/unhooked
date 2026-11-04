@@ -61,7 +61,7 @@ describe("protected routes", () => {
     tiktok: ["/foryou", "/@alice", "/@alice/video/123", "/search?q=hello", "/messages"],
     facebook: ["/", "/profile.php?id=1", "/alice/posts/123", "/search/top", "/messages/t/123"],
     linkedin: [
-      "/feed/",
+      "/feed/foryou/",
       "/in/alice/",
       "/feed/update/urn:123/",
       "/search/results/all/",

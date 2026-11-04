@@ -5,8 +5,11 @@
 import { controlSiteById, type ControlSite } from "../sites/registry.ts";
 import { mergeLegacyOptions, type YouTubeOptions } from "../sites/youtube/options.ts";
 import { STORAGE_KEYS } from "./settings.ts";
+import { isPaused, type RawStorage } from "./switches.ts";
 
-export type RawStorage = Record<string, unknown>;
+export { isPaused, mergeChanges, siteSwitchOn, siteSwitchPatch } from "./switches.ts";
+
+export type { RawStorage } from "./switches.ts";
 export type Preset = "balanced" | "hideAll" | "clear";
 export const PRESETS: readonly Preset[] = ["balanced", "hideAll", "clear"];
 
@@ -59,12 +62,6 @@ export function resolveSettings(raw: RawStorage, site: ControlSite): SiteSetting
 export const isSitePath = (path: string): boolean =>
   /^\/(?![/\\])/.test(path) && path.length < 300 && !/\s/.test(path);
 
-export const isPaused = (raw: RawStorage): boolean =>
-  bool(
-    raw[STORAGE_KEYS.PAUSED],
-    mergeLegacyOptions(raw[STORAGE_KEYS.LEGACY_YOUTUBE_OPTIONS]).extensionDisabled,
-  );
-
 export function youTubeOptions(raw: RawStorage): YouTubeOptions {
   const state = resolveSettings(raw, controlSiteById("youtube")!);
   return {
@@ -83,28 +80,16 @@ export function redirectToPatch(siteId: string, path: string): RawStorage {
   return { [preferenceKey(siteId, "redirectTo")]: path };
 }
 
-/** The switch beside each site's name. Most sites start on; Excalidraw hides its own tools. */
-function siteSwitchKey(siteId: string): string {
-  if (siteId === "twitch") return STORAGE_KEYS.TWITCH_LINK_PILLS;
-  if (siteId === "excalidraw") return STORAGE_KEYS.EXCALIDRAW_CANVAS_ONLY;
-  return preferenceKey(siteId, "enabled");
-}
-
-export const siteSwitchOn = (raw: RawStorage, siteId: string): boolean =>
-  bool(raw[siteSwitchKey(siteId)], siteId !== "excalidraw");
-
-export const siteSwitchPatch = (raw: RawStorage, siteId: string): RawStorage => ({
-  [siteSwitchKey(siteId)]: !siteSwitchOn(raw, siteId),
-});
-
 export function presetPatch(siteId: string, preset: Preset): RawStorage {
   const site = controlSiteById(siteId);
   if (!site || !PRESETS.includes(preset)) throw new Error(`Unknown preset ${siteId}.${preset}`);
   return Object.fromEntries(
-    site.features.map((f) => [
-      preferenceKey(siteId, f.id),
-      preset === "hideAll" || (preset === "balanced" && f.balanced),
-    ]),
+    site.features
+      .filter((f) => !f.layout)
+      .map((f) => [
+        preferenceKey(siteId, f.id),
+        preset === "hideAll" || (preset === "balanced" && f.balanced),
+      ]),
   );
 }
 
@@ -113,20 +98,10 @@ export function matchingPreset(siteId: string, state: SiteSettings): Preset | un
   const site = controlSiteById(siteId)!;
   return PRESETS.find((preset) => {
     const patch = presetPatch(siteId, preset);
-    return site.features.every((f) => patch[preferenceKey(siteId, f.id)] === state.features[f.id]);
+    return site.features.every(
+      (f) => f.layout || patch[preferenceKey(siteId, f.id)] === state.features[f.id],
+    );
   });
-}
-
-/** Applies a storage.onChanged payload, including removals, to a raw snapshot. */
-export function mergeChanges(
-  raw: RawStorage,
-  changes: Record<string, { newValue?: unknown }>,
-): RawStorage {
-  for (const [key, change] of Object.entries(changes)) {
-    if (change.newValue === undefined) delete raw[key];
-    else raw[key] = change.newValue;
-  }
-  return raw;
 }
 
 // ---- wand removals ----------------------------------------------------------------------------

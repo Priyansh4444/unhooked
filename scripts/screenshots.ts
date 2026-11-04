@@ -137,6 +137,15 @@ if (wanted("time")) {
     return { date: dateKey(when), hosts, sessions };
   });
   await ext.timeSeed(sample);
+  // Real icons for the real sites in the sample; the made-up one shows the letter it falls back to.
+  for (const [host] of sites) {
+    if (host.includes("example")) continue;
+    const icon = await fetch(`https://icons.duckduckgo.com/ip3/${host}.ico`).catch(() => null);
+    if (!icon?.ok) continue;
+    const bytes = Buffer.from(await icon.arrayBuffer());
+    const type = icon.headers.get("content-type") ?? "image/x-icon";
+    await ext.timeSetIcon(host, `data:${type};base64,${bytes.toString("base64")}`);
+  }
   await ext.set({ "unhooked.time.enabled": true }); // the page is in front, which never counts
   const page = await newPage({ width: 1180, height: 1520, deviceScaleFactor: 2 });
   await page.goto(`${base}/time/index.html`, { waitUntil: "load" });
@@ -161,6 +170,17 @@ if (wanted("time")) {
   await sleep(600);
   const card = await page.$eval("#card", (canvas) => (canvas as HTMLCanvasElement).toDataURL());
   await writeFile(join(OUT, "time-card.png"), Buffer.from(card.split(",")[1]!, "base64"));
+  await page.click("#closeShare");
+  await sleep(300);
+  // The year's recap, drawn from the same sample.
+  await page.click("#openRecap");
+  for (let step = 0; step < 4; step++) {
+    await page.click("#recapNext");
+    await sleep(150);
+  }
+  await sleep(700);
+  const recap = await page.$eval("#recapCard", (c) => (c as HTMLCanvasElement).toDataURL());
+  await writeFile(join(OUT, "recap-card.png"), Buffer.from(recap.split(",")[1]!, "base64"));
   await page.close();
   await ext.timeSeed([]);
   await ext.set({ "unhooked.time.enabled": true });
@@ -178,7 +198,7 @@ if (wanted("youtube")) {
   await sleep(300);
   await shot(page, "youtube-before");
   await ext.set(presetPatch("youtube", "balanced"));
-  await sleep(800);
+  await sleep(2000); // the player re-measures after the layout changes
   await shot(page, "youtube-after");
   await ext.set(presetPatch("youtube", "clear"));
   await page.close();

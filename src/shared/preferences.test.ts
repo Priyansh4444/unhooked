@@ -105,7 +105,7 @@ describe("independent scalar preferences", () => {
     for (const s of CONTROL_SITES) {
       for (const preset of PRESETS) {
         const patch = presetPatch(s.id, preset);
-        expect(Object.keys(patch)).toHaveLength(s.features.length);
+        expect(Object.keys(patch)).toHaveLength(s.features.filter((f) => !f.layout).length);
         for (const key of Object.keys(patch)) {
           expect(key.startsWith(`unhooked.site.${s.id}.`) && !key.endsWith(".enabled")).toBe(true);
         }
@@ -115,7 +115,7 @@ describe("independent scalar preferences", () => {
         );
         expect(state.paused).toBe(true);
         expect(state.enabled).toBe(false);
-        for (const f of s.features) {
+        for (const f of s.features.filter((candidate) => !candidate.layout)) {
           expect(state.features[f.id]).toBe(
             preset === "hideAll" || (preset === "balanced" && f.balanced),
           );
@@ -126,17 +126,17 @@ describe("independent scalar preferences", () => {
   });
 
   it("marks one matching preset, preferring the first when two coincide", () => {
-    // Every Threads control is in Balanced, so Balanced and Focus produce the same choices.
-    const threads = site("threads");
+    // Every LinkedIn control is in Balanced, so Balanced and Hide all produce the same choices.
+    const linkedin = site("linkedin");
     expect(
-      matchingPreset("threads", resolveSettings(presetPatch("threads", "hideAll"), threads)),
+      matchingPreset("linkedin", resolveSettings(presetPatch("linkedin", "hideAll"), linkedin)),
     ).toBe("balanced");
-    expect(matchingPreset("threads", resolveSettings({}, threads))).toBe("clear");
+    expect(matchingPreset("linkedin", resolveSettings({}, linkedin))).toBe("clear");
     const custom = {
-      ...presetPatch("threads", "hideAll"),
-      ...featurePatch("threads", "hideSuggestions", false),
+      ...presetPatch("linkedin", "hideAll"),
+      ...featurePatch("linkedin", "hideNews", false),
     };
-    expect(matchingPreset("threads", resolveSettings(custom, threads))).toBeUndefined();
+    expect(matchingPreset("linkedin", resolveSettings(custom, linkedin))).toBeUndefined();
   });
 
   it("removing a scalar key restores its legacy fallback", () => {

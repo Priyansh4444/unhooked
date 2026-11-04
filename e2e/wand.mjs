@@ -1,6 +1,6 @@
 // The magic wand and the hover preview, on a stubbed reddit.com page. Runs in Chrome and
 // Firefox: the bridge injects the wand the way the popup's button does.
-import { createChecker, launch, press, sleep, stub } from "./lib.mjs";
+import { BROWSER, closedShadowCenter, createChecker, launch, press, sleep, stub } from "./lib.mjs";
 import { fixturePage } from "./social-fixtures.mjs";
 
 const { newPage, ext, close } = await launch();
@@ -43,6 +43,7 @@ await ext.set({ "unhooked.paused": false, "unhooked.custom.reddit": [] });
 const page = await open();
 
 // Preview: what a control covers, drawn on the page while the popup row is hovered.
+await ext.inject("reddit.com", "sites/preview/content.js");
 const reply = await ext.send("reddit.com", {
   action: "uh/preview",
   feature: "hideHomeFeed",
@@ -130,6 +131,15 @@ await press(page, "Enter");
 await until("picking again saves again", async () => (await rules()).length === 1);
 await press(page, "Escape");
 await until("Esc puts the wand away", async () => (await wandState(page)) === null);
+// The bar's close button does too, for anyone not at the keyboard. Only Chrome's debugger can see
+// into the overlay's closed shadow root to find it.
+if (BROWSER !== "firefox") {
+  await ext.inject("reddit.com", "sites/wand/content.js");
+  await until("the wand starts again", async () => (await wandState(page)) !== null);
+  const closeWand = await closedShadowCenter(page, "close");
+  await page.mouse.click(closeWand.x, closeWand.y);
+  await until("its close button puts it away", async () => (await wandState(page)) === null);
+}
 
 // Preview of a wand removal that is already hidden.
 const saved = (await rules())[0];

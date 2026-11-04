@@ -96,6 +96,80 @@ await other.bringToFront();
 await ext.timeDays();
 check("looking away doesn't end it", (await ext.timeState()).open["x.com"]?.start === live.start);
 
+// The real step, with signals that can't be staged in a test: focus, idle, a sleeping computer.
+const countedOn = async (host = "x.com") => {
+  const { days } = await ext.timeRead();
+  return days.reduce(
+    (sum, day) =>
+      sum + Object.values(day.hosts[host] ?? {}).reduce((all, seconds) => all + seconds, 0),
+    0,
+  );
+};
+const scene = async (signals, ms = 1000) => {
+  await ext.timeSeed([]);
+  await x.bringToFront();
+  await ext.timeStep(signals);
+  await sleep(ms);
+  await ext.timeStep(signals);
+  return countedOn();
+};
+const inUse = { focused: true, idle: "active", audible: false, incognito: false };
+
+check("time passes while in use", (await scene(inUse)) >= 0.9);
+check("none while another app has the focus", (await scene({ ...inUse, focused: false })) === 0);
+check("none in a private window", (await scene({ ...inUse, incognito: true })) === 0);
+check(
+  "none with the screen locked",
+  (await scene({ ...inUse, idle: "locked", audible: true })) === 0,
+);
+check("none once you've stepped away", (await scene({ ...inUse, idle: "idle" })) === 0);
+check(
+  "but a video playing keeps counting",
+  (await scene({ ...inUse, idle: "idle", audible: true })) >= 0.9,
+);
+
+await scene(inUse);
+const beforeAway = await countedOn();
+check("about to step away, time has been counted", beforeAway >= 0.9, String(beforeAway));
+// This is a record of where time goes, whatever the extension is hiding.
+await ext.set({ "unhooked.paused": true, "unhooked.site.x.enabled": false });
+check("Pause all and a site's switch don't stop it counting", (await scene(inUse)) >= 0.9);
+await ext.set({ "unhooked.paused": false, "unhooked.site.x.enabled": true });
+await scene(inUse);
+await ext.timeStep({ ...inUse, idle: "idle" });
+check(
+  "stepping away takes back the idle stretch",
+  (await countedOn()) < 0.01,
+  String(await countedOn()),
+);
+check("and stops counting", (await ext.timeRead()).state.watch === null);
+
+await scene(inUse);
+const beforeSleep = await countedOn();
+await ext.timeRewind(8 * 3_600_000);
+await ext.timeStep(inUse);
+check(
+  "a night asleep adds nothing",
+  (await countedOn()) === beforeSleep,
+  String(await countedOn()),
+);
+
+// Its icon, kept so showing it never touches the network.
+const dot =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
+const iconPage = await newPage();
+await stub(iconPage, [
+  ["https://icon.example/", `<!doctype html><link rel="icon" href="${dot}"><title>icon</title>`],
+]);
+await iconPage.goto("https://icon.example/", { waitUntil: "load" });
+await iconPage.bringToFront();
+await until(
+  "a site's icon is kept",
+  async () => (await ext.timeIcons())["icon.example"]?.src.startsWith("data:") === true,
+  8000,
+);
+await iconPage.close();
+
 // A page reading everything mustn't be handed a year of browsing.
 const keys = await other.evaluate(() => Object.keys(localStorage));
 check("nothing is left in the page", keys.length === 0);
@@ -163,6 +237,23 @@ check(
   await app.$eval("#sites li:last-child .site-name", (el) => el.children.length === 0),
 );
 check("the tiles agree", (await text("#tileSites")) === "4");
+check(
+  "a site with no icon yet shows its first letter",
+  (await app.$eval('#sites li[data-host="example.org"] .site-icon', (el) => el.textContent)) ===
+    "E",
+);
+check(
+  "a popular site has its icon without one being saved",
+  await app.$eval('#sites li[data-host="x.com"] .site-icon img', (el) =>
+    el.src.includes("/icons/sites/x.com.png"),
+  ),
+);
+await ext.timeSetIcon("example.org", dot);
+await until("and any other site its own once there is one", () =>
+  app.$eval('#sites li[data-host="example.org"] .site-icon img', (el) =>
+    el.src.startsWith("data:"),
+  ),
+);
 
 // Sessions, worked out by hand from what was seeded: 3600, 900, 300, 45 and 1800 seconds.
 await until("sessions are counted", async () => (await text("#sessionCount")) === "5");
@@ -170,9 +261,41 @@ await until("with their average", async () => (await text("#sessionAverage")) ==
 check("and median", (await text("#sessionMedian")) === "median 15m");
 await until("the longest", async () => (await text("#sessionLongest")) === "1h");
 await until("the shortest", async () => (await text("#sessionShortest")) === "45s");
-await until("and time in focus", async () => (await text("#sessionFocused")) === "1h 45m");
-check("as a share", (await text("#sessionFocusedNote")).startsWith("95%"));
+await until("and time in long stretches", async () => (await text("#sessionLong")) === "1h 45m");
+check("as a share", (await text("#sessionLongNote")).startsWith("95%"));
 check("the longest says what and when", (await text("#sessionLongestNote")).startsWith("x.com · "));
+await app.click("#openRecap");
+await until("the recap opens", () => app.$eval("#recapDialog", (el) => el.open));
+check("it starts with the year's total", /\d/.test(await text(".recap-big")));
+for (const step of [1, 2, 3, 4]) {
+  await app.click("#recapNext");
+  await until(`to screen ${step + 1}`, async () =>
+    (await text("#recapStep")).startsWith(`${step + 1} of`),
+  );
+}
+await until("it ends on a card with marks on it", () =>
+  app.$eval("#recapCard", (canvas) => {
+    const { data } = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height);
+    let marks = 0;
+    for (let i = 0; i < data.length; i += 4 * 97) if (data[i] > 180 && data[i + 1] < 110) marks++;
+    return marks > 20;
+  }),
+);
+await app.click("#closeRecap");
+await until("and closes", () => app.$eval("#recapDialog", (el) => !el.open));
+check("with the site's icon", (await app.$("#sessionLongestNote .site-icon img")) !== null);
+check(
+  "and the longest sessions are listed with their icons",
+  await app.$$eval("#longSessions li", (rows) => {
+    const first = rows[0];
+    return (
+      rows.length > 0 &&
+      rows.length <= 5 &&
+      first.textContent.includes("x.com") &&
+      first.querySelector(".site-icon img") !== null
+    );
+  }),
+);
 await until(
   "lengths are sorted into groups",
   async () =>
@@ -206,8 +329,8 @@ const fill = await app.$eval(`${chart} .line-area`, (el) => {
   return [...gradient.children].map((stop) => getComputedStyle(stop).stopColor);
 });
 check(
-  "the gradient stays on the scheme's amber",
-  fill.every((color) => color === "rgb(214, 162, 78)"),
+  "the gradient stays on the scheme's colour",
+  fill.every((color) => color === "rgb(255, 61, 34)"),
   fill.join(),
 );
 check(
@@ -325,17 +448,17 @@ check("the card is 16:9, at twice the size", size.join() === "2400,1350");
 const drawn = await app.$eval("#card", (el) => {
   const { data } = el.getContext("2d").getImageData(0, 0, el.width, el.height);
   let bright = 0;
-  let amber = 0;
+  let marks = 0;
   for (let i = 0; i < data.length; i += 400) {
     if (data[i] > 200 && data[i + 1] > 200) bright++;
-    if (data[i] > 180 && data[i + 1] > 120 && data[i + 2] < 110) amber++;
+    if (data[i] > 180 && data[i + 1] < 110 && data[i + 2] < 90) marks++;
   }
-  return { bright, amber };
+  return { bright, marks };
 });
-check("it has text and marks on it", drawn.bright > 50 && drawn.amber > 50, JSON.stringify(drawn));
+check("it has text and marks on it", drawn.bright > 50 && drawn.marks > 50, JSON.stringify(drawn));
 const picture = () => app.$eval("#card", (el) => el.toDataURL("image/png").length);
 const withNames = await picture();
-await app.click(".share-actions .foot-switch");
+await app.click("#shareDialog .share-actions .foot-switch");
 await sleep(100);
 check("site names can be left out", (await picture()) !== withNames);
 await app.evaluate(() => {
@@ -382,6 +505,26 @@ check(
 
 await ext.set({ "unhooked.time.enabled": true }); // the page is in front, which never counts
 await sleep(200);
+// If the background doesn't answer, say so rather than quietly showing nothing.
+await app.evaluate(() => {
+  window.realSend = chrome.runtime.sendMessage;
+  chrome.runtime.sendMessage = async () => undefined;
+});
+await until(
+  "a background that isn't counting is reported",
+  async () => (await text("#notice")).includes("out of date"),
+  8000,
+);
+check("with a way to fix it", (await app.$("#restartTracker")) !== null);
+await app.evaluate(() => {
+  chrome.runtime.sendMessage = window.realSend;
+});
+await until(
+  "and the report goes once it answers",
+  async () => !(await app.$("#restartTracker")),
+  8000,
+);
+
 await app.click("#eraseAll");
 await until("Erase everything empties it", async () => (await rows()).length === 0);
 check("and explains the empty page", (await text("#notice")).startsWith("Nothing yet"));
