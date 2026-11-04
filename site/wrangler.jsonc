@@ -1,0 +1,7 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "unhooked-site",
+  "compatibility_date": "2026-11-01",
+  "assets": { "directory": "../dist-site", "not_found_handling": "404-page" },
+  "routes": [{ "pattern": "unhooked.pronsh.dev", "custom_domain": true }]
+}

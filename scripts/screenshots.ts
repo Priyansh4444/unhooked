@@ -106,7 +106,7 @@ if (wanted("picker")) {
 }
 
 if (wanted("time")) {
-  // Sample data: a believable month, the same every run, and nobody's real browsing.
+  // Sample data: a believable year, the same every run, and nobody's real browsing.
   await ext.set({ "unhooked.time.enabled": false });
   const sites: [string, number, number[]][] = [
     ["x.com", 1, [8, 9, 12, 13, 21, 22, 23]],
@@ -119,7 +119,7 @@ if (wanted("time")) {
   ];
   let seed = 7;
   const random = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-  const sample = Array.from({ length: 40 }, (_, ago) => {
+  const sample = Array.from({ length: 300 }, (_, ago) => {
     const when = new Date(Date.now() - ago * 86_400_000);
     const weekend = [0, 6].includes(when.getDay());
     const hosts: Record<string, Record<number, number>> = {};
@@ -128,7 +128,8 @@ if (wanted("time")) {
       for (const hour of hours) {
         if (random() < 0.3) continue;
         const shift = host === "github.com" && weekend ? 0.2 : 1;
-        const seconds = Math.round(random() * 1500 * weight * shift);
+        const season = 0.65 + 0.35 * Math.sin(when.getMonth() * 0.9 + 1);
+        const seconds = Math.round(random() * 1500 * weight * shift * season);
         (hosts[host] ??= {})[hour] = seconds;
         const start = new Date(when).setHours(hour, Math.floor(random() * 30), 0, 0);
         sessions.push({ host, start, end: start + seconds * 1000, seconds });

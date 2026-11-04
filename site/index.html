@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Unhooked: keep only the parts you came for</title>
+    <meta name="description" content="A browser extension that hides feeds, removes anything with a magic wand, and shows where your time on the web really goes. No account. Your settings stay in your browser." />
+    <meta property="og:title" content="Unhooked" />
+    <meta property="og:description" content="Unsubscribe from the parts of the web you never asked for." />
+    <meta property="og:image" content="https://unhooked.pronsh.dev/media/youtube-after.png" />
+    <meta property="og:url" content="https://unhooked.pronsh.dev/" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="theme-color" content="#0a0a0a" />
+    <link rel="icon" href="/media/icon.svg" type="image/svg+xml" />
+    <link rel="preload" href="/fonts/newsreader.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <header class="top">
+      <a class="brand" href="/"><img src="/media/icon.svg" width="24" height="24" alt="" />unhooked</a>
+      <nav>
+        <a href="#install">Install</a>
+        <a href="https://github.com/Priyansh4444/unhooked">Source</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero">
+        <h1>Keep only the parts you came for.</h1>
+        <p class="lede">You opened YouTube for one video. The rest of the page has other plans. Unhooked lets you unsubscribe from the parts you never asked for, on the sites that pull at you most.</p>
+        <div class="actions">
+          <a class="button primary" href="#install">Install it</a>
+          <a class="button" href="https://github.com/Priyansh4444/unhooked">See the source</a>
+        </div>
+        <p class="sites">YouTube · X · Reddit · Instagram · TikTok · Facebook · LinkedIn · Threads · Twitch · any other site with the wand</p>
+      </section>
+
+      <figure class="film">
+        <video src="/media/unhooked-demo.mp4" poster="/media/poster.jpg" controls playsinline preload="none" width="1920" height="1080"></video>
+      </figure>
+
+      <section class="feature">
+        <div>
+          <p class="kicker">Unsubscribe from the UI</p>
+          <h2>One switch per part.</h2>
+          <p>Recommendations, Shorts, comments, trends, the whole sidebar. Hover a switch to see what it covers, outlined on the page. <b>Balanced</b> does the sensible set in one click, and it only includes what has been seen working on the live site.</p>
+        </div>
+        <img src="/media/popup.png" width="800" height="1200" loading="lazy" alt="The popup: a list of sites, what you removed, and a switch for each part of the page" class="narrow" />
+      </section>
+
+      <section class="feature wide">
+        <div>
+          <p class="kicker">Anything else</p>
+          <h2>Point at it. Click. It stays gone.</h2>
+          <p>Inspect Element forgets when you reload. The magic wand doesn't: what you remove stays removed across reloads and sessions, on any site, until you bring it back. Name your removals, undo them, or bring them all back at once.</p>
+        </div>
+        <img src="/media/wand.gif" loading="lazy" alt="The magic wand on Hacker News: pointing at a story, widening to the whole row, and removing every story" />
+      </section>
+
+      <section class="feature wide">
+        <div>
+          <p class="kicker">Your time</p>
+          <h2>See where it really goes.</h2>
+          <p>By site, day and hour, with sessions and your long stretches. It's a record, not a judge, so it counts whether or not you're hiding anything. Each year gets a recap you can share. It stays on your computer.</p>
+        </div>
+        <img src="/media/time.gif" loading="lazy" alt="Your time: the total, a line of time per day, sessions and where it went. Sample data." />
+        <img src="/media/recap-card.png" width="2400" height="1350" loading="lazy" alt="The year's recap card: total time, top sites and the shape of the year. Sample data." />
+      </section>
+
+      <section class="grid">
+        <article>
+          <p class="kicker">Focus</p>
+          <h3>Just the video</h3>
+          <p>A key or a button in the player fills the window, without going full screen.</p>
+        </article>
+        <article>
+          <p class="kicker">Skip the feed</p>
+          <h3>Land where you meant to</h3>
+          <p>Leave a feed before it loads, for a page you choose: your subscriptions, your saved posts, anywhere.</p>
+        </article>
+        <article>
+          <p class="kicker">Twitch</p>
+          <h3>Stay on the stream</h3>
+          <p>Links in chat become short pills, with previews like a Discord embed, including X posts with their pictures and video.</p>
+        </article>
+        <article>
+          <p class="kicker">Film mode</p>
+          <h3>Frame what's worth keeping</h3>
+          <p>Clean screenshots to your clipboard, and on X a real post framed at the center of the screen, ready to record.</p>
+        </article>
+        <article>
+          <p class="kicker">Sketch</p>
+          <h3>Click on a drawing</h3>
+          <p>Rather not touch the real page? Pick the parts you don't want on a dot-matrix sketch of it.</p>
+        </article>
+        <article>
+          <p class="kicker">Move settings</p>
+          <h3>Take it with you</h3>
+          <p>Copy your choices to any other browser as text or a file. No account involved.</p>
+        </article>
+      </section>
+
+      <section class="plain">
+        <div>
+          <p class="kicker">Light by design</p>
+          <h2>It does nothing on sites it has no business on.</h2>
+          <p>Hiding is CSS, so nothing is removed from the page and turning a control off restores it at once. On YouTube's Balanced preset there's no measurable change in style work. The numbers and how to reproduce them are in <a href="https://github.com/Priyansh4444/unhooked/blob/master/docs/PERFORMANCE.md">the performance notes</a>.</p>
+        </div>
+        <div>
+          <p class="kicker">Private by default</p>
+          <h2>No account. No server. No analytics.</h2>
+          <p>Your settings and history stay in your browser. Network use comes from one feature: Twitch link pills look up the links that appear in chat. Turn pills off to stop that. <a href="https://github.com/Priyansh4444/unhooked#privacy-and-permissions">Every permission is explained</a>.</p>
+        </div>
+      </section>
+
+      <section class="install" id="install">
+        <p class="kicker">Install</p>
+        <h2>Build it once and load it.</h2>
+        <p>It isn't in the stores yet. It takes <a href="https://bun.sh">Bun</a> and about a minute.</p>
+        <pre><code>git clone https://github.com/Priyansh4444/unhooked
+cd unhooked
+bun install
+bun run build:chrome    # or build:firefox</code></pre>
+        <ul>
+          <li><b>Chrome, Brave, Edge, Helium:</b> open <code>chrome://extensions</code>, turn on Developer mode, choose Load unpacked, and pick <code>dist/</code>.</li>
+          <li><b>Firefox:</b> open <code>about:debugging#/runtime/this-firefox</code>, choose Load Temporary Add-on, and pick any file in <code>dist-firefox/</code>.</li>
+        </ul>
+      </section>
+    </main>
+
+    <footer>
+      <span>MIT licensed. The successor to <a href="https://github.com/Priyansh4444/Dissatisfied">Dissatisfied</a>. Not affiliated with the commercial Unhook extension or any site it supports.</span>
+      <a href="https://github.com/Priyansh4444/unhooked">github.com/Priyansh4444/unhooked</a>
+    </footer>
+  </body>
+</html>

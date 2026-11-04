@@ -148,3 +148,7 @@ Bump `version` in `package.json` (the manifests read it). `bun run package` buil
 ## Performance
 
 Measure before adding anything that runs on every page: see [docs/PERFORMANCE.md](docs/PERFORMANCE.md).
+
+## The website
+
+`site/` is the page at unhooked.pronsh.dev. `bun scripts/build-site.ts [video.mp4]` puts it in `dist-site/`, and `bunx wrangler deploy --config site/wrangler.jsonc` publishes it. The video isn't in the repository, so building takes a copy of it.
