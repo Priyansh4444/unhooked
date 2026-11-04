@@ -24,7 +24,7 @@ src/
     wand/content.ts        the magic wand, injected by the popup on demand
     film/                  film mode, injected on demand; frame.ts is the framing arithmetic
     preview/content.ts     the hover preview, injected the first time something is hovered
-    youtube/               content.ts (controls in every frame), options.ts + controls.css
+    youtube/               content.ts (controls in every frame), fill.ts (` and the player button), options.ts + controls.css
     x/                     X's Layout switches: content.ts + style.css
     excalidraw/            the site's switch: content.ts + style.css
     twitch/                chat link pills, hover cards, URL log

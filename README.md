@@ -16,9 +16,9 @@ Chrome, Brave, Edge, Helium and other Chromium browsers, and Firefox</p>
 | | |
 | :-- | :-- |
 | **Hide the feed** | One switch per thing: home feeds, Shorts, trends, suggestions, comments, sidebars. **Balanced** does the sensible set for a site in one click. |
-| **Magic wand** | Point at anything on any site. A red box shows what a click would remove, and it stays removed until you bring it back. |
+| **Magic wand** | Point at anything on any site. A red box shows what a click would remove, and it stays removed across reloads and sessions until you bring it back, which Inspect Element can't do. |
 | **Skip the feeds** | Leave a feed before it loads, for a page you choose: your subscriptions, your saved posts, anywhere. |
-| **Your time** | Where your time on the web goes, by site, day and hour, with sessions and focus time. Share it as a card. |
+| **Your time** | Where your time on the web goes, by site, day and hour, with sessions and a recap of your year. Share it as a card. |
 | **Film mode** | Clean screenshots to your clipboard, and on X a post framed at the center of the screen, ready to record. |
 | **Twitch link pills** | Links in chat become short pills with previews. |
 | **Move settings** | Copy your choices to any other browser. |
@@ -63,6 +63,7 @@ All under your left hand, and the letter says what it does. Change them at `chro
 | `Alt+Shift+S` | Turn Unhooked on or off for this site | **S**witch |
 | `Alt+Shift+E` | Start the wand (change this one in the popup) | **E**rase |
 | `Alt+Shift+F` | Start film mode | **F**ilm |
+| `` ` `` | On a YouTube video: fill the window, and again or `Esc` to go back. It stays on for that tab, and `T` steps out of it. There's a button for it beside the theater button. | |
 
 ### The magic wand
 
@@ -83,11 +84,15 @@ Open it from **Your time** in the popup. Pick a period, or click a site to see j
 ![Your time: the total, a smooth line of time per day, sessions, where it went and when. Sample data.](docs/screenshots/time.gif)
 
 - **What counts:** the site in front while you're using it, or while it's playing sound. Not private windows, not while another app has the focus, and not once you've stepped away: after three minutes with no input and nothing playing, those three minutes are taken back. Time the computer slept through never counts.
-- **Sessions:** one unbroken stretch, on a site or online overall. Stepping away for under a minute doesn't end one, and under five seconds is only passing through. You get the count, average, median, longest and shortest.
-- **Focused:** time in stretches of ten minutes or more.
+- **Sessions:** one unbroken stretch, on a site or online overall. Stepping away for under a minute doesn't end one, and under five seconds is only passing through. You get the count, average, median, longest and shortest, and each site's longest stretch, with its icon. Popular sites' icons come with the extension, so they show before a visit has saved one.
+- **Long stretches:** time spent ten minutes or more at a time.
+- **Recap:** your year in a few screens, from the button at the top: the total, where it went, your biggest month and day, and your longest stretch, ending in a card to share. History is kept for 400 days, so an older year says when its numbers start.
+- **It doesn't depend on hiding anything.** It's a record of where your time goes on the web, so Pause all and a site's switch don't affect it. It has its own switch on that page.
 - **Share** makes a sharp 16:9 card to save, copy, or **Post on X**, which copies the picture and opens a post with the words ready. Site names and icons can be left off.
 
 ![The share card. Sample data.](docs/screenshots/time-card.png)
+
+![The year's recap card. Sample data.](docs/screenshots/recap-card.png)
 
 History stays on this computer for up to 400 days, and isn't part of Move settings. You can turn it off, forget a site, or erase it all on that page.
 
@@ -95,7 +100,7 @@ History stays on this computer for up to 400 days, and isn't part of Move settin
 
 Press **Film mode** in the popup, or `Alt+Shift+F`. `S` copies a clean picture of the window to your clipboard, and `Shift+S` saves it as a file instead.
 
-On X, every post has a film button just left of Share (turn it off under **Layout**). Click it and the post flies to the center of the screen, slightly rounded, on a dark backdrop. It's a real post rather than a picture: its text is selectable, links open in a new tab, and Like and Bookmark work. Reply, Repost and Share close the frame and open X's own box. The toolbar and pointer leave the frame after a moment, so you can screen-record it directly. `S` copies the post and its backdrop, `A` shows or hides its buttons, and `Esc` or a click on the backdrop goes back.
+On X, every post has a film button just left of Share (turn it off under **Layout**). Click it and the post flies to the center of the screen, slightly rounded, on a dark backdrop. It's a real post rather than a picture: its text is selectable, links open in a new tab, and Like and Bookmark work. Reply, Repost and Share close the frame and open X's own box. The pointer leaves the frame after a moment, so you can screen-record it directly. `S` copies the post and its backdrop, `A` shows or hides its buttons, and `Esc` or a click on the backdrop goes back. The bar at the bottom only stays a moment; moving the pointer to the bottom of the window or pressing a key brings it back.
 
 ![A real post framed by film mode: centered and slightly rounded on a dark backdrop](docs/screenshots/film.png)
 
@@ -109,16 +114,18 @@ A browser only lets an extension capture a tab with access to all sites, or just
 
 | Site | What you can hide |
 | :-- | :-- |
-| **YouTube** | Home, recommendations (the video takes their width), Shorts, comments, end screens, live chat, playlists, mixes, merch, video buttons, channel row, description, notifications, Explore and subscriptions links, autoplay, annotations. Plus **Fill the window in theater**. |
+| **YouTube** | Home, recommendations (the video takes their width), Shorts, comments, end screens, live chat, playlists, mixes, merch, video buttons, channel row, description, notifications, Explore and subscriptions links, autoplay, annotations. Plus **Fill the window**: the video takes the whole window without going full screen, on `` ` `` or a button in the player for one tab, or a switch for all of them. |
 | **X / Twitter** | Home timeline and its "new posts" pill, Explore, sidebar news and trends, the whole sidebar, Grok, the chat button, navigation. Plus **Center timeline** and **Custom text size**. |
-| **Reddit** | Home, Popular and All feeds, recommendation panels |
+| **Reddit** | Home, Popular and All feeds and their sort bar, recommendation panels, the left sidebar |
 | **Instagram** | Home posts, Explore grid, suggestions, stories, Reels, Reels and Explore links, navigation |
 | **TikTok** | For You and Following, Explore, suggested accounts, Live |
 | **Facebook** | Home feed, right sidebar, stories, Reels |
 | **LinkedIn** | Home feed, news and recommendations |
 | **Threads** | For You and Following, suggested accounts |
 | **Excalidraw** | The site's switch leaves just the canvas |
-| **Twitch** | Link pills in chat, with a hover preview and a log of the last 25 links |
+| **Twitch** | Link pills in chat, with a hover preview and a log of the last 25 links. Cards read like Discord embeds, and popular sites and AI labs show their logos. X posts preview in full, with their pictures, video and quoted post. Profiles show their name and bio. Spaces, lists and communities only say what they are, because X doesn't publish them. |
+
+**Balanced** only includes what has been seen working on the live site. Facebook, TikTok's suggested accounts and Threads' suggested accounts haven't been, so they're off until you turn them on. Reddit and Threads were checked signed out.
 
 Profiles, direct posts and videos, search, messages, communities and job pages always stay visible, and so does any page it doesn't recognise. Hiding is CSS only, so nothing is removed from the page and turning a control off restores it at once.
 
@@ -140,7 +147,7 @@ The numbers, and how to reproduce them, are in [docs/PERFORMANCE.md](docs/PERFOR
 
 There is no account, server or analytics. Your settings and history stay in your browser.
 
-Network use comes from one feature: **Twitch link pills** look up links that appear in chat, while pills are on (oEmbed endpoints on youtube.com, reddit.com, vimeo.com, open.spotify.com and publish.x.com, the GitHub API, and pages on github.com, imgur.com and lakebed.app; thumbnails load from i.ytimg.com, and playing a YouTube preview loads youtube-nocookie.com's player). Nothing is sent to us. Turn pills off to stop them.
+Network use comes from one feature: **Twitch link pills** look up links that appear in chat, while pills are on (oEmbed endpoints on youtube.com, reddit.com, vimeo.com, open.spotify.com and publish.x.com, X's embed service on cdn.syndication.twimg.com, the GitHub API, and pages on x.com, github.com, imgur.com and lakebed.app; pictures load from i.ytimg.com and pbs.twimg.com, and playing a preview loads youtube-nocookie.com's player or a video from video.twimg.com). Nothing is sent to us. Turn pills off to stop them.
 
 | Permission | Why |
 | :-- | :-- |
@@ -152,7 +159,7 @@ Network use comes from one feature: **Twitch link pills** look up links that app
 | `scripting` | Starting the wand, film mode and hover previews when you ask |
 | Host access | Exactly the listed sites and the Twitch lookup hosts above |
 | **Only if you ask:** one site | The wand on a site that isn't listed |
-| **Only if you ask:** all sites | Film mode's pictures, the first time you need one that way |
+| **Only if you ask:** all sites | Film mode's pictures, the first time you need one that way, or previews of any link in Twitch chat. Previews read a link's page when you point at it, without your accounts, and never on your own network. |
 
 **Your time** records which sites you spent time on, by the hour, and each site's icon. It never records the pages or addresses within a site. It leaves your computer only if you share a card yourself.
 

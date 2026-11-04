@@ -14,6 +14,9 @@ What Unhooked costs a page, measured on the production build in Chromium against
 | | Memory | 1.2 MB | 2.0 MB |
 | Live YouTube watch page | Style work at load | 225 ms | 462 ms |
 
+| Twitch chat, 20 messages a second, 1 in 3 with a link, on a busy page, for 10 s | Script | 105 ms | 172 ms |
+| The same page with no chat | Script | 94 ms | 90 ms |
+
 On the busy timeline, the extra 47 ms of script over 8 seconds is about 0.6% of the time.
 
 YouTube's style work depends on what's turned on, because hiding most of a page makes the browser lay out a very different one:
@@ -41,6 +44,8 @@ The background uses about 1 MB while awake. It wakes once a minute only while so
 | Excalidraw's script carried the control registry | 20 KB | 5 KB |
 | The script on every supported site carried the hover preview and YouTube's stylesheet as text | 42 KB | 23 KB; the preview loads on first hover |
 | The time tracker's heartbeat ran all the time | Every minute | Only while something is being counted |
+| Twitch's chat script watched every change to the whole page, and searched it on each one until it found a chat | 121 ms of script per 10 s on a page without chat | None measurable: it checks on a timer |
+| Twitch's hover card blurred what was behind it, repainting with the stream under it on every frame | A blur on every video frame | A solid card |
 
 ## How it stays light
 
