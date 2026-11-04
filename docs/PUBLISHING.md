@@ -37,3 +37,7 @@ Permission justifications must match the manifest:
 - Host access: exactly the supported sites (to apply local CSS) and the Twitch link lookup hosts listed in the README. The lookups only run for links in Twitch chat while link pills are on.
 
 There is no remote service, telemetry or account. Keep these statements accurate if behaviour changes, and list new permissions or lookup hosts in the release notes.
+
+## Firefox's data declaration
+
+addons.mozilla.org requires `data_collection_permissions` in the manifest. Unhooked declares `websiteContent`: while Twitch pills are on, links seen in chat go to the lookup services the README lists, and their domains to the icon service. Settings and time history never leave the browser. Check the zip with `bunx addons-linter dist/unhooked-firefox-*.zip` before uploading.
