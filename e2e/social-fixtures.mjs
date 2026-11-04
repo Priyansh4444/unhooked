@@ -33,9 +33,12 @@ export const fixtures = [
     messages: "/message/inbox/",
     // The 2025 layout (measured on reddit.com): one right-hand container that holds recent
     // posts on Home and a community's About box on subreddits and threads.
-    html: `<shreddit-feed><shreddit-post><article id="feed">A front-page post</article></shreddit-post></shreddit-feed><div id="right-sidebar-container"><reddit-recent-pages id="suggestions">Recent posts</reddit-recent-pages><div id="about">About this community</div></div>`,
+    html: `<div id="left-sidebar-container">Communities</div><shreddit-feed><shreddit-post><article id="feed">A front-page post</article></shreddit-post></shreddit-feed><div id="right-sidebar-container"><reddit-recent-pages id="suggestions">Recent posts</reddit-recent-pages><div id="about">About this community</div></div>`,
     sidebarAnywhere: "hideRecommendations",
-    features: { hideRecommendations: ["suggestions", "right-sidebar-container"] },
+    features: {
+      hideRecommendations: ["suggestions", "right-sidebar-container"],
+      hideLeftSidebar: ["left-sidebar-container"],
+    },
     detailKeeps: ["about"],
   },
   {
@@ -78,12 +81,12 @@ export const fixtures = [
   },
   {
     id: "linkedin",
-    url: "https://www.linkedin.com/feed/",
+    url: "https://www.linkedin.com/feed/foryou/",
     profile: "/in/someone/",
     detail: "/feed/update/urn:li:activity:123/",
     search: "/search/results/all/?keywords=focus",
     messages: "/messaging/thread/123/",
-    html: `<div class="scaffold-finite-scroll"><article id="feed">A feed update</article></div><aside class="scaffold-layout__aside" id="news">LinkedIn News</aside>`,
+    html: `<main id="workspace"><div><aside id="profile">You</aside><section><div data-testid="mainFeed"><article id="feed">A feed update</article></div></section><aside id="news">LinkedIn News</aside></div></main>`,
     features: { hideNews: ["news"] },
   },
   {

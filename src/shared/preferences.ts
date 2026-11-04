@@ -84,10 +84,12 @@ export function presetPatch(siteId: string, preset: Preset): RawStorage {
   const site = controlSiteById(siteId);
   if (!site || !PRESETS.includes(preset)) throw new Error(`Unknown preset ${siteId}.${preset}`);
   return Object.fromEntries(
-    site.features.map((f) => [
-      preferenceKey(siteId, f.id),
-      preset === "hideAll" || (preset === "balanced" && f.balanced),
-    ]),
+    site.features
+      .filter((f) => !f.layout)
+      .map((f) => [
+        preferenceKey(siteId, f.id),
+        preset === "hideAll" || (preset === "balanced" && f.balanced),
+      ]),
   );
 }
 
@@ -96,7 +98,9 @@ export function matchingPreset(siteId: string, state: SiteSettings): Preset | un
   const site = controlSiteById(siteId)!;
   return PRESETS.find((preset) => {
     const patch = presetPatch(siteId, preset);
-    return site.features.every((f) => patch[preferenceKey(siteId, f.id)] === state.features[f.id]);
+    return site.features.every(
+      (f) => f.layout || patch[preferenceKey(siteId, f.id)] === state.features[f.id],
+    );
   });
 }
 

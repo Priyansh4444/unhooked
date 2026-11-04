@@ -44,6 +44,58 @@ await press(page, "t");
 state = await until((s) => !s.theater);
 check("leaving theater restores the page", state.masthead?.opacity !== "0");
 
+// ` and the player's button, without the switch.
+await ext.set({ "unhooked.site.youtube.fillTheater": false });
+await sleep(300);
+const pageHeight = await page.evaluate(() => innerHeight);
+const isFilling = (s) => s.theater && s.masthead?.opacity === "0" && s.player?.h === pageHeight;
+await page.waitForSelector(".uh-fill-btn", { timeout: 15000 });
+const fillButton = await page.$eval(".uh-fill-btn", (button) => {
+  const box = button.getBoundingClientRect();
+  const size = button.nextElementSibling;
+  return {
+    beforeTheater: size?.classList.contains("ytp-size-button"),
+    box: [box.width, box.height],
+    size: [size?.getBoundingClientRect().width, size?.getBoundingClientRect().height],
+    icon: button.querySelector("svg")?.getBoundingClientRect().height,
+    theirs: size?.querySelector("svg")?.getBoundingClientRect().height,
+  };
+});
+check("the button sits beside the theater button", fillButton.beforeTheater);
+check(
+  "the same size as it, icon included",
+  fillButton.box.join() === fillButton.size.join() && fillButton.icon === fillButton.theirs,
+  JSON.stringify(fillButton),
+);
+await press(page, "Backquote");
+state = await until(isFilling);
+check("` fills the window", isFilling(state), JSON.stringify(state.player));
+check(
+  "with no recommendations under it",
+  await page.evaluate(
+    () => getComputedStyle(document.querySelector("#secondary")).display === "none",
+  ),
+);
+await press(page, "Backquote");
+state = await until((s) => !s.theater && s.masthead?.opacity !== "0");
+check(
+  "` again goes back",
+  !state.theater && state.masthead?.opacity !== "0",
+  JSON.stringify({ theater: state.theater, masthead: state.masthead }),
+);
+await page.evaluate(() => document.querySelector(".uh-fill-btn").click());
+state = await until(isFilling);
+check("the button fills it", isFilling(state), JSON.stringify(state.player));
+await press(page, "t");
+state = await until((s) => !s.theater);
+check("T steps out of it", !state.theater && state.masthead?.opacity !== "0");
+await press(page, "t");
+state = await until(isFilling);
+check("and T comes back to it", isFilling(state), JSON.stringify(state.player));
+await press(page, "Escape");
+state = await until((s) => !s.theater);
+check("Esc goes back", !state.theater);
+
 // With the recommendations hidden, the video takes the width they left.
 await ext.set({
   "unhooked.site.youtube.fillTheater": false,

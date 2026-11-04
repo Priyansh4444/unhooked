@@ -22,8 +22,10 @@ export interface Feature {
   id: string;
   label: string;
   description: string;
-  /** Part of the Balanced preset. */
+  /** Part of the Balanced preset: only controls seen hiding the real thing on the live site. */
   balanced: boolean;
+  /** Changes how a page is laid out rather than hiding part of it, so presets leave it alone. */
+  layout?: boolean;
   rules: { routes: readonly Route[]; selectors: readonly string[] }[];
 }
 
@@ -84,7 +86,7 @@ const YOUTUBE_LABELS: Record<YouTubeOptionKey, string> = {
   hideSubscriptionsNav: "Hide subscriptions navigation",
   disableAutoplay: "Disable autoplay",
   disableAnnotations: "Disable annotations",
-  fillTheater: "Fill the window in theater",
+  fillTheater: "Fill the window",
 };
 
 const YOUTUBE_DESCRIPTIONS: Partial<Record<YouTubeOptionKey, string>> = {
@@ -103,7 +105,7 @@ const YOUTUBE_DESCRIPTIONS: Partial<Record<YouTubeOptionKey, string>> = {
     "Switch the player autoplay control off when it appears. Turning this option off leaves the player setting as it is.",
   disableAnnotations: "Hide legacy card teasers and player branding overlays.",
   fillTheater:
-    "In theater mode (press T) the player fills the window; point at the top for the header.",
+    "Every video fills the window, with the page below it. For one tab, press ` or use the button in the player.",
 };
 
 const YOUTUBE_BALANCED: readonly YouTubeOptionKey[] = [
@@ -187,7 +189,7 @@ const CLASSIFIERS: Record<ControlSiteId, (p: string) => Route | undefined> = {
     if (p === "/profile.php" || p.startsWith("/people/")) return "profile";
   },
   linkedin(p) {
-    if (p === "/" || p === "/feed") return "home";
+    if (p === "/" || /^\/feed(\/(foryou|following|network))?$/.test(p)) return "home";
     if (/^\/messaging(\/|$)/.test(p)) return "messages";
     if (/^\/search(\/|$)/.test(p)) return "search";
     if (/^\/in\/[^/]+$/.test(p)) return "profile";
@@ -291,6 +293,7 @@ export const CONTROL_SITES: readonly ControlSite[] = [
       description:
         YOUTUBE_DESCRIPTIONS[id] ?? `${YOUTUBE_LABELS[id]} on supported YouTube layouts.`,
       balanced: YOUTUBE_BALANCED.includes(id),
+      layout: id === "fillTheater",
       rules: [],
     })),
   ),
@@ -386,8 +389,23 @@ export const CONTROL_SITES: readonly ControlSite[] = [
       "Hide home & popular feeds",
       "Hide Home, Popular, and All. Subreddits and comment threads stay accessible.",
       HOME,
-      ["shreddit-feed", ".sitetable.linklisting", '[data-testid="post-container"]'],
+      [
+        "shreddit-feed",
+        ".sitetable.linklisting",
+        '[data-testid="post-container"]',
+        // The feed's own sort bar and rule, which mean nothing without it.
+        "#main-content > div:has(shreddit-sort-dropdown)",
+        "#main-content > hr",
+      ],
       true,
+    ),
+    feature(
+      "hideLeftSidebar",
+      "Hide left sidebar",
+      "Hide the column on the left: navigation and communities, or the sign-up panel when signed out.",
+      ANYWHERE,
+      ["#left-sidebar-container"],
+      false,
     ),
     {
       id: "hideRecommendations",
@@ -500,7 +518,7 @@ export const CONTROL_SITES: readonly ControlSite[] = [
       "Hide suggested accounts in the navigation sidebar.",
       ANYWHERE,
       ['[data-e2e="suggest-accounts"]'],
-      true,
+      false,
     ),
     feature(
       "hideLive",
@@ -523,7 +541,7 @@ export const CONTROL_SITES: readonly ControlSite[] = [
       "Hide posts on Home. Groups, profiles, messages, and direct posts stay accessible.",
       HOME,
       ['[role="feed"]'],
-      true,
+      false,
     ),
     feature(
       "hideSuggestions",
@@ -531,7 +549,7 @@ export const CONTROL_SITES: readonly ControlSite[] = [
       "Hide the Home sidebar, including suggested contacts and sponsored panels.",
       HOME,
       ['[role="complementary"]'],
-      true,
+      false,
     ),
     feature(
       "hideStories",
@@ -556,7 +574,7 @@ export const CONTROL_SITES: readonly ControlSite[] = [
       "Hide home feed",
       "Hide the feed on Home. Jobs, profiles, messages, and direct posts stay accessible.",
       HOME,
-      [".scaffold-finite-scroll", '[data-testid="main-feed"]'],
+      [".scaffold-finite-scroll", '[data-testid="mainFeed"]'],
       true,
     ),
     feature(
@@ -564,7 +582,7 @@ export const CONTROL_SITES: readonly ControlSite[] = [
       "Hide news & recommendations",
       "Hide news and account recommendations in the feed sidebar.",
       HOME,
-      [".scaffold-layout__aside", '[data-testid="news-module"]'],
+      [".scaffold-layout__aside", "#workspace aside:nth-of-type(2)"],
       true,
     ),
   ]),
@@ -587,7 +605,7 @@ export const CONTROL_SITES: readonly ControlSite[] = [
       "Hide suggested-account panels on Home.",
       HOME,
       ['[data-testid="suggested-users"]', "aside"],
-      true,
+      false,
     ),
   ]),
 ];
