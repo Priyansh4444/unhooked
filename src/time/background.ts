@@ -12,7 +12,7 @@ import { IDLE_SECONDS, advance, hostToCount, type FrontTab } from "./tracker.ts"
 const HEARTBEAT = "unhooked-time";
 
 let queue: Promise<unknown> = Promise.resolve();
-const inTurn = <T>(work: () => Promise<T>): Promise<T> => {
+export const inTurn = <T>(work: () => Promise<T>): Promise<T> => {
   const turn = queue.then(work, work);
   queue = turn.catch(() => {});
   return turn;

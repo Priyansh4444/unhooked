@@ -3,7 +3,7 @@
 // bridge.ts (a content script on the harness's own page) instead.
 import "../../src/background.ts";
 import { ext } from "../../src/shared/ext-api.ts";
-import { frontTab, step } from "../../src/time/background.ts";
+import { frontTab, step, inTurn } from "../../src/time/background.ts";
 import {
   allDays,
   eraseAll,
@@ -39,8 +39,12 @@ async function run({ op, args }: { op: string; args: unknown }): Promise<unknown
     case "get":
       return ext.storage.local.get(args as string[]);
     case "timeSeed":
-      await eraseAll();
-      await putDays(args as DayRecord[]);
+      // In turn with the tracker's steps: one already under way would otherwise write back the
+      // visit this just erased, leaving it ahead of the days it was counted in.
+      await inTurn(async () => {
+        await eraseAll();
+        await putDays(args as DayRecord[]);
+      });
       return {};
     case "timeStep": {
       // A step with the browser's signals overridden: what can't be staged for real in a test.
@@ -81,8 +85,10 @@ async function run({ op, args }: { op: string; args: unknown }): Promise<unknown
     case "timeSnapshot": {
       // Both from the same step, with no time passing between them.
       await step();
-      const [days, state] = await Promise.all([allDays(), getTracker()]);
-      return { days, state };
+      return inTurn(async () => {
+        const [days, state] = await Promise.all([allDays(), getTracker()]);
+        return { days, state };
+      });
     }
     case "timeState":
       await step();
