@@ -72,6 +72,10 @@ html.tw-root--theme-light .uh-link-pill {
   height: 12px;
   display: block;
 }
+/* A plate, because many favicons are black and chat is nearly so. */
+.uh-link-pill__icon:has(img) {
+  background: #f2ede4;
+}
 
 .uh-link-pill__label {
   min-width: 0;
@@ -349,6 +353,10 @@ html.tw-root--theme-light .uh-link-pill {
   display: block;
   width: 100%;
   height: 100%;
+}
+.uh-hovercard__site-icon:has(img) {
+  padding: 1px;
+  background: #f2ede4;
 }
 
 .uh-hovercard__title {

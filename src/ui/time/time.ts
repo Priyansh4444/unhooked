@@ -4,7 +4,6 @@
  * where they belong, and the next change can take over mid-flight.
  */
 import { ext } from "../../shared/ext-api.ts";
-import { ownSiteIcon, siteIcon as bundledIcon } from "../../shared/site-icons.ts";
 import { STORAGE_KEYS } from "../../shared/settings.ts";
 import { TIME_FLUSH } from "../../time/protocol.ts";
 import {
@@ -298,17 +297,8 @@ function siteIcon(host: string): HTMLElement {
   return slot;
 }
 
-/**
- * A popular site's from the ones that ship with the extension, which are made to show on a dark
- * page; then its saved icon; then the icon of the site it's part of, as docs.google.com is of Google.
- */
-function iconSrc(host: string): string | undefined {
-  const own = ownSiteIcon(host);
-  if (own) return ext.runtime.getURL(own);
-  if (icons[host]?.src) return icons[host].src;
-  const parent = bundledIcon(host);
-  return parent && ext.runtime.getURL(parent);
-}
+/** Its saved icon: from the tab when it was in front, or from the browser's own favicons. */
+const iconSrc = (host: string): string | undefined => icons[host]?.src;
 
 function refreshIcon(slot: HTMLElement, host: string): void {
   const src = iconSrc(host);
@@ -663,13 +653,12 @@ let iconImage: HTMLImageElement | null = null;
 
 const cardIcons = new Map<string, HTMLImageElement>();
 
-/** Only pictures of its own: one from another site would stop the card being saved. */
+/** Only icons held as data: one from another site would stop the card being saved. */
 async function loadIcons(hosts: string[]): Promise<Map<string, HTMLImageElement>> {
   await Promise.all(
     hosts.map(async (host) => {
       const src = iconSrc(host);
-      if (cardIcons.has(host) || !src) return;
-      if (!src.startsWith("data:") && !src.startsWith(ext.runtime.getURL(""))) return;
+      if (cardIcons.has(host) || !src?.startsWith("data:")) return;
       const image = new Image();
       image.src = src;
       await image.decode().then(

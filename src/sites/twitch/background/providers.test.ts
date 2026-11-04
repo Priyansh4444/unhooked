@@ -58,6 +58,24 @@ describe("an X post as a card", () => {
     expect(meta.video).toEqual({ poster: "https://p/poster.jpg", src: "https://v/high.mp4" });
     expect(meta.photos).toBeUndefined();
   });
+  it("doesn't reach for the 4K file", () => {
+    const meta = card({
+      mediaDetails: [
+        {
+          type: "video",
+          media_url_https: "https://p/poster.jpg",
+          video_info: {
+            variants: [
+              { content_type: "video/mp4", bitrate: 8_000_000, url: "https://v/4k.mp4" },
+              { content_type: "video/mp4", bitrate: 2_176_000, url: "https://v/720.mp4" },
+              { content_type: "video/mp4", bitrate: 832_000, url: "https://v/480.mp4" },
+            ],
+          },
+        },
+      ],
+    });
+    expect(meta.video?.src).toBe("https://v/720.mp4");
+  });
   it("includes the post it quotes", () => {
     const meta = card({ quoted_tweet: { user: { name: "B", screen_name: "b" }, text: "orig" } });
     expect(meta.quote).toEqual({ name: "B", handle: "b", avatar: undefined, text: "orig" });

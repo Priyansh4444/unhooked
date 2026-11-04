@@ -188,12 +188,16 @@ function tweetText(tweet: XTweet): string {
   return decodeEntities(text).trim();
 }
 
+const MOST_VIDEO_BITRATE = 2_500_000;
+
 function tweetVideo(tweet: XTweet): LinkMeta["video"] {
   const media = tweet.mediaDetails?.find((m) => m.type === "video" || m.type === "animated_gif");
   const variants = media?.video_info?.variants ?? tweet.video?.variants ?? [];
-  const best = variants
+  const files = variants
     .filter((v) => (v.content_type ?? v.type) === "video/mp4")
-    .sort((a, b) => (b.bitrate ?? 0) - (a.bitrate ?? 0))[0];
+    .sort((a, b) => (b.bitrate ?? 0) - (a.bitrate ?? 0));
+  // Sharp in a card this size, and quick to start. The largest can be 4K at 8 Mbps.
+  const best = files.find((v) => (v.bitrate ?? 0) <= MOST_VIDEO_BITRATE) ?? files.at(-1);
   const src = best?.url ?? best?.src;
   const poster = media?.media_url_https ?? tweet.video?.poster;
   return src && poster ? { poster, src } : undefined;

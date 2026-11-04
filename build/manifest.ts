@@ -75,7 +75,15 @@ export function createManifest(target: Target, extraContentScripts: object[] = [
     homepage_url: "https://github.com/Priyansh4444/unhooked",
     ...(firefox && {
       browser_specific_settings: {
-        gecko: { id: "unhooked@pronsh.dev", strict_min_version: "112.0" },
+        gecko: {
+          id: "unhooked@pronsh.dev",
+          // The first version that can show this at install.
+          strict_min_version: "140.0",
+          // What leaves the browser: links in Twitch chat, looked up to preview them, while
+          // pills are on. Time history and settings never do.
+          data_collection_permissions: { required: ["websiteContent"] },
+        },
+        gecko_android: { strict_min_version: "142.0" },
       },
     }),
     permissions: mv2
@@ -101,15 +109,6 @@ export function createManifest(target: Target, extraContentScripts: object[] = [
         ? { scripts: ["background.js"] }
         : { service_worker: "background.js" },
     [mv2 ? "browser_action" : "action"]: action,
-    // Site logos on Twitch's chat pills; the browser's own favicons for the rest.
-    web_accessible_resources: mv2
-      ? ["icons/sites/*"]
-      : [
-          {
-            resources: ["icons/sites/*", ...(firefox ? [] : ["_favicon/*"])],
-            matches: ["*://*.twitch.tv/*"],
-          },
-        ],
     options_ui: { page: "ui/transfer/index.html", open_in_tab: true },
     commands: {
       "toggle-site": {

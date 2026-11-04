@@ -179,13 +179,13 @@ for (const [index, [name]] of links.entries()) {
   if (name === "ai-lab" || name === "ai-lab-2") {
     const host = name === "ai-lab" ? "claude.ai" : "openai.com";
     check(
-      `${name}: its pill has the lab's logo`,
+      `${name}: its pill has the site's icon, fetched for it`,
       await page.evaluate(
         (i, host) =>
           document
             .querySelectorAll(".uh-link-pill")
             [i]?.querySelector("img")
-            ?.src.includes(`/icons/sites/${host}.png`) &&
+            ?.src.includes(`icons.duckduckgo.com/ip3/${host}.ico`) &&
           document.querySelectorAll(".uh-link-pill")[i].querySelector("img").naturalWidth > 0,
         index,
         host,
