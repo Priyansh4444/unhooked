@@ -73,9 +73,8 @@ function place(pill: HTMLElement, el: HTMLElement): void {
   const roomBelow = innerHeight - box.bottom - GAP_PX - EDGE_PX;
   const roomAbove = box.top - GAP_PX - EDGE_PX;
   const below = roomBelow >= Math.min(TALLEST_PX, roomAbove);
-  const width = el.getBoundingClientRect().width;
   el.dataset.side = below ? "below" : "above";
-  el.style.left = `${Math.round(Math.max(EDGE_PX, Math.min(box.left, innerWidth - width - EDGE_PX)))}px`;
+  el.style.setProperty("--uh-pill-left", `${Math.round(box.left)}px`);
   el.style.top = below ? `${Math.round(box.bottom + GAP_PX)}px` : "auto";
   el.style.bottom = below ? "auto" : `${Math.round(innerHeight - box.top + GAP_PX)}px`;
   inner().style.maxHeight = `${Math.round(Math.min(TALLEST_PX, below ? roomBelow : roomAbove))}px`;

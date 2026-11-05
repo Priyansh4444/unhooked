@@ -123,10 +123,14 @@ html.tw-root--theme-light .uh-link-pill {
 
 /* One hover card for every site: solid and square. A blur behind it would repaint with the stream
    under it on every frame, and text on a solid colour stays sharp. */
+/* The sides are worked out here, not measured in script: a card changes width when its kind is
+   known, and it stays inside the window through that and through a resize. */
 .uh-hovercard {
+  --uh-card-width: 360px;
   position: fixed;
   z-index: 2147483646;
-  width: min(360px, calc(100vw - 16px));
+  left: clamp(8px, var(--uh-pill-left, 8px), calc(100vw - var(--uh-card-width) - 8px));
+  width: min(var(--uh-card-width), calc(100vw - 16px));
   pointer-events: auto;
   animation: uh-pop 0.1s ease-out;
 }
@@ -150,7 +154,7 @@ html.tw-root--theme-light .uh-link-pill {
 }
 
 .uh-hovercard[data-kind="twitter"] {
-  width: min(400px, calc(100vw - 16px));
+  --uh-card-width: 400px;
 }
 
 /* The bar down the side, as on a Discord embed: a page's own colour if it names one. */

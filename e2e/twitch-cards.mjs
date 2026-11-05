@@ -275,5 +275,37 @@ for (const [index, [name]] of links.entries()) {
   await page.screenshot({ path: `${SHOTS}/card-${name}.png` });
 }
 
+// A popped-out chat is narrower than a card, and a post's card is wider than the rest. Nothing it
+// holds may run past the window, on the first card opened or on any after it.
+const narrowKinds = ["x-post", "youtube", "any-site", "x-post"];
+for (const width of [420, 395, 320]) {
+  await page.setViewport({ width, height: 760 });
+  for (const name of narrowKinds) {
+    await page.mouse.move(width - 2, 750);
+    await sleep(400);
+    await (await page.$$(".uh-link-pill"))[links.findIndex(([each]) => each === name)].hover();
+    await page.waitForSelector("#uh-twitch-hovercard .uh-hovercard__body", { timeout: 8000 });
+    await sleep(500);
+    const fit = await page.evaluate(() => {
+      const card = document.getElementById("uh-twitch-hovercard");
+      const box = card.getBoundingClientRect();
+      const past = [...card.querySelectorAll("*")].filter(
+        (each) => each.getBoundingClientRect().right > innerWidth,
+      );
+      return {
+        left: Math.round(box.left),
+        right: Math.round(box.right),
+        room: innerWidth,
+        past: past.map((each) => each.className || each.tagName).slice(0, 4),
+      };
+    });
+    check(
+      `${width}px window, ${name}: all of the card is inside it`,
+      fit.left >= 0 && fit.right <= fit.room && !fit.past.length,
+      JSON.stringify(fit),
+    );
+  }
+}
+
 await close();
 finish();
