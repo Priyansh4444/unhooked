@@ -4,7 +4,7 @@
 
 <p align="center"><b>Take the hooks out of the sites you use.</b><br>
 Hide feeds, remove anything with a magic wand, and see where your time really goes.<br>
-No account. Nothing leaves your computer.<br>
+No account. Your settings and history stay in your browser.<br>
 <a href="https://unhooked.pronsh.dev">unhooked.pronsh.dev</a></p>
 
 <p align="center">YouTube · X · Reddit · Instagram · TikTok · Facebook · LinkedIn · Threads · Twitch · Excalidraw · any other site with the wand<br>
@@ -30,7 +30,7 @@ Chrome, Brave, Edge, Helium and other Chromium browsers, and Firefox</p>
 
 ## Install
 
-It isn't in the stores yet, so you build it once and load it:
+It isn't in the stores yet. Download the zip for your browser from the [latest release](https://github.com/Priyansh4444/unhooked/releases/latest), or build it yourself:
 
 ```sh
 bun install
@@ -38,8 +38,8 @@ bun run build:chrome     # → dist/
 bun run build:firefox    # → dist-firefox/
 ```
 
-- **Chromium browsers:** open `chrome://extensions`, turn on **Developer mode**, choose **Load unpacked**, and pick `dist/`.
-- **Firefox:** open `about:debugging#/runtime/this-firefox`, choose **Load Temporary Add-on**, and pick any file in `dist-firefox/`.
+- **Chromium browsers:** open `chrome://extensions`, turn on **Developer mode**, choose **Load unpacked**, and pick `dist/`, or the folder you unzipped the download into.
+- **Firefox:** open `about:debugging#/runtime/this-firefox`, choose **Load Temporary Add-on**, and pick any file in `dist-firefox/`, or the downloaded zip. Firefox removes a temporary add-on when it closes.
 
 After rebuilding, press **Reload** on the extension. Pages update from disk by themselves, but the part running in the background doesn't until you do.
 
@@ -174,7 +174,8 @@ bun run check         # typecheck, lint, format
 bun test              # unit tests
 bun run e2e chrome    # end-to-end suites (CHROME_PATH=…; see CONTRIBUTING.md)
 bun run e2e firefox   # the same suites in Firefox (FIREFOX_PATH=…)
-bun scripts/perf.ts   # what it costs a page, against no extension
+bun run size          # the build against the sizes recorded in build/sizes.json
+bun run bench         # what it costs a page, against no extension
 bun scripts/screenshots.ts   # regenerate the images in this README
 ```
 

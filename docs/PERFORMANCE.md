@@ -1,6 +1,6 @@
 # Performance
 
-What Unhooked costs a page, measured on the production build in Chromium against the same browser with no extension. Reproduce it with `CHROME_PATH=… bun scripts/perf.ts`. Figures are medians of 5 runs, or 3 on live YouTube, and vary by machine; compare them with each other rather than treating them as absolutes.
+What Unhooked costs a page, measured on the production build in Chromium against the same browser with no extension. Figures are medians of 5 runs, or 3 on live YouTube, and vary by machine; compare them with each other rather than treating them as absolutes. The tables below come from an earlier version of the bench, so reproduce them with `CHROME_PATH=… bun run bench --live` rather than expecting the same numbers.
 
 ## Results
 
@@ -47,6 +47,18 @@ The background uses about 1 MB while awake. It wakes once a minute only while so
 | Twitch's chat script watched every change to the whole page, and searched it on each one until it found a chat | 121 ms of script per 10 s on a page without chat | None measurable: it checks on a timer |
 | Twitch's hover card blurred what was behind it, repainting with the stream under it on every frame | A blur on every video frame | A solid card |
 
+## How small it is
+
+| | Before | After |
+| :-- | --: | --: |
+| Chrome package | 244 KB | 200 KB |
+| Script on X | 7.2 KB | 5.9 KB |
+| Fonts, with their licences | 68 KB | 38 KB |
+
+- **A second minifier.** Terser runs over Bun's output and takes about 9% off the scripts, and most off the small ones that run on every page.
+- **Fonts hold only what the UI writes.** They're the part of the package that doesn't compress. The handwriting font is only used for a few lowercase notes, so that's all it holds.
+- **One copy of each icon.** The pages use the icons the manifest ships.
+
 ## How it stays light
 
 - **Hiding is CSS, gated on classes on `<html>`.** No script walks the page looking for things to hide, and rules only apply for controls that are on.
@@ -56,7 +68,17 @@ The background uses about 1 MB while awake. It wakes once a minute only while so
 
 ## Keeping it that way
 
-Measure with `scripts/perf.ts` before adding anything that runs on every page. In particular:
+CI stops and asks for attention when something grows 10% past where it was. Records only move when someone updates them, so small changes add up towards that limit instead of each getting a free pass.
+
+**Size.** `bun run size` compares every script, stylesheet, page, font and package with `build/sizes.json`, and every run lists what changed. It fails past 10%, or 512 bytes for a very small file. `bun run size:update` records the new size in a diff that shows what it cost.
+
+**What runs.** `bun scripts/bench.ts --check` compares how many times our functions ran, and the nodes and listeners we added, with `build/bench.json`, on pages with a fixed amount of change. These repeat exactly from run to run on one browser, so they catch slow creep. They fail past 10%, or 5 for a very small count, and `bun run bench:update` records them. On an unrelated site our code must do nothing at all, and no record changes that.
+
+**Time.** A pull request is timed against its base with `bun scripts/bench.ts --compare <ref>`, taking turns on the same machine, because times from different machines mean nothing. It fails if, measured twice, a page takes 10% more work and at least 15 ms, or 10% more style work and at least 5 ms. Identical builds differ by about 6 ms in total. Style work has its own limit because a costly selector can be lost in the noise of a page's layout. One page runs with its controls off for the same reason: every control on hides most of a page, and the browser does no style work for what's hidden.
+
+A deliberate slow script and a deliberate costly `:has()` rule both fail these checks. Times are compared only between one commit and the next, so a run of small slowdowns that each stay under the limits gets through on time alone; the recorded counts catch the ones that run more code. The bench runs in Chromium only.
+
+Measure with `bun run bench` before adding anything that runs on every page. In particular:
 
 - Be careful with `:has()` on or near `<html>`: the browser re-checks it as the page changes. Prefer an attribute the site already sets.
 - Importing `shared/preferences.ts` brings the whole control registry into a bundle. `shared/switches.ts` is enough for "is this on?".
