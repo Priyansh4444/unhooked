@@ -1,0 +1,27 @@
+{
+  "Unrelated site": {
+    "calls": 0,
+    "nodes": 0,
+    "listeners": 0
+  },
+  "Busy X timeline": {
+    "calls": 11387,
+    "nodes": 404,
+    "listeners": 103
+  },
+  "Busy Twitch chat": {
+    "calls": 2244,
+    "nodes": 122,
+    "listeners": 11
+  },
+  "YouTube watch page": {
+    "calls": 4532,
+    "nodes": 6,
+    "listeners": 24
+  },
+  "Long YouTube page, controls off": {
+    "calls": 4491,
+    "nodes": 6,
+    "listeners": 24
+  }
+}

@@ -174,7 +174,8 @@ bun run check         # typecheck, lint, format
 bun test              # unit tests
 bun run e2e chrome    # end-to-end suites (CHROME_PATH=…; see CONTRIBUTING.md)
 bun run e2e firefox   # the same suites in Firefox (FIREFOX_PATH=…)
-bun scripts/perf.ts   # what it costs a page, against no extension
+bun run size          # the build against the sizes recorded in build/sizes.json
+bun run bench         # what it costs a page, against no extension
 bun scripts/screenshots.ts   # regenerate the images in this README
 ```
 

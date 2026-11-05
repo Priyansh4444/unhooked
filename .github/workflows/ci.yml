@@ -17,8 +17,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
+      # Pinned, because each version minifies a little differently and sizes are held to the byte.
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -31,6 +34,9 @@ jobs:
 
       - name: Package every browser
         run: bun run package
+
+      - name: Size budget
+        run: bun run size
 
       - name: Install browsers
         run: |
@@ -57,3 +63,29 @@ jobs:
         with:
           name: unhooked
           path: dist/*.zip
+
+  # Times only mean something side by side, so this runs the code before the change as well.
+  bench:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install Chromium
+        run: |
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          echo "CHROME_PATH=$(bunx @puppeteer/browsers install chromium@latest --path "$RUNNER_TEMP/browsers" | tail -1 | cut -d' ' -f2-)" >> "$GITHUB_ENV"
+
+      - name: Bench against the base of this pull request
+        run: bun scripts/bench.ts --check --compare ${{ github.event.pull_request.base.sha }}

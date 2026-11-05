@@ -7,9 +7,6 @@ import { buildExtension } from "../build.ts";
 import type { Target } from "../build/manifest.ts";
 import pkg from "../package.json" with { type: "json" };
 
-const arg = process.argv[2] ?? "all";
-const targets: Target[] = arg === "all" ? ["chrome", "firefox", "safari"] : [arg as Target];
-
 async function files(directory: string): Promise<string[]> {
   const entries = await readdir(directory, { withFileTypes: true, recursive: true });
   return entries
@@ -18,15 +15,26 @@ async function files(directory: string): Promise<string[]> {
     .sort();
 }
 
-for (const target of targets) {
-  const outdir = target === "chrome" ? "dist/chrome" : `dist/${target}`;
+/** Builds one browser into `outdir` and returns the path of its ZIP in `zipDir`. */
+export async function packageTarget(
+  target: Target,
+  outdir: string,
+  zipDir: string,
+): Promise<string> {
   await buildExtension({ target, outdir, minify: true });
   const archive: Record<string, [Uint8Array, { mtime: Date }]> = {};
   for (const file of await files(outdir)) {
     // ZIP stores local calendar fields; UTC midnight could fall in the previous year locally.
     archive[relative(outdir, file)] = [await readFile(file), { mtime: new Date(2000, 0, 1) }];
   }
-  const zip = `dist/unhooked-${target}-${pkg.version}.zip`;
+  const zip = join(zipDir, `unhooked-${target}-${pkg.version}.zip`);
   await writeFile(zip, zipSync(archive, { level: 9 }));
   console.log(`✓ ${zip} (${Object.keys(archive).length} files)`);
+  return zip;
+}
+
+if (import.meta.main) {
+  const arg = process.argv[2] ?? "all";
+  const targets: Target[] = arg === "all" ? ["chrome", "firefox", "safari"] : [arg as Target];
+  for (const target of targets) await packageTarget(target, `dist/${target}`, "dist");
 }

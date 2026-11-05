@@ -147,7 +147,11 @@ Bump `version` in `package.json` (the manifests read it). `bun run package` buil
 
 ## Performance
 
-Measure before adding anything that runs on every page: see [docs/PERFORMANCE.md](docs/PERFORMANCE.md).
+Measure before adding anything that runs on every page: see [docs/PERFORMANCE.md](docs/PERFORMANCE.md). CI holds size and speed in place:
+
+- **`bun run size`** compares every file with `build/sizes.json`, to the byte. If a change is meant, `bun run size:update` records it, and the diff shows what it cost.
+- **`bun scripts/bench.ts --check`** compares how often our code runs and what it adds to a page with `build/bench.json`. `bun run bench:update` records it.
+- **`bun scripts/bench.ts --compare master`** times this code against another commit on the same machine. A pull request fails if, measured twice, a page takes 10% more work and at least 15 ms, or 25% more style work and at least 5 ms.
 
 ## The website
 

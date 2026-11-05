@@ -18,6 +18,10 @@
     "format": "oxfmt -c .oxfmtrc.json --write build.ts build src e2e scripts package.json",
     "format:check": "oxfmt -c .oxfmtrc.json --check build.ts build src e2e scripts package.json",
     "check": "bun run typecheck && bun run lint && bun run format:check",
+    "size": "bun scripts/size.ts",
+    "size:update": "bun scripts/size.ts --update",
+    "bench": "bun scripts/bench.ts",
+    "bench:update": "bun scripts/bench.ts --update",
     "e2e": "bun e2e/run.mjs",
     "e2e:chrome": "bun e2e/run.mjs chrome",
     "e2e:firefox": "bun e2e/run.mjs firefox"
@@ -32,5 +36,6 @@
     "puppeteer-core": "^25.12.0",
     "terser": "^5.51.2",
     "typescript": "^6.0.2"
-  }
+  },
+  "packageManager": "bun@1.4.4"
 }
