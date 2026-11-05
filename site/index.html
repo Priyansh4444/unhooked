@@ -115,15 +115,15 @@
 
       <section class="install" id="install">
         <p class="kicker">Install</p>
-        <h2>Build it once and load it.</h2>
-        <p>It isn't in the stores yet. It takes <a href="https://bun.sh">Bun</a> and about a minute.</p>
+        <h2>Download it and load it.</h2>
+        <p>It isn't in the stores yet. Get the zip for your browser from the <a href="https://github.com/Priyansh4444/unhooked/releases/latest">latest release</a>, or build it yourself with <a href="https://bun.sh">Bun</a>:</p>
         <pre><code>git clone https://github.com/Priyansh4444/unhooked
 cd unhooked
 bun install
 bun run build:chrome    # or build:firefox</code></pre>
         <ul>
-          <li><b>Chrome, Brave, Edge, Helium:</b> open <code>chrome://extensions</code>, turn on Developer mode, choose Load unpacked, and pick <code>dist/</code>.</li>
-          <li><b>Firefox:</b> open <code>about:debugging#/runtime/this-firefox</code>, choose Load Temporary Add-on, and pick any file in <code>dist-firefox/</code>.</li>
+          <li><b>Chrome, Brave, Edge, Helium:</b> open <code>chrome://extensions</code>, turn on Developer mode, choose Load unpacked, and pick <code>dist/</code> or the folder you unzipped.</li>
+          <li><b>Firefox:</b> open <code>about:debugging#/runtime/this-firefox</code>, choose Load Temporary Add-on, and pick any file in <code>dist-firefox/</code> or the zip. Firefox removes it when it closes.</li>
         </ul>
       </section>
     </main>
