@@ -17,7 +17,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      # Pinned, because each version minifies a little differently and sizes are held to the byte.
+      # Pinned, because each version minifies a little differently and sizes are compared with a record.
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:

@@ -1,16 +1,18 @@
 // bun scripts/size.ts            the production build against what build/sizes.json recorded
 // bun scripts/size.ts --update   records what it is now
 //
-// Every file is held to the byte, either way: growing has to show up in a diff someone reads, and
-// shrinking is recorded so the room it made can't be spent without anyone noticing.
+// Fails when something has grown more than 10% past its record. The record only moves when someone
+// updates it, so small changes add up towards that limit instead of each getting a free pass.
 import { appendFile, mkdtemp, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
-import pkg from "../package.json" with { type: "json" };
 import { packageTarget } from "./package.ts";
 
 const RECORD = "build/sizes.json";
 const PAGES = ["popup", "picker", "transfer", "time", "allow"];
+const MOST_GROWTH = 0.1;
+/** A tiny file growing by a few rules isn't worth stopping for. */
+const MOST_GROWTH_BYTES = 512;
 
 async function filesIn(directory: string): Promise<string[]> {
   const entries = await readdir(directory, { withFileTypes: true, recursive: true });
@@ -71,34 +73,36 @@ const recorded: Record<string, number> = JSON.parse(await readFile(RECORD, "utf8
 const changes = [...new Set([...Object.keys(recorded), ...Object.keys(sizes)])]
   .map((name) => ({ name, was: recorded[name] ?? 0, now: sizes[name] ?? 0 }))
   .filter(({ was, now }) => was !== now);
+const tooBig = changes.filter(
+  ({ was, now }) => now - was > Math.max(was * MOST_GROWTH, MOST_GROWTH_BYTES),
+);
 const signed = (n: number) => `${n > 0 ? "+" : ""}${n}`;
-const table = [
-  "| | Recorded | Now | Change |",
-  "| :-- | --: | --: | --: |",
-  ...changes.map(
-    ({ name, was, now }) => `| ${name} | ${was} | ${now} | ${signed(now - was)} bytes |`,
-  ),
-].join("\n");
-
-const packaged = `${(sizes["package: chrome"]! / 1024).toFixed(1)} KB`;
-if (!changes.length) {
-  console.log(`Sizes match ${RECORD}. The Chrome package is ${packaged}.`);
-  process.exit(0);
-}
-
-const total = changes.reduce((sum, { was, now }) => sum + now - was, 0);
-const pinned = pkg.packageManager.replace("bun@", "");
+const percent = (was: number, now: number) =>
+  was ? `${signed(Math.round(((now - was) / was) * 100))}%` : "new";
 const report = [
-  `### Sizes differ from ${RECORD}`,
+  `### Sizes against ${RECORD}`,
   "",
-  table,
-  "",
-  "If this is meant, run `bun run size:update` and commit it, so the change shows up in review.",
-  ...(Bun.version === pinned
-    ? []
-    : [`\nThese were recorded with Bun ${pinned}, and this is Bun ${Bun.version}.`]),
+  `The Chrome package is ${(sizes["package: chrome"]! / 1024).toFixed(1)} KB.`,
+  ...(changes.length
+    ? [
+        "",
+        "| | Recorded | Now | Change | |",
+        "| :-- | --: | --: | --: | --: |",
+        ...changes.map(
+          ({ name, was, now }) =>
+            `| ${name} | ${was} | ${now} | ${signed(now - was)} | ${percent(was, now)} |`,
+        ),
+      ]
+    : []),
+  ...(tooBig.length
+    ? [
+        "",
+        `Over the limit of ${MOST_GROWTH * 100}%: ${tooBig.map(({ name }) => name).join(", ")}.`,
+        "Look at what's taking the room. If it's worth it, `bun run size:update` records the new size.",
+      ]
+    : []),
 ].join("\n");
-console.error(report);
-if (process.env.GITHUB_STEP_SUMMARY) await appendFile(process.env.GITHUB_STEP_SUMMARY, report);
-console.error(`\n${signed(total)} bytes in all. The Chrome package is ${packaged}.`);
-process.exit(1);
+console.log(report);
+if (process.env.GITHUB_STEP_SUMMARY)
+  await appendFile(process.env.GITHUB_STEP_SUMMARY, `${report}\n`);
+process.exit(tooBig.length ? 1 : 0);

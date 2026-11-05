@@ -30,8 +30,10 @@ const RUNS = Number(flags.runs);
 const RECORD = "build/bench.json";
 const WORK = resolve("dist-perf");
 
-/** The counts repeat exactly on one browser. This is room for another version of the browser. */
-const COUNT_SLACK = 0.02;
+/** How far past its record a count can go before someone has to look at it. */
+const MOST_COUNT_GROWTH = 0.1;
+/** One more button on a page that has six nodes isn't what this is for. */
+const MOST_COUNT_GROWTH_ITEMS = 5;
 /**
  * Slower means by this share of all the work on the page, and by at least this many ms. It's judged
  * on the difference between the builds and not on our cost: hiding a feed saves more than our
@@ -40,7 +42,7 @@ const COUNT_SLACK = 0.02;
 const SLOWER_SHARE = 0.1;
 const SLOWER_MS = 15;
 /** Style work on its own too: a costly selector can be lost in the noise of a page's layout. */
-const SLOWER_STYLE_SHARE = 0.25;
+const SLOWER_STYLE_SHARE = 0.1;
 const SLOWER_STYLE_MS = 5;
 
 const SLOW = "/slow-to-load.js";
@@ -349,7 +351,7 @@ if (flags.check) {
   for (const [name, now] of Object.entries(counts)) {
     for (const key of ["calls", "nodes", "listeners"] as const) {
       const was = recorded[name]?.[key] ?? 0;
-      if (Math.abs(now[key] - was) > was * COUNT_SLACK)
+      if (now[key] - was > Math.max(was * MOST_COUNT_GROWTH, MOST_COUNT_GROWTH_ITEMS))
         failures.push(
           `${name}: ${key} ${was} recorded, ${now[key]} now. If this is meant, run \`bun run bench:update\` and commit it.`,
         );
@@ -357,8 +359,9 @@ if (flags.check) {
   }
 }
 // The one thing that's never negotiable: on any other site, none of it runs.
-if (counts["Unrelated site"]?.calls)
-  failures.push(`Our code ran ${counts["Unrelated site"].calls} times on an unrelated site.`);
+const unrelated = counts["Unrelated site"];
+if (unrelated && (unrelated.calls || unrelated.nodes || unrelated.listeners))
+  failures.push(`Our code touched an unrelated site: ${JSON.stringify(unrelated)}.`);
 
 if (flags.compare || !flags.update) {
   const ref = flags.compare ? await launchWith(await buildRef(flags.compare)) : null;

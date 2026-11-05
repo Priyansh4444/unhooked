@@ -68,15 +68,15 @@ The background uses about 1 MB while awake. It wakes once a minute only while so
 
 ## Keeping it that way
 
-CI holds both size and speed in place, so a regression has to be argued for in a diff.
+CI stops and asks for attention when something grows 10% past where it was. Records only move when someone updates them, so small changes add up towards that limit instead of each getting a free pass.
 
-**Size.** `bun run size` compares every script, stylesheet, page, font and package with `build/sizes.json`, to the byte. Bun is pinned, so a build comes out the same everywhere. A change in either direction fails until `bun run size:update` records it: growth shows up in review, and space that was saved can't be quietly spent again.
+**Size.** `bun run size` compares every script, stylesheet, page, font and package with `build/sizes.json`, and every run lists what changed. It fails past 10%, or 512 bytes for a very small file. `bun run size:update` records the new size in a diff that shows what it cost.
 
-**What runs.** `bun scripts/bench.ts --check` compares how many times our functions ran, and the nodes and listeners we added, with `build/bench.json`, on pages with a fixed amount of change. These repeat exactly from run to run on one browser, so they catch slow creep that no single change would trip. `bun run bench:update` records them. On an unrelated site, our code must run zero times; nothing can record its way past that.
+**What runs.** `bun scripts/bench.ts --check` compares how many times our functions ran, and the nodes and listeners we added, with `build/bench.json`, on pages with a fixed amount of change. These repeat exactly from run to run on one browser, so they catch slow creep. They fail past 10%, or 5 for a very small count, and `bun run bench:update` records them. On an unrelated site our code must do nothing at all, and no record changes that.
 
-**Time.** A pull request is timed against its base with `bun scripts/bench.ts --compare <ref>`, taking turns on the same machine, because times from different machines mean nothing. It fails if, measured twice, a page takes 10% more work and at least 15 ms, or 25% more style work and at least 5 ms. Identical builds differ by about 6 ms in total. Style work has its own limit because a costly selector can be lost in the noise of a page's layout. One page runs with its controls off for the same reason: every control on hides most of a page, and the browser does no style work for what's hidden.
+**Time.** A pull request is timed against its base with `bun scripts/bench.ts --compare <ref>`, taking turns on the same machine, because times from different machines mean nothing. It fails if, measured twice, a page takes 10% more work and at least 15 ms, or 10% more style work and at least 5 ms. Identical builds differ by about 6 ms in total. Style work has its own limit because a costly selector can be lost in the noise of a page's layout. One page runs with its controls off for the same reason: every control on hides most of a page, and the browser does no style work for what's hidden.
 
-A deliberate slow script and a deliberate costly `:has()` rule both fail these checks. Times are compared only between one commit and the next, so a run of small slowdowns that each stay under the limits gets through on time alone; the recorded counts are what catch those. The bench runs in Chromium only.
+A deliberate slow script and a deliberate costly `:has()` rule both fail these checks. Times are compared only between one commit and the next, so a run of small slowdowns that each stay under the limits gets through on time alone; the recorded counts catch the ones that run more code. The bench runs in Chromium only.
 
 Measure with `bun run bench` before adding anything that runs on every page. In particular:
 
